@@ -1,0 +1,41 @@
+[
+  {
+    "id": "track_001",
+    "title": "Midnight Motion",
+    "artist": "FlowSoundz",
+    "album": "After Hours",
+    "genre": "R&B Trap",
+    "vibe": "late_night",
+    "duration_sec": 212,
+    "audio_file": "midnight_motion.mp3",
+    "cover_file": "midnight_motion.jpg",
+    "featured": true,
+    "sponsored": false
+  },
+  {
+    "id": "track_002",
+    "title": "Skyline Bounce",
+    "artist": "FlowSoundz",
+    "album": "Neon Drive",
+    "genre": "Alt Hip-Hop",
+    "vibe": "uplift",
+    "duration_sec": 189,
+    "audio_file": "skyline_bounce.mp3",
+    "cover_file": "skyline_bounce.jpg",
+    "featured": true,
+    "sponsored": false
+  },
+  {
+    "id": "track_003",
+    "title": "Focus Flame",
+    "artist": "FlowSoundz",
+    "album": "Studio Waves",
+    "genre": "Lo-Fi Soul",
+    "vibe": "focus",
+    "duration_sec": 205,
+    "audio_file": "focus_flame.mp3",
+    "cover_file": "focus_flame.jpg",
+    "featured": false,
+    "sponsored": false
+  }
+]
