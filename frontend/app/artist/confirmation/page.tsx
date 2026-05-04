@@ -81,17 +81,30 @@ export default function ConfirmationPage() {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
+    let timer: number | null = null;
     const raw = sessionStorage.getItem("fsz-hub-submission");
     if (raw) {
       try {
         const parsed = JSON.parse(raw) as StoredSubmission;
-        setSubmission(parsed);
-        setPromo(parsed.promo);
+        timer = window.setTimeout(() => {
+          setSubmission(parsed);
+          setPromo(parsed.promo);
+          setLoaded(true);
+        }, 0);
       } catch {
         // ignore
       }
+    } else {
+      timer = window.setTimeout(() => {
+        setLoaded(true);
+      }, 0);
     }
-    setLoaded(true);
+
+    return () => {
+      if (timer !== null) {
+        window.clearTimeout(timer);
+      }
+    };
   }, []);
 
   if (!loaded) return null;

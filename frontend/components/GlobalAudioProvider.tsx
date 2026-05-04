@@ -19,6 +19,7 @@ type GlobalAudioContextValue = {
   audioContextRef: MutableRefObject<AudioContext | null>;
   isReady: boolean;
   isPlaying: boolean;
+  hasStartedPlayback: boolean;
   currentTrack: {
     id: string;
     src: string;
@@ -48,6 +49,7 @@ export function GlobalAudioProvider({ children }: { children: ReactNode }) {
   const skipTrackRef = useRef<(() => Promise<void> | void) | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [hasStartedPlayback, setHasStartedPlayback] = useState(false);
   const [currentTrack, setCurrentTrack] = useState<{
     id: string;
     src: string;
@@ -63,6 +65,9 @@ export function GlobalAudioProvider({ children }: { children: ReactNode }) {
     const syncPlaybackState = () => {
       if (!audio.paused && audioContextRef.current?.state === "suspended") {
         void audioContextRef.current.resume().catch(() => undefined);
+      }
+      if (!audio.paused && !audio.ended) {
+        setHasStartedPlayback(true);
       }
       setIsPlaying(!audio.paused && !audio.ended);
     };
@@ -156,12 +161,13 @@ export function GlobalAudioProvider({ children }: { children: ReactNode }) {
       audioContextRef,
       isReady,
       isPlaying,
+      hasStartedPlayback,
       currentTrack,
       setCurrentTrack,
       togglePlaybackRef,
       skipTrackRef,
     }),
-    [currentTrack, isPlaying, isReady],
+    [currentTrack, hasStartedPlayback, isPlaying, isReady],
   );
 
   return (
