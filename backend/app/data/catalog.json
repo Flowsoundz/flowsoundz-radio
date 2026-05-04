@@ -8,7 +8,7 @@
     "vibe": "late_night",
     "duration_sec": 212,
     "audio_file": "midnight_motion.mp3",
-    "cover_file": "midnight_motion.jpg",
+    "cover_file": "midnight_motion.svg",
     "featured": true,
     "sponsored": false
   },
@@ -21,7 +21,7 @@
     "vibe": "uplift",
     "duration_sec": 189,
     "audio_file": "skyline_bounce.mp3",
-    "cover_file": "skyline_bounce.jpg",
+    "cover_file": "skyline_bounce.svg",
     "featured": true,
     "sponsored": false
   },
@@ -34,7 +34,7 @@
     "vibe": "focus",
     "duration_sec": 205,
     "audio_file": "focus_flame.mp3",
-    "cover_file": "focus_flame.jpg",
+    "cover_file": "focus_flame.svg",
     "featured": false,
     "sponsored": false
   }

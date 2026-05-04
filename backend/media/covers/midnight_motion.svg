@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1200">
+  <rect width="1200" height="1200" fill="#050816"/>
+  <circle cx="840" cy="290" r="220" fill="#22d3ee" opacity="0.16"/>
+  <circle cx="300" cy="860" r="280" fill="#7c3aed" opacity="0.18"/>
+  <text x="100" y="500" fill="#e2e8f0" font-family="Arial, sans-serif" font-size="96" font-weight="700">
+    Midnight Motion
+  </text>
+  <text x="100" y="610" fill="#67e8f9" font-family="Arial, sans-serif" font-size="42" letter-spacing="10">
+    FLOWSOUNDZ
+  </text>
+</svg>

@@ -1,5 +1,53 @@
+import path from "node:path";
 import type { NextConfig } from "next";
+import type { RemotePattern } from "next/dist/shared/lib/image-config";
 
-const nextConfig: NextConfig = {};
+function getBackendCoverPattern(): RemotePattern | null {
+  const apiBase = process.env.NEXT_PUBLIC_API_BASE;
+
+  if (!apiBase) {
+    return null;
+  }
+
+  try {
+    const parsed = new URL(apiBase);
+    return {
+      protocol:
+        parsed.protocol === "https:" ? "https" : "http",
+      hostname: parsed.hostname,
+      port: parsed.port,
+      pathname: "/covers/**",
+    };
+  } catch {
+    return null;
+  }
+}
+
+const backendCoverPattern = getBackendCoverPattern();
+
+const nextConfig: NextConfig = {
+  distDir: ".next-runtime",
+  outputFileTracingRoot: path.resolve(__dirname),
+  turbopack: {
+    root: path.resolve(__dirname),
+  },
+  images: {
+    remotePatterns: [
+      {
+        protocol: "http",
+        hostname: "127.0.0.1",
+        port: "8000",
+        pathname: "/covers/**",
+      },
+      {
+        protocol: "http",
+        hostname: "localhost",
+        port: "8000",
+        pathname: "/covers/**",
+      },
+      ...(backendCoverPattern ? [backendCoverPattern] : []),
+    ],
+  },
+};
 
 export default nextConfig;
