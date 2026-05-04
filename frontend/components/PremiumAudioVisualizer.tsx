@@ -1,9 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef } from "react";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
+import { useCallback, useEffect, useRef } from "react";
+import { useGlobalAudio } from "@/components/GlobalAudioProvider";
 
 type WaveLayer = {
   baseline: number;
@@ -13,19 +12,6 @@ type WaveLayer = {
   phase: number;
   thickness: number;
   opacity: number;
-};
-
-type DriftParticle = {
-  x: number;
-  y: number;
-  prevX: number;
-  prevY: number;
-  vx: number;
-  vy: number;
-  size: number;
-  life: number;
-  maxLife: number;
-  color: string;
 };
 
 type SparkParticle = {
@@ -60,56 +46,70 @@ type Props = {
   showLogo?: boolean;
 };
 
-// ─── Palette ──────────────────────────────────────────────────────────────────
-
-const LEFT_CORE       = "#00e5ff";
-const LEFT_OUTER      = "#2e6bff";
-const LEFT_MIST       = "#dff9ff";
-const RIGHT_CORE      = "#ff3df2";
-const RIGHT_OUTER     = "#7c4dff";
-const RIGHT_WARM      = "#ff9f1c";
-const CENTER_WHITE    = "#f7d9ff";
-const SPARK_COLORS    = [LEFT_CORE, RIGHT_CORE, RIGHT_OUTER, RIGHT_WARM, LEFT_MIST];
-
-// ─── Wave definitions ─────────────────────────────────────────────────────────
+const LEFT_CORE = "#00e5ff";
+const LEFT_OUTER = "#2e6bff";
+const LEFT_MIST = "#dff9ff";
+const RIGHT_CORE = "#ff3df2";
+const RIGHT_OUTER = "#7c4dff";
+const RIGHT_WARM = "#ff9f1c";
+const CENTER_WHITE = "#fdf4ff";
+const SPARK_COLORS = [LEFT_CORE, RIGHT_CORE, RIGHT_OUTER, RIGHT_WARM, LEFT_MIST];
 
 const LEFT_LAYERS: WaveLayer[] = [
-  { baseline: 0.74, amplitude: 0.20, frequency: 0.62, speed:  0.06, phase: Math.PI * 0.55, thickness: 0.38, opacity: 0.36 },
-  { baseline: 0.66, amplitude: 0.15, frequency: 1.0,  speed:  0.12, phase: 0,              thickness: 0.28, opacity: 0.52 },
-  { baseline: 0.57, amplitude: 0.11, frequency: 1.62, speed:  0.19, phase: Math.PI * 0.4,  thickness: 0.20, opacity: 0.68 },
-  { baseline: 0.49, amplitude: 0.08, frequency: 2.41, speed:  0.28, phase: Math.PI * 0.92, thickness: 0.14, opacity: 0.85 },
+  { baseline: 0.78, amplitude: 0.22, frequency: 0.62, speed: 0.08, phase: Math.PI * 0.55, thickness: 0.48, opacity: 0.44 },
+  { baseline: 0.68, amplitude: 0.17, frequency: 1.0, speed: 0.14, phase: 0, thickness: 0.36, opacity: 0.6 },
+  { baseline: 0.58, amplitude: 0.13, frequency: 1.62, speed: 0.22, phase: Math.PI * 0.4, thickness: 0.26, opacity: 0.8 },
+  { baseline: 0.5, amplitude: 0.1, frequency: 2.42, speed: 0.3, phase: Math.PI * 0.92, thickness: 0.18, opacity: 1 },
 ];
 
 const RIGHT_LAYERS: WaveLayer[] = [
-  { baseline: 0.75, amplitude: 0.20, frequency: 0.59, speed: -0.05, phase: Math.PI * 0.88, thickness: 0.38, opacity: 0.36 },
-  { baseline: 0.67, amplitude: 0.15, frequency: 1.0,  speed: -0.10, phase: Math.PI * 0.22, thickness: 0.28, opacity: 0.52 },
-  { baseline: 0.58, amplitude: 0.11, frequency: 1.52, speed: -0.18, phase: Math.PI * 0.78, thickness: 0.20, opacity: 0.68 },
-  { baseline: 0.50, amplitude: 0.08, frequency: 2.30, speed: -0.27, phase: Math.PI * 1.28, thickness: 0.14, opacity: 0.85 },
+  { baseline: 0.78, amplitude: 0.22, frequency: 0.58, speed: -0.08, phase: Math.PI * 0.88, thickness: 0.48, opacity: 0.44 },
+  { baseline: 0.68, amplitude: 0.17, frequency: 1.0, speed: -0.13, phase: Math.PI * 0.22, thickness: 0.36, opacity: 0.6 },
+  { baseline: 0.58, amplitude: 0.13, frequency: 1.5, speed: -0.21, phase: Math.PI * 0.78, thickness: 0.26, opacity: 0.8 },
+  { baseline: 0.5, amplitude: 0.1, frequency: 2.28, speed: -0.29, phase: Math.PI * 1.28, thickness: 0.18, opacity: 1 },
 ];
 
-const MAX_DRIFT      = 36;
-const MAX_SPARKS     = 60;
-const MAX_RINGS      = 8;
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+const MAX_RINGS = 8;
+const MAX_SPARKS_DESKTOP = 72;
+const MAX_SPARKS_MOBILE = 36;
+const EQ_BAR_COUNT = 20;
+const RADIO_BASS_HZ = 150;
 
-function bandAverage(data: Uint8Array, from: number, to: number) {
-  const end = Math.min(data.length, to);
-  if (end <= from) return 0;
-  let total = 0;
-  for (let i = from; i < end; i++) total += data[i] ?? 0;
-  return total / (end - from) / 255;
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function lerp(from: number, to: number, amount: number) {
+  return from + (to - from) * amount;
 }
 
 function hexToRgba(hex: string, alpha: number) {
-  const v = hex.replace("#", "");
-  const full = v.length === 3 ? v.split("").map(c => c + c).join("") : v;
-  const r = parseInt(full.slice(0, 2), 16);
-  const g = parseInt(full.slice(2, 4), 16);
-  const b = parseInt(full.slice(4, 6), 16);
+  const value = hex.replace("#", "");
+  const full = value.length === 3 ? value.split("").map((c) => c + c).join("") : value;
+  const r = Number.parseInt(full.slice(0, 2), 16);
+  const g = Number.parseInt(full.slice(2, 4), 16);
+  const b = Number.parseInt(full.slice(4, 6), 16);
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
-// ─── Draw: Background ─────────────────────────────────────────────────────────
+function getFrequencyRangeAverage(
+  data: Uint8Array,
+  sampleRate: number,
+  fftSize: number,
+  minHz: number,
+  maxHz: number,
+) {
+  const binHz = sampleRate / fftSize;
+  const start = clamp(Math.floor(minHz / binHz), 0, data.length - 1);
+  const end = clamp(Math.ceil(maxHz / binHz), start + 1, data.length);
+  let total = 0;
+
+  for (let i = start; i < end; i += 1) {
+    total += data[i] ?? 0;
+  }
+
+  return total / Math.max(1, end - start) / 255;
+}
 
 function paintBackground(
   ctx: CanvasRenderingContext2D,
@@ -118,34 +118,38 @@ function paintBackground(
   motionTime: number,
   volume: number,
   bass: number,
+  pulse: number,
 ) {
-  // Dark smear — enough opacity to prevent colour accumulation blowing out to white
-  ctx.fillStyle = "rgba(5, 8, 20, 0.35)";
+  ctx.fillStyle = "rgba(2, 4, 12, 0.26)";
   ctx.fillRect(0, 0, w, h);
 
-  // Left ambient
-  const lg = ctx.createRadialGradient(w * 0.12, h * 0.36, 0, w * 0.12, h * 0.36, w * 0.52);
-  lg.addColorStop(0,   hexToRgba(LEFT_CORE,  0.28 + volume * 0.18 + bass * 0.10));
-  lg.addColorStop(0.5, hexToRgba(LEFT_OUTER, 0.12));
-  lg.addColorStop(1,   "rgba(0,0,0,0)");
-  ctx.fillStyle = lg;
+  const leftGlow = ctx.createRadialGradient(w * 0.14, h * 0.4, 0, w * 0.14, h * 0.4, w * 0.62);
+  leftGlow.addColorStop(0, hexToRgba(LEFT_CORE, 0.48 + volume * 0.42 + pulse * 0.32));
+  leftGlow.addColorStop(0.38, hexToRgba(LEFT_OUTER, 0.22 + bass * 0.16));
+  leftGlow.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = leftGlow;
   ctx.fillRect(0, 0, w, h);
 
-  // Right ambient
-  const rg = ctx.createRadialGradient(w * 0.88, h * 0.38, 0, w * 0.88, h * 0.38, w * 0.52);
-  rg.addColorStop(0,   hexToRgba(RIGHT_CORE,  0.28 + volume * 0.18 + bass * 0.10));
-  rg.addColorStop(0.5, hexToRgba(RIGHT_OUTER, 0.12));
-  rg.addColorStop(1,   "rgba(0,0,0,0)");
-  ctx.fillStyle = rg;
+  const rightGlow = ctx.createRadialGradient(w * 0.86, h * 0.4, 0, w * 0.86, h * 0.4, w * 0.62);
+  rightGlow.addColorStop(0, hexToRgba(RIGHT_CORE, 0.46 + volume * 0.42 + pulse * 0.32));
+  rightGlow.addColorStop(0.38, hexToRgba(RIGHT_OUTER, 0.22 + bass * 0.16));
+  rightGlow.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = rightGlow;
   ctx.fillRect(0, 0, w, h);
 
-  // Subtle digital scan lines
-  const lineSpacing = Math.max(4, Math.floor(h / 60));
+  const centerWash = ctx.createRadialGradient(w * 0.5, h * 0.48, 0, w * 0.5, h * 0.48, w * 0.34);
+  centerWash.addColorStop(0, hexToRgba(CENTER_WHITE, 0.18 + volume * 0.16 + pulse * 0.18));
+  centerWash.addColorStop(0.45, hexToRgba("#7c4dff", 0.12 + bass * 0.12));
+  centerWash.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = centerWash;
+  ctx.fillRect(0, 0, w, h);
+
   ctx.save();
-  ctx.globalAlpha = 0.8;
-  ctx.strokeStyle = "#ffffff";
-  ctx.lineWidth = 0.5;
-  for (let y = 0; y < h; y += lineSpacing) {
+  ctx.globalAlpha = 0.6;
+  ctx.strokeStyle = "rgba(255,255,255,0.08)";
+  ctx.lineWidth = 1;
+  const spacing = Math.max(5, Math.floor(h / 52));
+  for (let y = 0; y < h; y += spacing) {
     ctx.beginPath();
     ctx.moveTo(0, y);
     ctx.lineTo(w, y);
@@ -153,12 +157,11 @@ function paintBackground(
   }
   ctx.restore();
 
-  // Drifting vertical lines
   ctx.save();
-  ctx.strokeStyle = "rgba(255,255,255,0.08)";
+  ctx.strokeStyle = "rgba(255,255,255,0.09)";
   ctx.lineWidth = 1;
-  const drift = Math.sin(motionTime * 0.4 + bass * 3.2) * w * (0.02 + volume * 0.015);
-  for (let x = -w * 0.06; x < w * 1.06; x += w / 11) {
+  const drift = Math.sin(motionTime * 0.5 + bass * 4.5) * w * (0.024 + volume * 0.03 + pulse * 0.02);
+  for (let x = -w * 0.1; x < w * 1.1; x += w / 10) {
     ctx.beginPath();
     ctx.moveTo(x + drift, 0);
     ctx.lineTo(x - drift, h);
@@ -167,40 +170,36 @@ function paintBackground(
   ctx.restore();
 }
 
-// ─── Draw: Waves ──────────────────────────────────────────────────────────────
-
 function buildWavePoints(
   side: "left" | "right",
   layer: WaveLayer,
   w: number,
   h: number,
   elapsed: number,
-  energy: number,
+  volume: number,
+  bass: number,
+  pulse: number,
 ) {
-  const steps = 54;
   const points: { x: number; y: number }[] = [];
-  const dir    = side === "left" ? 1 : -1;
-  const startX = side === "left" ? -w * 0.12 : w * 1.12;
-  const reach  = w * 0.82;
-  const amp    = h * layer.amplitude * (1.2 + energy * 1.8);
-  const base   = h * layer.baseline;
+  const steps = w < 900 ? 42 : 56;
+  const dir = side === "left" ? 1 : -1;
+  const startX = side === "left" ? -w * 0.16 : w * 1.16;
+  const reach = w * 0.84;
+  const base = h * layer.baseline;
+  const amp = h * layer.amplitude * (1.08 + volume * 2.4 + bass * 2.8 + pulse * 1.8);
+  const bassWarp = 0.2 + bass * 0.95 + pulse * 0.8;
 
-  for (let i = 0; i <= steps; i++) {
-    const t   = i / steps;
-    const x   = startX + dir * reach * t;
-    // Primary
-    const p1  = Math.sin(t * Math.PI * layer.frequency + elapsed * layer.speed + layer.phase) * amp;
-    // φ sub-harmonic — creates the wide belly of a paint pour
-    const p2  = Math.sin(t * Math.PI * layer.frequency * 0.618 - elapsed * layer.speed * 0.77) * amp * 0.42;
-    // φ super-harmonic — fine ripples at the leading edge
-    const p3  = Math.sin(t * Math.PI * layer.frequency * 1.618 + elapsed * layer.speed * 0.44 + layer.phase * 1.3) * amp * 0.22;
-    // 2φ+1 harmonic — surface micro-texture
-    const p4  = Math.sin(t * Math.PI * layer.frequency * 2.414 - elapsed * layer.speed * 0.31 + layer.phase * 0.7) * amp * 0.14;
-    // Very slow deep undulation — the viscous rolling of thick paint
-    const p5  = Math.sin(t * Math.PI * 0.382 + elapsed * 0.09 + layer.phase * 0.4) * amp * 0.32;
-    const lift = Math.sin(t * Math.PI) * h * 0.18 * (0.5 + energy * 1.2);
-    points.push({ x, y: base - p1 - p2 - p3 - p4 - p5 - lift });
+  for (let i = 0; i <= steps; i += 1) {
+    const t = i / steps;
+    const x = startX + dir * reach * t;
+    const p1 = Math.sin(t * Math.PI * layer.frequency + elapsed * layer.speed + layer.phase) * amp;
+    const p2 = Math.sin(t * Math.PI * layer.frequency * 0.62 - elapsed * layer.speed * 0.78) * amp * 0.48;
+    const p3 = Math.sin(t * Math.PI * layer.frequency * 1.68 + elapsed * layer.speed * 0.52 + layer.phase * 1.12) * amp * (0.18 + bassWarp * 0.14);
+    const p4 = Math.sin(t * Math.PI * 2.8 + elapsed * 0.9 + layer.phase * 0.7) * amp * (0.06 + pulse * 0.12);
+    const lift = Math.sin(t * Math.PI) * h * (0.14 + volume * 0.08 + bass * 0.12);
+    points.push({ x, y: base - p1 - p2 - p3 - p4 - lift });
   }
+
   return points;
 }
 
@@ -212,15 +211,16 @@ function traceFilledWave(
   h: number,
   thickness: number,
 ) {
-  const anchorX = side === "left" ? -w * 0.16 : w * 1.16;
-  const floorY  = h + h * thickness;
+  const anchorX = side === "left" ? -w * 0.2 : w * 1.2;
+  const floorY = h + h * thickness;
+
   ctx.beginPath();
   ctx.moveTo(anchorX, floorY);
   ctx.lineTo(points[0]!.x, points[0]!.y);
-  for (let i = 1; i < points.length - 1; i++) {
-    const cur  = points[i]!;
+  for (let i = 1; i < points.length - 1; i += 1) {
+    const current = points[i]!;
     const next = points[i + 1]!;
-    ctx.quadraticCurveTo(cur.x, cur.y, (cur.x + next.x) * 0.5, (cur.y + next.y) * 0.5);
+    ctx.quadraticCurveTo(current.x, current.y, (current.x + next.x) * 0.5, (current.y + next.y) * 0.5);
   }
   ctx.lineTo(points[points.length - 1]!.x, points[points.length - 1]!.y);
   ctx.lineTo(anchorX, floorY);
@@ -234,52 +234,53 @@ function paintWaveSystem(
   w: number,
   h: number,
   elapsed: number,
-  energy: number,
+  volume: number,
+  bass: number,
+  pulse: number,
 ) {
   const colors = side === "left"
-    ? [LEFT_OUTER, LEFT_CORE, "#00c8e0", LEFT_OUTER]
-    : [RIGHT_WARM, RIGHT_OUTER, RIGHT_CORE, RIGHT_OUTER];
+    ? [LEFT_OUTER, LEFT_CORE, "#4ff8ff", LEFT_MIST]
+    : [RIGHT_OUTER, RIGHT_CORE, RIGHT_WARM, CENTER_WHITE];
 
-  layers.forEach((layer, i) => {
-    const points = buildWavePoints(side, layer, w, h, elapsed, energy);
+  layers.forEach((layer, index) => {
+    const points = buildWavePoints(side, layer, w, h, elapsed, volume, bass, pulse);
     traceFilledWave(ctx, points, side, w, h, layer.thickness);
 
-    const topY = Math.min(...points.map(p => p.y));
+    const topY = Math.min(...points.map((point) => point.y));
+    const leadColor = colors[Math.min(index + 1, colors.length - 1)]!;
+    const bodyColor = colors[index]!;
     const grad = ctx.createLinearGradient(0, topY, 0, h);
-    grad.addColorStop(0,    hexToRgba("#ffffff", layer.opacity * 0.20));
-    grad.addColorStop(0.12, hexToRgba(colors[Math.min(i + 1, colors.length - 1)]!, layer.opacity * 0.95));
-    grad.addColorStop(0.44, hexToRgba(colors[i]!, layer.opacity * 0.80));
-    grad.addColorStop(1,    "rgba(0,0,0,0)");
+    grad.addColorStop(0, hexToRgba(CENTER_WHITE, layer.opacity * (0.2 + pulse * 0.12)));
+    grad.addColorStop(0.12, hexToRgba(leadColor, layer.opacity * (1.2 + volume * 0.28)));
+    grad.addColorStop(0.44, hexToRgba(bodyColor, layer.opacity * (0.96 + bass * 0.2)));
+    grad.addColorStop(1, "rgba(0,0,0,0)");
 
     ctx.save();
     ctx.globalCompositeOperation = "screen";
     ctx.fillStyle = grad;
-    ctx.shadowColor = colors[Math.min(i + 1, colors.length - 1)]!;
-    ctx.shadowBlur  = 60 + energy * 45 - i * 4;
+    ctx.shadowColor = leadColor;
+    ctx.shadowBlur = 110 + volume * 90 + bass * 100 + pulse * 60 - index * 8;
     ctx.fill();
     ctx.restore();
 
-    // Edge highlight stroke — smooth bezier pass
     ctx.save();
     ctx.beginPath();
     ctx.moveTo(points[0]!.x, points[0]!.y);
-    for (let j = 1; j < points.length - 1; j++) {
-      const cur  = points[j]!;
-      const next = points[j + 1]!;
-      ctx.quadraticCurveTo(cur.x, cur.y, (cur.x + next.x) * 0.5, (cur.y + next.y) * 0.5);
+    for (let i = 1; i < points.length - 1; i += 1) {
+      const current = points[i]!;
+      const next = points[i + 1]!;
+      ctx.quadraticCurveTo(current.x, current.y, (current.x + next.x) * 0.5, (current.y + next.y) * 0.5);
     }
     ctx.lineTo(points[points.length - 1]!.x, points[points.length - 1]!.y);
-    ctx.strokeStyle = hexToRgba("#ffffff", 0.18 + energy * 0.10 - i * 0.03);
-    ctx.lineWidth   = Math.max(2.5, 4.5 - i * 0.5);
-    ctx.shadowColor = colors[Math.min(i + 1, colors.length - 1)]!;
-    ctx.shadowBlur  = 45 + energy * 35;
+    ctx.strokeStyle = hexToRgba(CENTER_WHITE, 0.28 + volume * 0.18 + pulse * 0.14 - index * 0.03);
+    ctx.lineWidth = Math.max(4, 8 - index);
+    ctx.shadowColor = leadColor;
+    ctx.shadowBlur = 70 + volume * 65 + bass * 55;
     ctx.globalCompositeOperation = "screen";
     ctx.stroke();
     ctx.restore();
   });
 }
-
-// ─── Draw: Center energy ──────────────────────────────────────────────────────
 
 function paintCenterEnergy(
   ctx: CanvasRenderingContext2D,
@@ -288,150 +289,136 @@ function paintCenterEnergy(
   bass: number,
   mids: number,
   volume: number,
+  pulse: number,
   motionTime: number,
 ) {
   const cx = w * 0.5;
   const cy = h * 0.5;
-  const r  = w * (0.14 + volume * 0.05 + bass * 0.11);
+  const baseRadius = w * (0.12 + volume * 0.06 + bass * 0.08 + pulse * 0.05);
 
-  // Outer bloom
-  const bloom = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 1.6);
-  bloom.addColorStop(0,    hexToRgba("#ffffff",   0.18 + volume * 0.14));
-  bloom.addColorStop(0.08, hexToRgba(LEFT_CORE,   0.22 + bass * 0.12));
-  bloom.addColorStop(0.22, hexToRgba(CENTER_WHITE, 0.28 + mids * 0.10));
-  bloom.addColorStop(0.52, hexToRgba(RIGHT_CORE,   0.20 + volume * 0.10));
-  bloom.addColorStop(1,    "rgba(0,0,0,0)");
+  const bloom = ctx.createRadialGradient(cx, cy, 0, cx, cy, baseRadius * 2.2);
+  bloom.addColorStop(0, hexToRgba("#ffffff", 0.38 + volume * 0.2 + pulse * 0.16));
+  bloom.addColorStop(0.08, hexToRgba(LEFT_CORE, 0.44 + bass * 0.26 + pulse * 0.16));
+  bloom.addColorStop(0.2, hexToRgba(CENTER_WHITE, 0.54 + mids * 0.18));
+  bloom.addColorStop(0.44, hexToRgba(RIGHT_CORE, 0.34 + volume * 0.18));
+  bloom.addColorStop(1, "rgba(0,0,0,0)");
   ctx.save();
   ctx.globalCompositeOperation = "screen";
   ctx.fillStyle = bloom;
-  ctx.fillRect(cx - r * 1.6, cy - r * 1.6, r * 3.2, r * 3.2);
+  ctx.fillRect(cx - baseRadius * 2.2, cy - baseRadius * 2.2, baseRadius * 4.4, baseRadius * 4.4);
   ctx.restore();
 
-  // Inner corona — tight bright core
-  const inner = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 0.38);
-  inner.addColorStop(0,   hexToRgba("#ffffff",  0.25 + bass * 0.15));
-  inner.addColorStop(0.4, hexToRgba(LEFT_CORE,  0.18 + volume * 0.12));
-  inner.addColorStop(1,   "rgba(0,0,0,0)");
+  const inner = ctx.createRadialGradient(cx, cy, 0, cx, cy, baseRadius * 0.52);
+  inner.addColorStop(0, hexToRgba("#ffffff", 0.8 + pulse * 0.12));
+  inner.addColorStop(0.36, hexToRgba(LEFT_CORE, 0.46 + volume * 0.18));
+  inner.addColorStop(0.75, hexToRgba(RIGHT_CORE, 0.26 + bass * 0.12));
+  inner.addColorStop(1, "rgba(0,0,0,0)");
   ctx.save();
   ctx.globalCompositeOperation = "screen";
   ctx.fillStyle = inner;
-  ctx.fillRect(cx - r * 0.38, cy - r * 0.38, r * 0.76, r * 0.76);
+  ctx.fillRect(cx - baseRadius, cy - baseRadius, baseRadius * 2, baseRadius * 2);
   ctx.restore();
 
-  // Animated rings
-  for (let i = 0; i < 4; i++) {
-    const wobble = Math.sin(motionTime * (1.8 + i * 0.75) + bass * 10 + mids * 6 + i) * w * (0.02 + volume * 0.015);
-    const ringR  = w * (0.042 + i * 0.042) + wobble;
-    const col    = i % 2 === 0 ? LEFT_CORE : RIGHT_CORE;
+  for (let i = 0; i < 4; i += 1) {
+    const wobble = Math.sin(motionTime * (1.9 + i * 0.6) + bass * 10 + mids * 5 + i) * w * (0.02 + bass * 0.02 + pulse * 0.015);
+    const radius = w * (0.05 + i * 0.043) + wobble + pulse * w * 0.018;
+    const color = i % 2 === 0 ? LEFT_CORE : RIGHT_CORE;
     ctx.save();
     ctx.beginPath();
-    ctx.arc(cx, cy, ringR, 0, Math.PI * 2);
-    ctx.globalAlpha = 0.9;
-    ctx.strokeStyle = hexToRgba(col, 0.9 - i * 0.08);
-    ctx.lineWidth   = Math.max(3, 5 - i * 0.35);
-    ctx.shadowColor = col;
-    ctx.shadowBlur  = 40 + volume * 40 + bass * 30;
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+    ctx.strokeStyle = hexToRgba(color, 0.82 - i * 0.09);
+    ctx.lineWidth = Math.max(3.5, 7 - i * 0.7 + pulse * 1.3);
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 72 + volume * 70 + bass * 80 + pulse * 60;
     ctx.globalCompositeOperation = "screen";
     ctx.stroke();
     ctx.restore();
   }
 }
-
-// ─── Draw: EQ bars ────────────────────────────────────────────────────────────
 
 function paintEqualizer(
   ctx: CanvasRenderingContext2D,
   w: number,
   h: number,
   volume: number,
-  bandLevels: Float32Array,
+  pulse: number,
+  bands: Float32Array,
 ) {
-  const barW    = w * 0.014;
-  const gap     = w * 0.007;
-  const count   = bandLevels.length;
-  const totalW  = count * barW + (count - 1) * gap;
-  const startX  = w * 0.5 - totalW * 0.5;
-  const baseY   = h * 0.87;
-  const maxH    = h * 0.20;
+  const barWidth = w * 0.016;
+  const gap = w * 0.0065;
+  const totalWidth = bands.length * barWidth + (bands.length - 1) * gap;
+  const startX = w * 0.5 - totalWidth * 0.5;
+  const baseY = h * 0.88;
+  const maxHeight = h * 0.24;
 
-  for (let i = 0; i < count; i++) {
-    const t        = i / Math.max(1, count - 1);
-    const band     = bandLevels[i] ?? 0;
-    const center   = 1 - Math.abs(t - 0.5) * 0.3;
-    const energy   = band * (0.76 + center * 0.24);
-    const barH     = Math.max(h * 0.018, maxH * (0.08 + energy * (0.86 + volume * 0.44)));
-    const x        = startX + i * (barW + gap);
-    const y        = baseY - barH;
-    const accent   = t < 0.5 ? LEFT_CORE : RIGHT_CORE;
-
+  for (let i = 0; i < bands.length; i += 1) {
+    const t = i / Math.max(1, bands.length - 1);
+    const energy = bands[i] ?? 0;
+    const barHeight = Math.max(h * 0.026, maxHeight * (0.1 + energy * 1.08 + volume * 0.12 + pulse * 0.08));
+    const x = startX + i * (barWidth + gap);
+    const y = baseY - barHeight;
+    const accent = t < 0.5 ? LEFT_CORE : RIGHT_CORE;
     const grad = ctx.createLinearGradient(x, y, x, baseY);
-    grad.addColorStop(0,   accent);
-    grad.addColorStop(0.5, CENTER_WHITE);
-    grad.addColorStop(1,   "rgba(255,255,255,0.06)");
+    grad.addColorStop(0, CENTER_WHITE);
+    grad.addColorStop(0.38, accent);
+    grad.addColorStop(1, hexToRgba(accent, 0.08));
 
     ctx.save();
-    ctx.globalAlpha = 0.95 + volume * 0.05;
     ctx.globalCompositeOperation = "screen";
-    ctx.fillStyle  = grad;
+    ctx.fillStyle = grad;
     ctx.shadowColor = accent;
-    ctx.shadowBlur  = 32 + energy * 28;
-    ctx.fillRect(x, y, barW, barH);
+    ctx.shadowBlur = 48 + energy * 40 + pulse * 24;
+    ctx.fillRect(x, y, barWidth, barHeight);
     ctx.restore();
   }
 }
 
-// ─── Draw: Ring bursts (beat reactive) ───────────────────────────────────────
-
 function paintRingBursts(ctx: CanvasRenderingContext2D, rings: RingBurst[]) {
   for (const ring of rings) {
-    if (ring.life <= 0) continue;
+    if (ring.life <= 0) {
+      continue;
+    }
+
     const progress = ring.radius / ring.maxRadius;
-    const alpha    = ring.life * (1 - progress * 0.6);
+    const alpha = ring.life * (1 - progress * 0.58);
     ctx.save();
     ctx.beginPath();
     ctx.arc(ring.x, ring.y, ring.radius, 0, Math.PI * 2);
-    ctx.strokeStyle = hexToRgba(ring.color, Math.max(0, alpha * 1.0));
-    ctx.lineWidth   = ring.thickness * (1 - progress * 0.7);
+    ctx.strokeStyle = hexToRgba(ring.color, Math.max(0, alpha));
+    ctx.lineWidth = Math.max(1.6, ring.thickness * (1 - progress * 0.74));
     ctx.shadowColor = ring.color;
-    ctx.shadowBlur  = 50 + ring.life * 40;
+    ctx.shadowBlur = 86 * ring.life;
     ctx.globalCompositeOperation = "screen";
     ctx.stroke();
     ctx.restore();
   }
 }
 
-// ─── Draw: Sparks ─────────────────────────────────────────────────────────────
-
 function paintSparks(ctx: CanvasRenderingContext2D, sparks: SparkParticle[]) {
   for (const spark of sparks) {
-    if (spark.life <= 0) continue;
-
-    // Trail line from previous position
-    const trailDx = spark.x - spark.prevX;
-    const trailDy = spark.y - spark.prevY;
-    const trailLen = Math.sqrt(trailDx * trailDx + trailDy * trailDy);
-    if (trailLen > 0.5) {
-      const trailGrad = ctx.createLinearGradient(spark.prevX, spark.prevY, spark.x, spark.y);
-      trailGrad.addColorStop(0, hexToRgba(spark.color, 0));
-      trailGrad.addColorStop(1, hexToRgba(spark.color, spark.life * 0.9));
-      ctx.save();
-      ctx.strokeStyle = trailGrad;
-      ctx.lineWidth   = spark.size * spark.life * 1.2;
-      ctx.shadowColor = spark.color;
-      ctx.shadowBlur  = 18;
-      ctx.globalCompositeOperation = "screen";
-      ctx.beginPath();
-      ctx.moveTo(spark.prevX, spark.prevY);
-      ctx.lineTo(spark.x, spark.y);
-      ctx.stroke();
-      ctx.restore();
+    if (spark.life <= 0) {
+      continue;
     }
 
-    // Head dot
+    const trail = ctx.createLinearGradient(spark.prevX, spark.prevY, spark.x, spark.y);
+    trail.addColorStop(0, hexToRgba(spark.color, 0));
+    trail.addColorStop(1, hexToRgba(spark.color, spark.life * 0.92));
     ctx.save();
-    ctx.fillStyle   = hexToRgba(spark.color, spark.life * 0.95);
+    ctx.strokeStyle = trail;
+    ctx.lineWidth = spark.size * spark.life * 1.2;
     ctx.shadowColor = spark.color;
-    ctx.shadowBlur  = 24 + spark.life * 28;
+    ctx.shadowBlur = 24;
+    ctx.globalCompositeOperation = "screen";
+    ctx.beginPath();
+    ctx.moveTo(spark.prevX, spark.prevY);
+    ctx.lineTo(spark.x, spark.y);
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.save();
+    ctx.fillStyle = hexToRgba(spark.color, spark.life);
+    ctx.shadowColor = spark.color;
+    ctx.shadowBlur = 30 + spark.life * 22;
     ctx.globalCompositeOperation = "screen";
     ctx.beginPath();
     ctx.arc(spark.x, spark.y, spark.size * spark.life, 0, Math.PI * 2);
@@ -440,71 +427,33 @@ function paintSparks(ctx: CanvasRenderingContext2D, sparks: SparkParticle[]) {
   }
 }
 
-// ─── Draw: Drift particles ────────────────────────────────────────────────────
-
-function paintDriftParticles(ctx: CanvasRenderingContext2D, particles: DriftParticle[]) {
-  for (const p of particles) {
-    if (p.life <= 0) continue;
-    const alpha = (p.life / p.maxLife) * 0.92;
-
-    // Soft trail behind drift direction
-    const tdx = p.x - p.prevX;
-    const tdy = p.y - p.prevY;
-    const tlen = Math.sqrt(tdx * tdx + tdy * tdy);
-    if (tlen > 0.3) {
-      const tg = ctx.createLinearGradient(p.prevX, p.prevY, p.x, p.y);
-      tg.addColorStop(0, hexToRgba(p.color, 0));
-      tg.addColorStop(1, hexToRgba(p.color, alpha * 0.8));
-      ctx.save();
-      ctx.strokeStyle = tg;
-      ctx.lineWidth   = p.size * 1.4;
-      ctx.shadowColor = p.color;
-      ctx.shadowBlur  = 16;
-      ctx.globalCompositeOperation = "screen";
-      ctx.beginPath();
-      ctx.moveTo(p.prevX, p.prevY);
-      ctx.lineTo(p.x, p.y);
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    // Head dot
-    ctx.save();
-    ctx.fillStyle   = hexToRgba(p.color, alpha);
-    ctx.shadowColor = p.color;
-    ctx.shadowBlur  = 28;
-    ctx.globalCompositeOperation = "screen";
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-  }
-}
-
-// ─── Component ────────────────────────────────────────────────────────────────
-
 export function PremiumAudioVisualizer({
   analyser,
   audioRef,
-  isPlaying  = false,
+  isPlaying = false,
   className,
   fullHeight = false,
-  showFrame  = true,
-  showLogo   = true,
+  showFrame = true,
+  showLogo = true,
 }: Props) {
-  const wrapRef     = useRef<HTMLDivElement>(null);
-  const canvasRef   = useRef<HTMLCanvasElement>(null);
-  const rafRef      = useRef<number>(0);
+  const {
+    audioRef: globalAudioRef,
+    analyserRef: globalAnalyserRef,
+    dataArrayRef: globalDataArrayRef,
+  } = useGlobalAudio();
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const rafRef = useRef<number>(0);
   const analyserRef = useRef<AnalyserNode | null | undefined>(analyser);
-  const playingRef  = useRef<boolean>(isPlaying);
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const mediaSourceRef = useRef<MediaElementAudioSourceNode | null>(null);
-  const localAnalyserRef = useRef<AnalyserNode | null>(null);
-  const dataArrayRef = useRef<Uint8Array | null>(null);
+  const playingRef = useRef<boolean>(isPlaying);
 
-  function resolveAudioElement() {
+  const resolveAudioElement = useCallback(() => {
     if (audioRef?.current) {
       return audioRef.current;
+    }
+
+    if (globalAudioRef.current) {
+      return globalAudioRef.current;
     }
 
     if (typeof document === "undefined") {
@@ -512,7 +461,7 @@ export function PremiumAudioVisualizer({
     }
 
     const audioElements = Array.from(document.querySelectorAll("audio"));
-    const preferred =
+    return (
       audioElements.find(
         (audio) =>
           audio.id !== "bedPlayer" &&
@@ -521,427 +470,301 @@ export function PremiumAudioVisualizer({
           Boolean(audio.currentSrc || audio.src),
       ) ??
       audioElements.find(
-        (audio) =>
-          audio.id !== "bedPlayer" &&
-          Boolean(audio.currentSrc || audio.src),
+        (audio) => audio.id !== "bedPlayer" && Boolean(audio.currentSrc || audio.src),
       ) ??
-      null;
-
-    return preferred;
-  }
-
-  useEffect(() => { analyserRef.current = analyser; }, [analyser]);
-  useEffect(() => { playingRef.current  = isPlaying; }, [isPlaying]);
+      null
+    );
+  }, [audioRef, globalAudioRef]);
 
   useEffect(() => {
-    const audio = resolveAudioElement();
-    if (!audio) {
-      return;
-    }
-
-    const AudioContextCtor =
-      window.AudioContext ||
-      (window as typeof window & { webkitAudioContext?: typeof AudioContext })
-        .webkitAudioContext;
-
-    if (!AudioContextCtor) {
-      return;
-    }
-
-    const ensureAnalyser = async () => {
-      try {
-        if (!audioContextRef.current) {
-          audioContextRef.current = new AudioContextCtor();
-        }
-
-        const context = audioContextRef.current;
-        if (!context) {
-          return;
-        }
-
-        if (!mediaSourceRef.current) {
-          mediaSourceRef.current = context.createMediaElementSource(audio);
-        }
-
-        if (!localAnalyserRef.current) {
-          const nextAnalyser = context.createAnalyser();
-          nextAnalyser.fftSize = 256;
-          mediaSourceRef.current.connect(nextAnalyser);
-          nextAnalyser.connect(context.destination);
-          localAnalyserRef.current = nextAnalyser;
-          dataArrayRef.current = new Uint8Array(nextAnalyser.frequencyBinCount);
-        }
-
-        if (context.state === "suspended") {
-          await context.resume();
-        }
-      } catch {
-        // Keep the visualizer usable with the external analyser fallback.
-      }
-    };
-
-    const handlePlay = () => {
-      void ensureAnalyser();
-    };
-
-    const handleLoadedData = () => {
-      void ensureAnalyser();
-    };
-
-    const handleCanPlay = () => {
-      void ensureAnalyser();
-    };
-
-    const handleUserUnlock = () => {
-      void ensureAnalyser();
-    };
-
-    void ensureAnalyser();
-    audio.addEventListener("play", handlePlay);
-    audio.addEventListener("loadeddata", handleLoadedData);
-    audio.addEventListener("canplay", handleCanPlay);
-    window.addEventListener("pointerdown", handleUserUnlock, { passive: true });
-
-    return () => {
-      audio.removeEventListener("play", handlePlay);
-      audio.removeEventListener("loadeddata", handleLoadedData);
-      audio.removeEventListener("canplay", handleCanPlay);
-      window.removeEventListener("pointerdown", handleUserUnlock);
-
-      if (audioContextRef.current && audioContextRef.current.state !== "closed") {
-        void audioContextRef.current.close();
-      }
-
-      audioContextRef.current = null;
-      mediaSourceRef.current = null;
-      localAnalyserRef.current = null;
-      dataArrayRef.current = null;
-    };
-  }, [audioRef]);
+    analyserRef.current = analyser;
+  }, [analyser]);
 
   useEffect(() => {
-    const wrap   = wrapRef.current;
+    playingRef.current = isPlaying;
+  }, [isPlaying]);
+
+  useEffect(() => {
+    const wrap = wrapRef.current;
     const canvas = canvasRef.current;
-    if (!wrap || !canvas) return;
+    if (!wrap || !canvas) {
+      return;
+    }
 
-    const isMobile  = window.innerWidth < 768;
-    const maxDpr    = isMobile ? 1.1 : 1.5;
-    const rawCtx = canvas.getContext("2d");
-    if (!rawCtx) return;
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const ctx        = rawCtx as CanvasRenderingContext2D;
+    const isMobile = window.innerWidth < 768;
+    const maxDpr = isMobile ? 1 : 1.5;
+    const rawContext = canvas.getContext("2d", { alpha: true });
+    if (!rawContext) {
+      return;
+    }
+    const ctx = rawContext as CanvasRenderingContext2D;
     const safeCanvas = canvas;
 
-    // Size sync
     const syncSize = () => {
-      const dpr      = Math.min(window.devicePixelRatio || 1, maxDpr);
-      canvas.width   = wrap.offsetWidth  * dpr;
-      canvas.height  = wrap.offsetHeight * dpr;
+      const dpr = Math.min(window.devicePixelRatio || 1, maxDpr);
+      safeCanvas.width = Math.max(1, Math.floor(wrap.offsetWidth * dpr));
+      safeCanvas.height = Math.max(1, Math.floor(wrap.offsetHeight * dpr));
     };
-    const ro = new ResizeObserver(syncSize);
-    ro.observe(wrap);
+
+    const resizeObserver = new ResizeObserver(syncSize);
+    resizeObserver.observe(wrap);
     syncSize();
 
-    // State
-    const eqLevels   = new Float32Array(24);
-    const driftParts: DriftParticle[]  = [];
-    const sparks:     SparkParticle[]  = [];
-    const rings:      RingBurst[]      = [];
+    const eqLevels = new Float32Array(EQ_BAR_COUNT);
+    const sparks: SparkParticle[] = [];
+    const rings: RingBurst[] = [];
+    const sparkLimit = isMobile ? MAX_SPARKS_MOBILE : MAX_SPARKS_DESKTOP;
 
-    const driftLimit  = isMobile ? 20 : MAX_DRIFT;
-    const sparkLimit  = isMobile ? 30 : MAX_SPARKS;
+    let lastTimestamp = 0;
+    let motionTime = 0;
+    let visible = !document.hidden;
 
-    let lastTs     = 0;
-    let elapsed    = 0;
-    let audioTime  = 0;
-    let smoothBass = 0, smoothMids = 0, smoothHighs = 0, smoothVol = 0;
-    let lastBass   = 0;
-    let ringScaleBoost = 0;
-    let visible    = !document.hidden;
+    let smoothBass = 0;
+    let smoothMids = 0;
+    let smoothHighs = 0;
+    let smoothVolume = 0;
+    let pulse = 0;
+    let lastBassInstant = 0;
 
-    // ── Spawn helpers ─────────────────────────────────────────────────────────
-
-    function emitRingBurst(x: number, y: number, bass: number) {
-      if (rings.length >= MAX_RINGS) rings.splice(0, 1);
-      const colors = [LEFT_CORE, RIGHT_CORE, RIGHT_OUTER, LEFT_MIST];
-      for (let i = 0; i < 2; i++) {
-        rings.push({
-          x, y,
-          radius:    safeCanvas.width * 0.03 + i * safeCanvas.width * 0.04,
-          maxRadius: safeCanvas.width * (0.32 + bass * 0.24 + i * 0.1),
-          life:      1,
-          color:     colors[i % colors.length]!,
-          thickness: 4.6 - i * 0.7,
-        });
+    function emitRingBurst(x: number, y: number, bass: number, pulseEnergy: number) {
+      if (rings.length >= MAX_RINGS) {
+        rings.splice(0, rings.length - MAX_RINGS + 2);
       }
+
+      rings.push({
+        x,
+        y,
+        radius: safeCanvas.width * 0.04,
+        maxRadius: safeCanvas.width * (0.18 + bass * 0.16 + pulseEnergy * 0.08),
+        life: 1,
+        color: LEFT_CORE,
+        thickness: 7 + pulseEnergy * 2,
+      });
+      rings.push({
+        x,
+        y,
+        radius: safeCanvas.width * 0.085,
+        maxRadius: safeCanvas.width * (0.28 + bass * 0.2 + pulseEnergy * 0.12),
+        life: 0.96,
+        color: RIGHT_CORE,
+        thickness: 5.2 + pulseEnergy * 1.8,
+      });
     }
 
-    function emitSparks(cx: number, cy: number, count: number, vol: number) {
-      if (sparks.length >= sparkLimit) return;
-      for (let i = 0; i < count; i++) {
+    function emitSparks(cx: number, cy: number, count: number, energy: number) {
+      if (sparks.length >= sparkLimit) {
+        return;
+      }
+
+      const nextCount = Math.min(count, sparkLimit - sparks.length);
+      for (let i = 0; i < nextCount; i += 1) {
         const angle = Math.random() * Math.PI * 2;
-        const speed = (0.65 + Math.random() * 1.15) * (1 + vol * 1.6);
-        const sx = cx + (Math.random() - 0.5) * safeCanvas.width * 0.04;
-        const sy = cy + (Math.random() - 0.5) * safeCanvas.height * 0.04;
+        const speed = (0.7 + Math.random() * 1.2) * (1 + energy * 2.2);
         sparks.push({
-          x: sx, y: sy, prevX: sx, prevY: sy,
-          vx:    Math.cos(angle) * speed,
-          vy:    Math.sin(angle) * speed - 0.3,
-          size:  3 + Math.random() * 4,
-          life:  0.9 + Math.random() * 0.25,
+          x: cx,
+          y: cy,
+          prevX: cx,
+          prevY: cy,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          size: 2.6 + Math.random() * 3.8,
+          life: 0.82 + Math.random() * 0.32,
           color: SPARK_COLORS[Math.floor(Math.random() * SPARK_COLORS.length)]!,
         });
       }
     }
 
-    function spawnDrift(w: number, h: number, highs: number, vol: number) {
-      if (highs < 0.12 || driftParts.length >= driftLimit) return;
-      const count = Math.min(5, 1 + Math.floor(highs * 8));
-      for (let i = 0; i < count; i++) {
-        const side  = Math.random() > 0.5 ? "left" : "right";
-        const color = side === "left"
-          ? (Math.random() > 0.65 ? LEFT_MIST  : LEFT_CORE)
-          : (Math.random() > 0.70 ? RIGHT_WARM : RIGHT_CORE);
-        const dx = (side === "left" ? w * 0.26 : w * 0.74) + (Math.random() - 0.5) * w * 0.16;
-        const dy = h * (0.22 + Math.random() * 0.50);
-        driftParts.push({
-          x: dx, y: dy, prevX: dx, prevY: dy,
-          vx:      (side === "left" ? 1 : -1) * (0.05 + Math.random() * 0.12),
-          vy:      (Math.random() - 0.5) * 0.05 - vol * 0.03,
-          size:    5 + Math.random() * 7,
-          life:    1,
-          maxLife: 1,
-          color,
-        });
-      }
-    }
-
-    // ── Step helpers ──────────────────────────────────────────────────────────
-
     function stepRings(dt: number) {
       let next = 0;
-      for (let i = 0; i < rings.length; i++) {
-        const r = rings[i]!;
-        r.radius += (r.maxRadius - r.radius) * Math.min(1, dt * 2.8);
-        r.life   -= dt * 0.75;
-        if (r.life > 0) { rings[next] = r; next++; }
+      for (let i = 0; i < rings.length; i += 1) {
+        const ring = rings[i]!;
+        ring.radius = lerp(ring.radius, ring.maxRadius, Math.min(1, dt * 5.2));
+        ring.life -= dt * 0.9;
+        if (ring.life > 0) {
+          rings[next] = ring;
+          next += 1;
+        }
       }
       rings.length = next;
     }
 
-    function stepSparks(w: number, h: number, dt: number) {
+    function stepSparks(dt: number, w: number, h: number) {
       let next = 0;
-      for (let i = 0; i < sparks.length; i++) {
-        const s    = sparks[i]!;
-        s.prevX    = s.x;
-        s.prevY    = s.y;
-        s.x       += s.vx * dt * 60 * w * 0.006;
-        s.y       += s.vy * dt * 60 * h * 0.006;
-        s.vy      += dt * 0.08;
-        s.life    -= dt * 1.6;
-        if (s.life > 0) { sparks[next] = s; next++; }
+      for (let i = 0; i < sparks.length; i += 1) {
+        const spark = sparks[i]!;
+        spark.prevX = spark.x;
+        spark.prevY = spark.y;
+        spark.x += spark.vx * dt * 60 * w * 0.006;
+        spark.y += spark.vy * dt * 60 * h * 0.006;
+        spark.vy += dt * 0.06;
+        spark.life -= dt * 1.45;
+        if (spark.life > 0) {
+          sparks[next] = spark;
+          next += 1;
+        }
       }
       sparks.length = next;
     }
 
-    function stepDrift(w: number, h: number, dt: number) {
-      let next = 0;
-      for (let i = 0; i < driftParts.length; i++) {
-        const p  = driftParts[i]!;
-        p.prevX  = p.x;
-        p.prevY  = p.y;
-        p.x     += p.vx * dt * 60 * w * 0.01;
-        p.y     += p.vy * dt * 60 * h * 0.01;
-        p.life  -= dt * 0.13;
-        if (p.life > 0) { driftParts[next] = p; next++; }
+    function tick(timestamp: number) {
+      if (!visible) {
+        return;
       }
-      driftParts.length = next;
-    }
 
-    // ── Main loop ─────────────────────────────────────────────────────────────
-
-    function tick(ts: number) {
-      if (!visible) return;
-
-      const dt    = Math.min((ts - lastTs) / 1000 || 0.016, 0.05);
-      lastTs      = ts;
-      elapsed    += dt;
-
+      const dt = Math.min((timestamp - lastTimestamp) / 1000 || 0.016, 0.05);
+      lastTimestamp = timestamp;
       const w = safeCanvas.width;
       const h = safeCanvas.height;
       const cx = w * 0.5;
       const cy = h * 0.5;
 
-      const node = localAnalyserRef.current ?? analyserRef.current;
+      const node = analyserRef.current ?? globalAnalyserRef.current;
       const mediaElement = resolveAudioElement();
-      const playing =
-        mediaElement
-          ? !mediaElement.paused &&
-            !mediaElement.ended &&
-            Boolean(mediaElement.currentSrc || mediaElement.src)
-          : playingRef.current;
+      if (mediaElement?.paused) {
+        smoothBass *= 0.92;
+        smoothMids *= 0.92;
+        smoothHighs *= 0.92;
+        smoothVolume *= 0.92;
+        pulse *= 0.88;
+        rafRef.current = window.requestAnimationFrame(tick);
+        return;
+      }
 
-      // ── Audio analysis ────────────────────────────────────────────────────
+      const playing = mediaElement
+        ? !mediaElement.paused && !mediaElement.ended && Boolean(mediaElement.currentSrc || mediaElement.src)
+        : playingRef.current;
 
       if (node && playing) {
-        const bins = node.frequencyBinCount;
+        const binCount = node.frequencyBinCount;
+        const usesSharedAnalyser = analyserRef.current == null;
         if (
-          localAnalyserRef.current === node &&
-          (!dataArrayRef.current || dataArrayRef.current.length !== bins)
+          usesSharedAnalyser &&
+          (!globalDataArrayRef.current || globalDataArrayRef.current.length !== binCount)
         ) {
-          dataArrayRef.current = new Uint8Array(bins);
+          globalDataArrayRef.current = new Uint8Array(binCount);
         }
+
         const data =
-          localAnalyserRef.current === node && dataArrayRef.current
-            ? dataArrayRef.current
-            : new Uint8Array(bins);
-        node.getByteFrequencyData(data);
+          usesSharedAnalyser && globalDataArrayRef.current
+            ? globalDataArrayRef.current
+            : new Uint8Array(binCount);
+        node.getByteFrequencyData(data as Uint8Array<ArrayBuffer>);
 
-        let bassTotal = 0;
-        let midsTotal = 0;
-        let highsTotal = 0;
-        const bassEnd = Math.min(10, bins);
-        const midsEnd = Math.min(40, bins);
-        const highsEnd = Math.min(80, bins);
+        const sampleRate = node.context.sampleRate || 44100;
+        const fftSize = node.fftSize || binCount * 2;
+        const bassInstant = getFrequencyRangeAverage(data, sampleRate, fftSize, 0, RADIO_BASS_HZ);
+        const lowMidInstant = getFrequencyRangeAverage(data, sampleRate, fftSize, 150, 800);
+        const highInstant = getFrequencyRangeAverage(data, sampleRate, fftSize, 800, 4200);
+        const volumeInstant = clamp(bassInstant * 0.44 + lowMidInstant * 0.34 + highInstant * 0.22, 0, 1);
 
-        for (let index = 0; index < bassEnd; index += 1) {
-          bassTotal += data[index] ?? 0;
+        smoothBass = bassInstant > smoothBass
+          ? lerp(smoothBass, bassInstant, 0.34)
+          : lerp(smoothBass, bassInstant, 0.12);
+        smoothMids = lowMidInstant > smoothMids
+          ? lerp(smoothMids, lowMidInstant, 0.28)
+          : lerp(smoothMids, lowMidInstant, 0.1);
+        smoothHighs = highInstant > smoothHighs
+          ? lerp(smoothHighs, highInstant, 0.24)
+          : lerp(smoothHighs, highInstant, 0.09);
+        smoothVolume = volumeInstant > smoothVolume
+          ? lerp(smoothVolume, volumeInstant, 0.26)
+          : lerp(smoothVolume, volumeInstant, 0.1);
+
+        const bassRise = bassInstant - lastBassInstant;
+        const bassHit = bassInstant > 0.22 && bassRise > 0.065;
+        if (bassHit) {
+          pulse = Math.min(1.35, pulse + 0.85 + bassInstant * 0.35);
+          emitRingBurst(cx, cy, bassInstant, pulse);
+          emitSparks(cx, cy, 8 + Math.floor(bassInstant * 18), bassInstant);
         }
-        for (let index = 10; index < midsEnd; index += 1) {
-          midsTotal += data[index] ?? 0;
-        }
-        for (let index = 40; index < highsEnd; index += 1) {
-          highsTotal += data[index] ?? 0;
-        }
+        lastBassInstant = bassInstant;
 
-        const rawBassValue = bassEnd > 0 ? bassTotal / bassEnd : 0;
-        const rawMidsValue = midsEnd > 10 ? midsTotal / (midsEnd - 10) : 0;
-        const rawHighsValue = highsEnd > 40 ? highsTotal / (highsEnd - 40) : 0;
-        const rawBass = rawBassValue / 255;
-        const rawMids = rawMidsValue / 255;
-        const rawHighs = rawHighsValue / 255;
-        const rawVol = Math.min(1, (rawBass * 0.42) + (rawMids * 0.34) + (rawHighs * 0.24));
-
-        const atk = 0.65, rel = 0.93;
-        const smooth = (prev: number, raw: number) =>
-          raw > prev ? prev * (1 - atk) + raw * atk : prev * rel;
-
-        smoothBass  = smooth(smoothBass,  rawBass);
-        smoothMids  = smooth(smoothMids,  rawMids);
-        smoothHighs = smooth(smoothHighs, rawHighs);
-        smoothVol   = smooth(smoothVol,   rawVol);
-
-        // Beat detection
-        const isBeat = rawBassValue - lastBass > 30;
-        if (isBeat) {
-          ringScaleBoost = Math.min(1.2, ringScaleBoost + 0.9);
-          emitRingBurst(cx, cy, rawBass);
-          emitSparks(cx, cy, 10 + Math.floor(rawBass * 16), rawVol);
-        }
-        lastBass = rawBassValue;
-
-        // High-freq drift particles
-        spawnDrift(w, h, rawHighs, rawVol);
-
-        // EQ bands
-        const eqStart = 2;
-        const eqEnd   = Math.min(bins, 512);
-        const step    = Math.max(1, Math.floor((eqEnd - eqStart) / eqLevels.length));
-        for (let i = 0; i < eqLevels.length; i++) {
-          const from   = eqStart + i * step;
-          const raw    = bandAverage(data, from, Math.min(bins, from + step));
-          const cur    = eqLevels[i] ?? 0;
-          eqLevels[i]  = raw > cur ? cur * 0.50 + raw * 0.50 : cur * 0.88 + raw * 0.12;
+        const nyquist = sampleRate / 2;
+        const maxEqHz = Math.min(6000, nyquist);
+        for (let i = 0; i < eqLevels.length; i += 1) {
+          const bandStart = i * (maxEqHz / eqLevels.length);
+          const bandEnd = bandStart + maxEqHz / eqLevels.length;
+          const bandValue = getFrequencyRangeAverage(data, sampleRate, fftSize, bandStart, bandEnd);
+          eqLevels[i] = bandValue > eqLevels[i]
+            ? lerp(eqLevels[i] ?? 0, bandValue, 0.42)
+            : lerp(eqLevels[i] ?? 0, bandValue, 0.12);
         }
       } else {
-        smoothBass  *= 0.88;
-        smoothMids  *= 0.88;
-        smoothHighs *= 0.88;
-        smoothVol   *= 0.88;
-        lastBass = 0;
-        for (let i = 0; i < eqLevels.length; i++) {
-          eqLevels[i] = (eqLevels[i] ?? 0) * 0.82;
+        smoothBass *= 0.9;
+        smoothMids *= 0.9;
+        smoothHighs *= 0.9;
+        smoothVolume *= 0.9;
+        lastBassInstant *= 0.82;
+        for (let i = 0; i < eqLevels.length; i += 1) {
+          eqLevels[i] *= 0.82;
         }
       }
 
-      ringScaleBoost *= 0.9;
-      audioTime += dt * Math.max(0.06, 0.25 + smoothBass * 2.6 + smoothMids * 1.8);
-
-      // ── Step simulations ──────────────────────────────────────────────────
+      pulse *= 0.9;
+      motionTime += dt * Math.max(0.14, 0.6 + smoothVolume * 2.8 + smoothBass * 2.6);
 
       stepRings(dt);
-      stepSparks(w, h, dt);
-      stepDrift(w, h, dt);
+      stepSparks(dt, w, h);
 
-      // ── Paint ─────────────────────────────────────────────────────────────
+      paintBackground(ctx, w, h, motionTime, smoothVolume, smoothBass, pulse);
+      paintWaveSystem(ctx, "left", LEFT_LAYERS, w, h, motionTime, smoothVolume, smoothBass, pulse);
+      paintWaveSystem(ctx, "right", RIGHT_LAYERS, w, h, motionTime + 0.58, smoothVolume, smoothBass * 0.92 + smoothMids * 0.08, pulse);
 
-      paintBackground(ctx, w, h, audioTime, smoothVol, smoothBass);
-
-      paintWaveSystem(ctx, "left",  LEFT_LAYERS,  w, h, audioTime,
-        smoothBass * 1.32 + smoothMids * 0.35 + smoothVol * 0.62);
-      paintWaveSystem(ctx, "right", RIGHT_LAYERS, w, h, audioTime + 0.6,
-        smoothBass * 0.34 + smoothMids * 1.18 + smoothVol * 0.58);
-
-      // Paint-mix blend where the two colour fields collide at centre
-      {
-        const blend = ctx.createLinearGradient(w * 0.15, 0, w * 0.85, 0);
-        blend.addColorStop(0,    "rgba(0,0,0,0)");
-        blend.addColorStop(0.35, hexToRgba(LEFT_CORE,    0.18 + smoothVol * 0.16));
-        blend.addColorStop(0.50, hexToRgba(CENTER_WHITE, 0.28 + smoothBass * 0.22 + ringScaleBoost * 0.2));
-        blend.addColorStop(0.65, hexToRgba(RIGHT_CORE,   0.18 + smoothVol * 0.16));
-        blend.addColorStop(1,    "rgba(0,0,0,0)");
-        ctx.save();
-        ctx.globalCompositeOperation = "screen";
-        ctx.fillStyle = blend;
-        ctx.fillRect(0, 0, w, h);
-        ctx.restore();
-      }
-
-      paintCenterEnergy(ctx, w, h, smoothBass, smoothMids, smoothVol, audioTime);
-      paintEqualizer(ctx, w, h, smoothVol, eqLevels);
-
-      paintRingBursts(ctx, rings);
-      paintSparks(ctx, sparks);
-      paintDriftParticles(ctx, driftParts);
-
+      const centerBlend = ctx.createLinearGradient(w * 0.12, 0, w * 0.88, 0);
+      centerBlend.addColorStop(0, "rgba(0,0,0,0)");
+      centerBlend.addColorStop(0.34, hexToRgba(LEFT_CORE, 0.22 + smoothVolume * 0.18));
+      centerBlend.addColorStop(0.5, hexToRgba(CENTER_WHITE, 0.46 + smoothBass * 0.22 + pulse * 0.18));
+      centerBlend.addColorStop(0.66, hexToRgba(RIGHT_CORE, 0.22 + smoothVolume * 0.18));
+      centerBlend.addColorStop(1, "rgba(0,0,0,0)");
       ctx.save();
-      ctx.fillStyle = "rgba(5, 8, 20, 0.35)";
+      ctx.globalCompositeOperation = "screen";
+      ctx.fillStyle = centerBlend;
       ctx.fillRect(0, 0, w, h);
       ctx.restore();
 
-      rafRef.current = requestAnimationFrame(tick);
+      paintCenterEnergy(ctx, w, h, smoothBass, smoothMids, smoothVolume, pulse, motionTime);
+      paintEqualizer(ctx, w, h, smoothVolume, pulse, eqLevels);
+      paintRingBursts(ctx, rings);
+      paintSparks(ctx, sparks);
+
+      ctx.save();
+      ctx.fillStyle = "rgba(2, 4, 12, 0.14)";
+      ctx.fillRect(0, 0, w, h);
+      ctx.restore();
+
+      rafRef.current = window.requestAnimationFrame(tick);
     }
 
-    // ── Visibility ────────────────────────────────────────────────────────────
-
-    const onVis = () => {
+    const onVisibilityChange = () => {
       visible = !document.hidden;
-      if (!visible) { cancelAnimationFrame(rafRef.current); return; }
-      lastTs         = performance.now();
-      rafRef.current = requestAnimationFrame(tick);
+      if (!visible) {
+        window.cancelAnimationFrame(rafRef.current);
+        return;
+      }
+
+      lastTimestamp = performance.now();
+      rafRef.current = window.requestAnimationFrame(tick);
     };
-    document.addEventListener("visibilitychange", onVis);
-    rafRef.current = requestAnimationFrame(tick);
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    rafRef.current = window.requestAnimationFrame(tick);
 
     return () => {
-      cancelAnimationFrame(rafRef.current);
-      ro.disconnect();
-      document.removeEventListener("visibilitychange", onVis);
-
+      window.cancelAnimationFrame(rafRef.current);
+      resizeObserver.disconnect();
+      document.removeEventListener("visibilitychange", onVisibilityChange);
     };
-  }, []);
+  }, [globalAnalyserRef, globalDataArrayRef, resolveAudioElement]);
 
   return (
     <div
       ref={wrapRef}
-      className={`relative w-full overflow-hidden ${
-        fullHeight ? "h-full rounded-none" : "rounded-[1.8rem]"
-      } ${className ?? ""}`}
+      className={`relative w-full overflow-hidden ${fullHeight ? "h-full rounded-none" : "rounded-[1.8rem]"} ${className ?? ""}`}
       style={fullHeight ? undefined : { height: "clamp(220px, 28vw, 360px)" }}
     >
       <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
 
-      {showLogo && (
+      {showLogo ? (
         <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
           <div className="fsr-logo-card">
             <div className="fsr-logo-pulse">
@@ -956,28 +779,28 @@ export function PremiumAudioVisualizer({
             </div>
           </div>
         </div>
-      )}
+      ) : null}
 
-      {showFrame && (
-        <div className="pointer-events-none absolute inset-0 rounded-[1.8rem] shadow-[inset_0_0_100px_rgba(0,229,255,0.10),inset_0_0_60px_rgba(124,77,255,0.09)]" />
-      )}
+      {showFrame ? (
+        <div className="pointer-events-none absolute inset-0 rounded-[1.8rem] shadow-[inset_0_0_140px_rgba(0,229,255,0.18),inset_0_0_90px_rgba(124,77,255,0.16)]" />
+      ) : null}
 
       <style jsx>{`
         .fsr-logo-card {
           position: relative;
           padding: 14px 32px 16px;
           border-radius: 20px;
-          background: rgba(1, 2, 12, 0.92);
+          background: rgba(1, 2, 12, 0.88);
           backdrop-filter: blur(24px);
           -webkit-backdrop-filter: blur(24px);
-          border: 1px solid rgba(0, 229, 255, 0.22);
+          border: 1px solid rgba(0, 229, 255, 0.3);
           box-shadow:
-            0 0 0 1px rgba(124, 77, 255, 0.10),
-            0 16px 48px rgba(0, 0, 0, 0.85),
-            0 0 80px rgba(0, 229, 255, 0.08),
-            0 0 120px rgba(124, 77, 255, 0.06),
-            inset 0 1px 0 rgba(0, 229, 255, 0.14),
-            inset 0 -1px 0 rgba(124, 77, 255, 0.08);
+            0 0 0 1px rgba(124, 77, 255, 0.14),
+            0 16px 48px rgba(0, 0, 0, 0.9),
+            0 0 110px rgba(0, 229, 255, 0.12),
+            0 0 140px rgba(124, 77, 255, 0.09),
+            inset 0 1px 0 rgba(0, 229, 255, 0.18),
+            inset 0 -1px 0 rgba(124, 77, 255, 0.1);
         }
 
         .fsr-logo-pulse {
@@ -987,26 +810,28 @@ export function PremiumAudioVisualizer({
         .fsr-logo-img {
           filter:
             drop-shadow(0px 1px 0px rgba(0, 229, 255, 1))
-            drop-shadow(0px 2px 0px rgba(0, 160, 220, 0.85))
-            drop-shadow(0px 3px 0px rgba(0, 100, 180, 0.65))
-            drop-shadow(0px 4px 0px rgba(0, 60, 140, 0.45))
-            drop-shadow(0px 5px 12px rgba(0, 229, 255, 0.60));
+            drop-shadow(0px 2px 0px rgba(0, 160, 220, 0.9))
+            drop-shadow(0px 3px 0px rgba(0, 100, 180, 0.72))
+            drop-shadow(0px 4px 0px rgba(0, 60, 140, 0.52))
+            drop-shadow(0px 5px 16px rgba(0, 229, 255, 0.72));
         }
 
         @keyframes fsr-logo-pulse {
-          0%, 100% {
+          0%,
+          100% {
             transform: scale(1) translateY(0px);
             filter:
-              drop-shadow(0 0 18px rgba(0, 229, 255, 0.90))
-              drop-shadow(0 0 40px rgba(0, 229, 255, 0.35))
-              drop-shadow(0 0 80px rgba(0, 229, 255, 0.12));
+              drop-shadow(0 0 28px rgba(0, 229, 255, 0.95))
+              drop-shadow(0 0 54px rgba(0, 229, 255, 0.46))
+              drop-shadow(0 0 108px rgba(0, 229, 255, 0.18));
           }
+
           50% {
-            transform: scale(1.035) translateY(-3px);
+            transform: scale(1.04) translateY(-3px);
             filter:
-              drop-shadow(0 0 22px rgba(255, 61, 242, 0.90))
-              drop-shadow(0 0 50px rgba(124, 77, 255, 0.40))
-              drop-shadow(0 0 90px rgba(124, 77, 255, 0.14));
+              drop-shadow(0 0 30px rgba(255, 61, 242, 0.95))
+              drop-shadow(0 0 58px rgba(124, 77, 255, 0.5))
+              drop-shadow(0 0 116px rgba(124, 77, 255, 0.18));
           }
         }
       `}</style>

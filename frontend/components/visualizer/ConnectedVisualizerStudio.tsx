@@ -7,6 +7,7 @@ import { PremiumAudioVisualizer } from "@/components/PremiumAudioVisualizer";
 import { VisualizerCanvasThree } from "@/components/VisualizerCanvasThree";
 import { AudioUploader } from "@/components/visualizer/AudioUploader";
 import { slugifyArtistName } from "@/lib/artists";
+import { playTrack } from "@/lib/playbackController";
 import {
   getStoredVisualizerMode,
   persistVisualizerMode,
@@ -29,7 +30,7 @@ export function ConnectedVisualizerStudio({ initialArtistName }: Props) {
   const [artistName, setArtistName] = useState(
     initialArtistName?.trim() || "FlowSoundz Radio",
   );
-  const [mode, setMode] = useState<VisualizerModeId>(getStoredVisualizerMode);
+  const [mode, setMode] = useState<VisualizerModeId>("aurora");
   const [isPlaying, setIsPlaying] = useState(false);
   const [analyserNode, setAnalyserNode] = useState<AnalyserNode | null>(null);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
@@ -109,6 +110,14 @@ export function ConnectedVisualizerStudio({ initialArtistName }: Props) {
   }, [audioFile]);
 
   useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setMode(getStoredVisualizerMode());
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
     persistVisualizerMode(mode);
   }, [mode]);
 
@@ -156,7 +165,10 @@ export function ConnectedVisualizerStudio({ initialArtistName }: Props) {
     if (audio.paused) {
       try {
         await ensureAnalyser();
-        await audio.play();
+        await playTrack(audioRef, {
+          id: objectUrlRef.current ?? audioFile.name,
+          src: audio.currentSrc || audio.src,
+        });
       } catch {
         setPlaybackError("Playback was blocked. Try tapping play again.");
         setIsPlaying(false);

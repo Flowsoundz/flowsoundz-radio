@@ -39,10 +39,9 @@ export function VisualizerModal({
   mode: controlledMode,
   onModeChange,
 }: Props) {
-  const [showYouTube, setShowYouTube] = useState(false);
-  const [internalMode, setInternalMode] = useState<VisualizerModeId>(getStoredVisualizerMode);
+  const [internalMode, setInternalMode] = useState<VisualizerModeId>("aurora");
   const [selectedView, setSelectedView] = useState<VisualizerViewId>(
-    controlledMode ?? getStoredVisualizerMode(),
+    controlledMode ?? "aurora",
   );
   const mode = controlledMode ?? internalMode;
   const youtubeId = song?.youtube_url ? extractYouTubeId(song.youtube_url) : "";
@@ -93,11 +92,24 @@ export function VisualizerModal({
   );
 
   useEffect(() => {
+    const storedMode = getStoredVisualizerMode();
+    const syncTimer = window.setTimeout(() => {
+      if (controlledMode === undefined) {
+        setInternalMode(storedMode);
+      }
+      setSelectedView((current) => (current === "youtube" || current === "artist_visual" ? current : storedMode));
+    }, 0);
+
+    return () => window.clearTimeout(syncTimer);
+  }, [controlledMode]);
+
+  useEffect(() => {
     if (!isOpen) {
       return;
     }
 
-    setSelectedView(mode);
+    const syncTimer = window.setTimeout(() => setSelectedView(mode), 0);
+    return () => window.clearTimeout(syncTimer);
   }, [isOpen, mode, song?.id]);
 
   useEffect(() => {
@@ -105,7 +117,8 @@ export function VisualizerModal({
       return;
     }
 
-    setSelectedView(mode);
+    const syncTimer = window.setTimeout(() => setSelectedView(mode), 0);
+    return () => window.clearTimeout(syncTimer);
   }, [availableViews, mode, selectedView]);
 
   useEffect(() => {

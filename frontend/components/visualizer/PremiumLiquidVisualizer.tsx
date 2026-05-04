@@ -9,6 +9,7 @@ import {
 } from "react";
 import { AudioUploader } from "@/components/visualizer/AudioUploader";
 import { StylePicker } from "@/components/visualizer/StylePicker";
+import { playTrack } from "@/lib/playbackController";
 import {
   analyzeFrequencyData,
   createIdleAudioMetrics,
@@ -700,7 +701,10 @@ export function PremiumLiquidVisualizer() {
 
     try {
       await ensureAudioContext();
-      await audio.play();
+      await playTrack(audioRef, {
+        id: objectUrlRef.current ?? audioFile.name,
+        src: audio.currentSrc || audio.src,
+      });
       setIsPlaying(true);
     } catch (error) {
       setPlaybackError("Playback could not start. Try pressing play again after selecting your file.");

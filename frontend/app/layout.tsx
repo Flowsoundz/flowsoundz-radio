@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Space_Grotesk, Inter, Bebas_Neue } from "next/font/google";
 import "./globals.css";
 import { DevLocalhostGuard } from "@/components/DevLocalhostGuard";
+import { GlobalAudioProvider } from "@/components/GlobalAudioProvider";
+import { MiniPlayer } from "@/components/MiniPlayer";
 import { PwaRegistrar } from "@/components/PwaRegistrar";
 import RadioPlayer from "@/components/RadioPlayer";
 
@@ -82,10 +84,13 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full bg-[var(--page-bg)] text-white antialiased">
-        <DevLocalhostGuard />
-        <PwaRegistrar />
-        <RadioPlayer />
-        {children}
+        <GlobalAudioProvider>
+          <DevLocalhostGuard />
+          <PwaRegistrar />
+          <RadioPlayer />
+          {children}
+          <MiniPlayer />
+        </GlobalAudioProvider>
       </body>
     </html>
   );

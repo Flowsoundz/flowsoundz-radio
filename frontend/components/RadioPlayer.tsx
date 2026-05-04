@@ -6,6 +6,8 @@ import Link from "next/link";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { usePathname } from "next/navigation";
 import { track } from "@/lib/analytics";
+import { useGlobalAudio } from "@/components/GlobalAudioProvider";
+import { playTrack } from "@/lib/playbackController";
 import {
   DEFAULT_USER_TIER,
   canUserTierAccessTrack,
@@ -22,7 +24,7 @@ import {
   getPreferredPlaybackUrl,
   getQueue,
 } from "@/lib/api";
-import { fadeAudioIn, fadeAudioOut } from "@/lib/audioFades";
+import { fadeAudioOut } from "@/lib/audioFades";
 import { formatVibeLabel } from "@/lib/format";
 import { getDJPersonality } from "@/lib/djPersonalities";
 import { AiDjChat } from "@/components/AiDjChat";
@@ -47,7 +49,6 @@ import {
 import type { Song } from "@/lib/types";
 import { VisualizerCanvasThree } from "@/components/VisualizerCanvasThree";
 import {
-  VISUALIZER_MODES,
   type VisualizerModeId,
 } from "@/lib/visualizerModes";
 import type Hls from "hls.js";
@@ -73,17 +74,19 @@ async function loadHlsModule() {
 }
 
 const VIBE_OPTIONS = ["all", "chill", "hype", "late_night", "emotional"];
-const FADE_DURATION_MS = 220;
+const ENABLE_DJ_DROPS = true;
+const FADE_DURATION_MS = 500;
 const FADE_STEPS = 6;
 const DROP_TO_TRACK_DELAY_MS = 220;
+const AUTO_NEXT_FADE_BUFFER_MS = 80;
 const NARRATION_TRANSITION_PROBABILITY = 0.3;
 const MAX_RECENT_DROP_HISTORY = 5;
 const MAX_RECENT_BED_HISTORY = 3;
-const NARRATION_BED_VOLUME = 0.2;
 const LIVE_LISTENER_MIN = 20;
 const LIVE_LISTENER_MAX = 150;
 const LIVE_LISTENER_UPDATE_MS = 30_000;
 const TRACKS_TODAY_STORAGE_KEY = "flowsoundz-tracks-today";
+const RADIO_PLAYER_STATE_STORAGE_KEY = "flowsoundz-radio-player-state";
 const RADIO_BACKEND_ERROR =
   "Station backend offline. Start the API at http://127.0.0.1:8000 to load the live queue.";
 
@@ -127,6 +130,13 @@ type PreparedStationEvent = {
   transitionAudioMode: "drop" | "narration" | "direct";
 };
 
+type PersistedRadioPlayerState = {
+  songId: string | null;
+  selectedVibe: string;
+  currentTime: number;
+  shouldPlay: boolean;
+};
+
 function getTransitionSource(
   transitionAudioMode: PreparedStationEvent["transitionAudioMode"],
 ): "forced" | "drop" | "narration" | "direct" {
@@ -168,6 +178,55 @@ function getInitialTracksTodayCount(): number {
       : 0;
   } catch {
     return 0;
+  }
+}
+
+function getInitialSelectedVibe(): string {
+  if (typeof window === "undefined") {
+    return "all";
+  }
+
+  try {
+    const raw = window.localStorage.getItem(RADIO_PLAYER_STATE_STORAGE_KEY);
+    if (!raw) {
+      return "all";
+    }
+
+    const parsed = JSON.parse(raw) as Partial<PersistedRadioPlayerState>;
+    return typeof parsed.selectedVibe === "string" && parsed.selectedVibe.length > 0
+      ? parsed.selectedVibe
+      : "all";
+  } catch {
+    return "all";
+  }
+}
+
+function getPersistedRadioPlayerState(): PersistedRadioPlayerState | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(RADIO_PLAYER_STATE_STORAGE_KEY);
+    if (!raw) {
+      return null;
+    }
+
+    const parsed = JSON.parse(raw) as Partial<PersistedRadioPlayerState>;
+    return {
+      songId: typeof parsed.songId === "string" ? parsed.songId : null,
+      selectedVibe:
+        typeof parsed.selectedVibe === "string" && parsed.selectedVibe.length > 0
+          ? parsed.selectedVibe
+          : "all",
+      currentTime:
+        typeof parsed.currentTime === "number" && Number.isFinite(parsed.currentTime)
+          ? Math.max(0, parsed.currentTime)
+          : 0,
+      shouldPlay: Boolean(parsed.shouldPlay),
+    };
+  } catch {
+    return null;
   }
 }
 
@@ -228,6 +287,13 @@ function resetAudioElement(audio: HTMLAudioElement | null) {
   audio.volume = 1;
 }
 
+function clearTransitionAudioStopTimer(timerRef: { current: number | null }) {
+  if (timerRef.current !== null) {
+    window.clearTimeout(timerRef.current);
+    timerRef.current = null;
+  }
+}
+
 function prepareBedAudio(
   audio: HTMLAudioElement | null,
   bed: TransitionBed | null,
@@ -258,10 +324,17 @@ function prepareBedAudio(
 }
 
 export default function RadioPlayer() {
+  const {
+    audioRef,
+    analyserRef: sharedAnalyserRef,
+    isReady: isAudioReady,
+    setCurrentTrack,
+    togglePlaybackRef,
+    skipTrackRef,
+  } = useGlobalAudio();
   const pathname = usePathname();
   const isFullView = pathname === "/radio";
   const sectionRef = useRef<HTMLElement | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const dropAudioRef = useRef<HTMLAudioElement | null>(null);
   const transitionBedAudioRef = useRef<HTMLAudioElement | null>(null);
   const hlsRef = useRef<Hls | null>(null);
@@ -271,6 +344,8 @@ export default function RadioPlayer() {
   const nextDropPreloadRef = useRef<HTMLAudioElement | null>(null);
   const nextBedPreloadRef = useRef<HTMLAudioElement | null>(null);
   const pendingTrackIndexRef = useRef<number | null>(null);
+  const transitionInFlightRef = useRef(false);
+  const transitionAudioStopTimerRef = useRef<number | null>(null);
   const recentDropIdsRef = useRef<string[]>([]);
   const recentBedIdsRef = useRef<string[]>([]);
   const previousSongIdRef = useRef<string | undefined>(undefined);
@@ -278,11 +353,16 @@ export default function RadioPlayer() {
   const countedTrackIdRef = useRef<string | null>(null);
   const transitionCopyTokenRef = useRef(0);
   const transitionCopyCacheRef = useRef<Map<string, string>>(new Map());
-
-  // ── Audio visualizer ──
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const pendingRestoreStateRef = useRef<PersistedRadioPlayerState | null>(null);
+  const isSkippingRef = useRef(false);
+  const isPlayingRef = useRef(false);
+  const isDropPlayingRef = useRef(false);
+  const currentTrackIdRef = useRef<string | null>(null);
+  const requestedTrackStartIdRef = useRef<string | null>(null);
+  const activeTrackSourceKeyRef = useRef<string | null>(null);
+  const skipToNextTrackRef = useRef<() => Promise<void>>(async () => {});
+  const handleTimeUpdateRef = useRef<() => void>(() => {});
+  const handleLoadedMetadataRef = useRef<() => void>(() => {});
 
   const [showVisualizer, setShowVisualizer] = useState(false);
   const [queue, setQueue] = useState<Song[]>([]);
@@ -351,22 +431,61 @@ export default function RadioPlayer() {
   }, []);
 
   useEffect(() => {
+    const persisted = getInitialSelectedVibe();
+    const vibeTimer =
+      persisted !== "all"
+        ? window.setTimeout(() => setSelectedVibe(persisted), 0)
+        : null;
+
     const timer = window.setTimeout(() => {
       const initialDropInterval = getRandomDropInterval();
       songsUntilDropRef.current = initialDropInterval;
       setSongsUntilDrop(initialDropInterval);
       setTracksToday(getInitialTracksTodayCount());
+      pendingRestoreStateRef.current = getPersistedRadioPlayerState();
     }, 0);
 
-    return () => window.clearTimeout(timer);
+    return () => {
+      if (vibeTimer !== null) {
+        window.clearTimeout(vibeTimer);
+      }
+      window.clearTimeout(timer);
+    };
   }, []);
+
+  useEffect(() => {
+    if (!currentSong && !isDropPlaying) {
+      return;
+    }
+
+    try {
+      window.localStorage.setItem(
+        RADIO_PLAYER_STATE_STORAGE_KEY,
+        JSON.stringify({
+          songId: currentSong?.id ?? null,
+          selectedVibe,
+          currentTime,
+          shouldPlay,
+        } satisfies PersistedRadioPlayerState),
+      );
+    } catch {
+      // Ignore persistence write failures.
+    }
+  }, [currentSong, currentTime, isDropPlaying, selectedVibe, shouldPlay]);
 
   useEffect(() => {
     return () => {
       hlsRef.current?.destroy();
       hlsRef.current = null;
+      clearTransitionAudioStopTimer(transitionAudioStopTimerRef);
     };
   }, []);
+
+  useEffect(() => {
+    if (sharedAnalyserRef.current) {
+      setVisualizerAnalyser(sharedAnalyserRef.current);
+    }
+  }, [isAudioReady, sharedAnalyserRef]);
 
   useEffect(() => {
     const interval = window.setInterval(() => {
@@ -491,7 +610,7 @@ export default function RadioPlayer() {
       document.removeEventListener("visibilitychange", onVisibilityChange);
       setIdleGlow();
     };
-  }, [ambientCoverActive, isPlaying, isDropPlaying]);
+  }, [ambientCoverActive, audioRef, isPlaying, isDropPlaying]);
 
 
   useEffect(() => {
@@ -517,17 +636,27 @@ export default function RadioPlayer() {
           nextQueue,
           previousSongIdRef.current,
         );
+        const persistedState = pendingRestoreStateRef.current;
+        const restoredIndex =
+          persistedState?.songId
+            ? reorderedQueue.findIndex((song) => song.id === persistedState.songId)
+            : -1;
 
         setQueue(reorderedQueue);
-        setCurrentIndex(0);
-        setCurrentTime(0);
+        setCurrentIndex(restoredIndex >= 0 ? restoredIndex : 0);
+        setCurrentTime(restoredIndex >= 0 ? persistedState?.currentTime ?? 0 : 0);
         setDuration(0);
-        setShouldPlay(nextQueue.length > 0);
+        setShouldPlay(
+          restoredIndex >= 0
+            ? (persistedState?.shouldPlay ?? (nextQueue.length > 0))
+            : nextQueue.length > 0,
+        );
         setError(nextQueue.length === 0 ? "No songs are available in this vibe queue yet." : "");
         setIsDropPlaying(false);
         setActiveDropLabel("");
         setPreparedEvent(null);
         pendingTrackIndexRef.current = null;
+        pendingRestoreStateRef.current = restoredIndex >= 0 ? persistedState : null;
         recentDropIdsRef.current = [];
         recentBedIdsRef.current = [];
         songsUntilDropRef.current = getRandomDropInterval();
@@ -560,65 +689,35 @@ export default function RadioPlayer() {
   }, [currentUserTier, selectedVibe]);
 
   const songParamHandled = useRef(false);
-  useEffect(() => {
-    if (songParamHandled.current || queue.length === 0) return;
-    const params = new URLSearchParams(window.location.search);
-    const songId = params.get("song");
-    if (!songId) return;
-    const idx = queue.findIndex((s) => s.id === songId);
-    if (idx !== -1) {
-      songParamHandled.current = true;
-      moveToTrack(idx);
-      window.history.replaceState(null, "", window.location.pathname);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [queue]);
 
 
   useEffect(() => {
     previousSongIdRef.current = currentSong?.id;
   }, [currentSong?.id]);
 
-  function initAudioContext() {
-    if (sourceNodeRef.current || !audioRef.current) return;
-    try {
-      const audio = audioRef.current;
-      // crossOrigin must be set before the current src was loaded to satisfy
-      // the Web Audio API's CORS requirement. If the audio already has a src
-      // (loaded without CORS mode), skip Web Audio setup rather than break
-      // playback — visualizer falls back to CSS animation.
-      if (audio.src && audio.src !== "" && audio.crossOrigin !== "anonymous") {
-        return;
-      }
-      const ctx = new AudioContext();
-      const analyser = ctx.createAnalyser();
-      analyser.fftSize = 2048;
-      analyser.smoothingTimeConstant = 0.82;
-      const source = ctx.createMediaElementSource(audio);
-      source.connect(analyser);
-      analyser.connect(ctx.destination);
-      audioCtxRef.current = ctx;
-      analyserRef.current = analyser;
-      setVisualizerAnalyser(analyser);
-      sourceNodeRef.current = source;
-    } catch (e) {
-      console.warn("[RadioPlayer] AudioContext init failed", e);
+  useEffect(() => {
+    isDropPlayingRef.current = isDropPlaying;
+  }, [isDropPlaying]);
+
+  useEffect(() => {
+    if (!isPlaying) {
+      currentTrackIdRef.current = null;
     }
-  }
+  }, [isPlaying]);
 
-  function logActiveTransitionCurrentTime() {
-    const dropAudio = dropAudioRef.current;
-    const transitionType = transitionAudioModeRef.current;
-
-    if (!dropAudio || !transitionType || dropAudio.paused || dropAudio.ended) {
+  useEffect(() => {
+    if (!currentSong) {
+      setCurrentTrack(null);
       return;
     }
 
-    console.log(`[RadioPlayer] ${transitionType} currentTime`, {
-      currentTime: dropAudio.currentTime,
-      duration: Number.isFinite(dropAudio.duration) ? dropAudio.duration : null,
+    setCurrentTrack({
+      id: currentSong.id,
+      src: getPreferredPlaybackUrl(currentSong, audioRef.current),
+      title: currentSong.title,
+      artist: currentSong.artist,
     });
-  }
+  }, [audioRef, currentSong, setCurrentTrack]);
 
   function buildTransitionPlan(nextSong?: Song | null, nextVibe?: string) {
     const plan = getTransitionPlan({
@@ -833,35 +932,10 @@ export default function RadioPlayer() {
       usedFallback: plannedBed?.usedFallback ?? false,
     });
 
-    nextTrackPreloadRef.current = new Audio(
-      getPreferredPlaybackUrl(nextSong),
-    );
-    nextTrackPreloadRef.current.preload = "metadata";
-    nextTrackPreloadRef.current.load();
-
-    if (prepared.transitionAudioMode === "drop" && plannedDrop.drop) {
-      nextDropPreloadRef.current = new Audio(
-        getDropPlaybackSrc(plannedDrop.drop),
-      );
-      nextDropPreloadRef.current.preload = "metadata";
-      nextDropPreloadRef.current.load();
-    } else if (prepared.transitionAudioMode === "narration" && narrationHasAudio) {
-      nextDropPreloadRef.current = new Audio(plannedNarration.clipSrc);
-      nextDropPreloadRef.current.preload = "metadata";
-      nextDropPreloadRef.current.load();
-      if (plannedBed?.src) {
-        nextBedPreloadRef.current = new Audio(plannedBed.src);
-        nextBedPreloadRef.current.preload = "metadata";
-        nextBedPreloadRef.current.load();
-      } else {
-        nextBedPreloadRef.current = null;
-      }
-      prepareBedAudio(transitionBedAudioRef.current, plannedBed);
-    } else {
-      nextDropPreloadRef.current = null;
-      nextBedPreloadRef.current = null;
-      prepareBedAudio(transitionBedAudioRef.current, null);
-    }
+    nextTrackPreloadRef.current = null;
+    nextDropPreloadRef.current = null;
+    nextBedPreloadRef.current = null;
+    prepareBedAudio(transitionBedAudioRef.current, null);
 
     setPreparedEvent(prepared);
     void enhanceTransitionCopyWithAi(prepared);
@@ -885,25 +959,75 @@ export default function RadioPlayer() {
     }
 
     const mediaElement = audioElement;
-
     hlsRef.current?.destroy();
     hlsRef.current = null;
     const hlsUrl = getHlsUrl(currentSong);
+    const preferredUrl = getPreferredPlaybackUrl(currentSong, mediaElement);
+    const trackToPlay = {
+      id: currentSong.id,
+      src: preferredUrl,
+      title: currentSong.title,
+      artist: currentSong.artist,
+    };
+    const startResolvedTrack = (resolvedSrc: string) => {
+      if (!shouldPlay) {
+        return;
+      }
+
+      if (requestedTrackStartIdRef.current !== trackToPlay.id) {
+        return;
+      }
+
+      if (currentTrackIdRef.current === trackToPlay.id) {
+        return;
+      }
+
+      currentTrackIdRef.current = trackToPlay.id;
+      requestedTrackStartIdRef.current = null;
+
+      if (process.env.NODE_ENV === "development") {
+        console.log("track start:", trackToPlay.id);
+      }
+
+      void playTrack(audioRef, {
+        ...trackToPlay,
+        src: resolvedSrc,
+      });
+    };
+    const sourceKey =
+      hlsUrl && !canUseNativeHls(mediaElement)
+        ? hlsUrl
+        : preferredUrl;
 
     if (hlsUrl && canUseNativeHls(mediaElement)) {
+      if ((mediaElement.currentSrc || mediaElement.src).includes(hlsUrl)) {
+        activeTrackSourceKeyRef.current = sourceKey;
+        startResolvedTrack(hlsUrl);
+        return;
+      }
+
+      activeTrackSourceKeyRef.current = sourceKey;
+      isPlayingRef.current = false;
       mediaElement.src = hlsUrl;
       mediaElement.load();
+      startResolvedTrack(hlsUrl);
       return;
     }
 
     let cancelled = false;
 
     async function loadTrackSource() {
+      if (activeTrackSourceKeyRef.current === sourceKey) {
+        return;
+      }
+
       if (hlsUrl) {
         const hlsModule = await loadHlsModule();
         const HlsCtor = hlsModule.default;
 
         if (!cancelled && HlsCtor.isSupported()) {
+          activeTrackSourceKeyRef.current = sourceKey;
+          isPlayingRef.current = false;
           const hls = new HlsCtor({
             enableWorker: true,
             lowLatencyMode: false,
@@ -914,6 +1038,9 @@ export default function RadioPlayer() {
           hls.on(HlsCtor.Events.MEDIA_ATTACHED, () => {
             hls.loadSource(hlsUrl);
           });
+          hls.on(HlsCtor.Events.MANIFEST_PARSED, () => {
+            startResolvedTrack(mediaElement.currentSrc || mediaElement.src || hlsUrl);
+          });
           hls.on(HlsCtor.Events.ERROR, (_event, data) => {
             if (!data.fatal) {
               return;
@@ -922,7 +1049,7 @@ export default function RadioPlayer() {
             console.error("[RadioPlayer] hls fatal error", data);
             hls.destroy();
             hlsRef.current = null;
-            mediaElement.src = getPreferredPlaybackUrl(currentSong);
+            mediaElement.src = preferredUrl;
             mediaElement.load();
           });
           return;
@@ -930,8 +1057,17 @@ export default function RadioPlayer() {
       }
 
       if (!cancelled) {
-        mediaElement.src = getPreferredPlaybackUrl(currentSong, mediaElement);
+        if ((mediaElement.currentSrc || mediaElement.src).includes(preferredUrl)) {
+          activeTrackSourceKeyRef.current = sourceKey;
+          startResolvedTrack(preferredUrl);
+          return;
+        }
+
+        activeTrackSourceKeyRef.current = sourceKey;
+        isPlayingRef.current = false;
+        mediaElement.src = preferredUrl;
         mediaElement.load();
+        startResolvedTrack(preferredUrl);
       }
     }
 
@@ -940,40 +1076,56 @@ export default function RadioPlayer() {
     return () => {
       cancelled = true;
     };
-  }, [currentSong, currentUserTier, isDropPlaying]);
+  }, [audioRef, currentSong, currentUserTier, isDropPlaying, shouldPlay]);
 
   useEffect(() => {
     const audio = audioRef.current;
-    if (!audio || !currentSong || isDropPlaying) {
-      if (isDropPlaying) {
-        console.log("[RadioPlayer] blocked track autoplay during drop", {
-          songId: currentSong?.id ?? null,
-          shouldPlay,
-        });
+    if (!isAudioReady || !audio) {
+      return;
+    }
+
+    audio.onended = null;
+    audio.onerror = null;
+    audio.onloadedmetadata = null;
+    audio.onpause = null;
+    audio.onplay = null;
+    audio.ontimeupdate = null;
+
+    audio.onended = () => {
+      isPlayingRef.current = false;
+      if (transitionInFlightRef.current || isDropPlayingRef.current || isSkippingRef.current) {
+        return;
       }
-      return;
-    }
+      void skipToNextTrackRef.current();
+    };
 
-    if (!canUserTierAccessTrack(currentSong, currentUserTier)) {
-      audio.pause();
-      return;
-    }
-
-    console.log("[RadioPlayer] track trying to start", {
-      songId: currentSong.id,
-      shouldPlay,
-    });
-
-    if (!shouldPlay) {
-      audio.pause();
-      return;
-    }
-
-    void audio.play().catch(() => {
+    audio.onerror = () => {
+      setError(RADIO_BACKEND_ERROR);
       setShouldPlay(false);
       setIsPlaying(false);
-    });
-  }, [currentSong, currentUserTier, shouldPlay, isDropPlaying]);
+      isPlayingRef.current = false;
+    };
+
+    audio.onloadedmetadata = () => handleLoadedMetadataRef.current();
+    audio.onpause = () => {
+      setIsPlaying(false);
+      isPlayingRef.current = false;
+    };
+    audio.onplay = () => {
+      setIsPlaying(true);
+      isPlayingRef.current = true;
+    };
+    audio.ontimeupdate = () => handleTimeUpdateRef.current();
+
+    return () => {
+      audio.onended = null;
+      audio.onerror = null;
+      audio.onloadedmetadata = null;
+      audio.onpause = null;
+      audio.onplay = null;
+      audio.ontimeupdate = null;
+    };
+  }, [audioRef, isAudioReady]);
 
   function moveToTrack(index: number) {
     console.log("[RadioPlayer] moveToTrack", {
@@ -1006,6 +1158,10 @@ export default function RadioPlayer() {
     setDuration(queue[index]?.duration_sec ?? 0);
     setPreparedEvent(null);
     setShouldPlay(true);
+    requestedTrackStartIdRef.current = queue[index]?.id ?? null;
+    currentTrackIdRef.current = null;
+    transitionInFlightRef.current = false;
+    isPlayingRef.current = false;
   }
 
   function finishTransitionAndStartTrack(reason: "ended" | "error") {
@@ -1013,6 +1169,7 @@ export default function RadioPlayer() {
     const dropAudio = dropAudioRef.current;
     const transitionType = transitionAudioModeRef.current ?? "drop";
 
+    clearTransitionAudioStopTimer(transitionAudioStopTimerRef);
     dropPlaybackTokenRef.current += 1;
     transitionAudioModeRef.current = null;
 
@@ -1032,6 +1189,7 @@ export default function RadioPlayer() {
     pendingTrackIndexRef.current = null;
     setIsDropPlaying(false);
     setActiveDropLabel("");
+    resetAudioElement(dropAudioRef.current);
     const bedAudio = transitionBedAudioRef.current;
     if (transitionType === "narration" && bedAudio && !bedAudio.paused) {
       void fadeAudioOut(bedAudio, { durationMs: 180, steps: 6 }).catch(() => {
@@ -1054,7 +1212,37 @@ export default function RadioPlayer() {
         });
         moveToTrack(pendingTrackIndex);
       }, DROP_TO_TRACK_DELAY_MS);
+      return;
     }
+
+    transitionInFlightRef.current = false;
+  }
+
+  async function playSimpleDjDropBeforeTrack(nextIndex: number) {
+    const transitionAudio = dropAudioRef.current;
+
+    if (!ENABLE_DJ_DROPS || !transitionAudio) {
+      moveToTrack(nextIndex);
+      return;
+    }
+
+    const playbackToken = dropPlaybackTokenRef.current + 1;
+    dropPlaybackTokenRef.current = playbackToken;
+    transitionAudioModeRef.current = "drop";
+    pendingTrackIndexRef.current = nextIndex;
+    setActiveDropLabel("FlowSoundz Radio");
+    setIsDropPlaying(true);
+    setShouldPlay(false);
+    setCurrentTime(0);
+    setDuration(0);
+
+    if (audioRef.current) {
+      audioRef.current.volume = 0;
+      audioRef.current.pause();
+    }
+
+    clearTransitionAudioStopTimer(transitionAudioStopTimerRef);
+    finishTransitionAndStartTrack("ended");
   }
 
   async function playTransitionAudioBeforeTrack({
@@ -1094,31 +1282,16 @@ export default function RadioPlayer() {
       audioRef.current.pause();
     }
 
-    console.log(`[RadioPlayer] ${mode} start requested`, {
+    clearTransitionAudioStopTimer(transitionAudioStopTimerRef);
+    void volume;
+    void playbackRate;
+    console.log(`[RadioPlayer] ${mode} transition bypassed`, {
       nextIndex,
       src,
       playbackToken,
+      reason: "global_single_playback_engine",
     });
-    console.log(`[RadioPlayer] ${mode} volume`, {
-      volume,
-    });
-
-    transitionAudio.pause();
-    transitionAudio.currentTime = 0;
-    transitionAudio.volume = volume;
-    transitionAudio.playbackRate = playbackRate;
-    transitionAudio.src = src;
-    // Setting src triggers load automatically; calling load() here races with play()
-    // and causes AbortError in most browsers.
-
-    await transitionAudio.play().catch((error) => {
-      console.warn(`[RadioPlayer] ${mode} play failed`, {
-        nextIndex,
-        src,
-        error,
-      });
-      finishTransitionAndStartTrack("error");
-    });
+    finishTransitionAndStartTrack("ended");
   }
 
   async function playNarrationBed(src: string, nextIndex: number) {
@@ -1137,39 +1310,12 @@ export default function RadioPlayer() {
       return;
     }
 
-    console.log("[RadioPlayer] narration bed start requested", {
+    console.log("[RadioPlayer] narration bed bypassed", {
       nextIndex,
       src,
-      volume: NARRATION_BED_VOLUME,
+      reason: "global_single_playback_engine",
     });
-
     resetAudioElement(bedAudio);
-    bedAudio.src = src;
-    bedAudio.loop = true;
-    bedAudio.volume = 0;
-    bedAudio.load();
-
-    await bedAudio
-      .play()
-      .then(async () => {
-        await fadeAudioIn(bedAudio, {
-          durationMs: 180,
-          targetVolume: NARRATION_BED_VOLUME,
-          steps: 6,
-        });
-        console.log("[RadioPlayer] narration bed playing", {
-          src,
-          volume: NARRATION_BED_VOLUME,
-        });
-      })
-      .catch((error) => {
-        console.warn("[RadioPlayer] narration bed play failed", {
-          nextIndex,
-          src,
-          error,
-        });
-        resetAudioElement(bedAudio);
-      });
   }
 
   async function playDjDropBeforeTrack(
@@ -1314,26 +1460,12 @@ export default function RadioPlayer() {
     moveToTrack(nextIndex);
   }
 
-  function advancePlayback() {
-    if (queue.length === 0) {
+  async function queueTransitionToNextTrack(reason: "auto" | "skip") {
+    if (queue.length === 0 || transitionInFlightRef.current || isDropPlaying) {
       return;
     }
 
-    const nextIndex = getNextTrackIndex(queue, currentIndex);
-    const nextPrepared =
-      preparedEvent?.forSongId === currentSong?.id
-        ? preparedEvent
-        : prepareStationEvent(nextIndex, queue[nextIndex]?.vibe ?? selectedVibe);
-
-    executeStationEvent(nextPrepared);
-  }
-
-  async function skipToNextTrack() {
-    if (queue.length === 0) {
-      return;
-    }
-    initAudioContext();
-    if (audioCtxRef.current?.state === "suspended") void audioCtxRef.current.resume();
+    transitionInFlightRef.current = true;
 
     const nextIndex = getNextTrackIndex(queue, currentIndex);
     const nextPrepared =
@@ -1341,11 +1473,50 @@ export default function RadioPlayer() {
         ? preparedEvent
         : prepareStationEvent(nextIndex, queue[nextIndex]?.vibe ?? selectedVibe);
     const audio = audioRef.current;
-    if (audio && !audio.paused) {
-      await fadeOutAudio(audio, nextPrepared?.plan.durationMs);
-    }
+    const fadeDurationMs = Math.min(
+      600,
+      Math.max(400, nextPrepared?.plan.durationMs ?? FADE_DURATION_MS),
+    );
 
-    executeStationEvent(nextPrepared);
+    console.log("[RadioPlayer] queue transition", {
+      reason,
+      nextIndex,
+      fadeDurationMs,
+      enableDjDrops: ENABLE_DJ_DROPS,
+    });
+
+    try {
+      if (audio && !audio.paused) {
+        await fadeOutAudio(audio, fadeDurationMs);
+      }
+
+      if (ENABLE_DJ_DROPS) {
+        songsUntilDropRef.current = getRandomDropInterval();
+        setSongsUntilDrop(songsUntilDropRef.current);
+        await playSimpleDjDropBeforeTrack(nextIndex);
+        return;
+      }
+
+      executeStationEvent(nextPrepared);
+    } finally {
+      if (!ENABLE_DJ_DROPS) {
+        transitionInFlightRef.current = false;
+      }
+    }
+  }
+
+  async function skipToNextTrack() {
+    if (isSkippingRef.current) return;
+
+    isSkippingRef.current = true;
+
+    try {
+      await queueTransitionToNextTrack("skip");
+    } finally {
+      window.setTimeout(() => {
+        isSkippingRef.current = false;
+      }, 300);
+    }
   }
 
   async function handleVibeSelect(vibe: string) {
@@ -1361,10 +1532,13 @@ export default function RadioPlayer() {
       await fadeOutAudio(audio, plan.durationMs);
     }
 
+    clearTransitionAudioStopTimer(transitionAudioStopTimerRef);
     resetAudioElement(dropAudio);
     resetAudioElement(transitionBedAudioRef.current);
 
     pendingTrackIndexRef.current = null;
+    transitionAudioModeRef.current = null;
+    transitionInFlightRef.current = false;
     setIsDropPlaying(false);
     setActiveDropLabel("");
     setPreparedEvent(null);
@@ -1384,20 +1558,11 @@ export default function RadioPlayer() {
       return;
     }
 
-    initAudioContext();
-    if (audioCtxRef.current?.state === "suspended") {
-      void audioCtxRef.current.resume();
+    if (currentSong) {
+      requestedTrackStartIdRef.current = currentSong.id;
+      currentTrackIdRef.current = null;
+      setShouldPlay(true);
     }
-
-    void activeAudio
-      .play()
-      .then(() => {
-        setShouldPlay(true);
-      })
-      .catch(() => {
-        setShouldPlay(false);
-        setIsPlaying(false);
-      });
   }
 
   function handleTimeUpdate() {
@@ -1420,6 +1585,17 @@ export default function RadioPlayer() {
         const nextIndex = getNextTrackIndex(queue, currentIndex);
         prepareStationEvent(nextIndex, queue[nextIndex]?.vibe ?? selectedVibe);
       }
+
+      if (
+        currentSong &&
+        !isDropPlaying &&
+        !transitionInFlightRef.current &&
+        queue.length > 0 &&
+        audio.duration - audio.currentTime <=
+          (FADE_DURATION_MS + AUTO_NEXT_FADE_BUFFER_MS) / 1000
+      ) {
+        void queueTransitionToNextTrack("auto");
+      }
     }
   }
 
@@ -1429,10 +1605,62 @@ export default function RadioPlayer() {
       return;
     }
 
+    const pendingRestore = pendingRestoreStateRef.current;
+    if (
+      pendingRestore &&
+      currentSong?.id === pendingRestore.songId &&
+      pendingRestore.currentTime > 0 &&
+      Number.isFinite(audio.duration) &&
+      audio.duration > 0
+    ) {
+      audio.currentTime = Math.min(
+        pendingRestore.currentTime,
+        Math.max(audio.duration - 0.25, 0),
+      );
+      setCurrentTime(audio.currentTime);
+      pendingRestoreStateRef.current = null;
+    }
+
     if (Number.isFinite(audio.duration) && audio.duration > 0) {
       setDuration(audio.duration);
     }
   }
+
+  useEffect(() => {
+    skipToNextTrackRef.current = skipToNextTrack;
+    handleTimeUpdateRef.current = handleTimeUpdate;
+    handleLoadedMetadataRef.current = handleLoadedMetadata;
+  });
+
+  useEffect(() => {
+    togglePlaybackRef.current = togglePlayback;
+    skipTrackRef.current = skipToNextTrack;
+
+    return () => {
+      if (togglePlaybackRef.current === togglePlayback) {
+        togglePlaybackRef.current = null;
+      }
+      if (skipTrackRef.current === skipToNextTrack) {
+        skipTrackRef.current = null;
+      }
+    };
+  });
+
+  useEffect(() => {
+    if (songParamHandled.current || queue.length === 0) return;
+    const params = new URLSearchParams(window.location.search);
+    const songId = params.get("song");
+    if (!songId) return;
+    const idx = queue.findIndex((s) => s.id === songId);
+    if (idx !== -1) {
+      songParamHandled.current = true;
+      window.setTimeout(() => {
+        moveToTrack(idx);
+      }, 0);
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queue]);
 
   function handleProgressClick(e: React.MouseEvent<HTMLDivElement>) {
     const audio = audioRef.current;
@@ -1562,89 +1790,6 @@ export default function RadioPlayer() {
         } as CSSProperties
       }
     >
-      <audio
-        ref={audioRef}
-        onEnded={advancePlayback}
-        onError={() => {
-          setError(RADIO_BACKEND_ERROR);
-          setShouldPlay(false);
-          setIsPlaying(false);
-        }}
-        onLoadedMetadata={handleLoadedMetadata}
-        onPause={() => setIsPlaying(false)}
-        onPlay={() => setIsPlaying(true)}
-        onTimeUpdate={handleTimeUpdate}
-      />
-      <audio
-        ref={dropAudioRef}
-        onEnded={() => {
-          const transitionType = transitionAudioModeRef.current;
-          if (!transitionType) {
-            return;
-          }
-          console.log(`[RadioPlayer] ${transitionType} ended`, {
-            src: dropAudioRef.current?.currentSrc || dropAudioRef.current?.src || null,
-          });
-          finishTransitionAndStartTrack("ended");
-        }}
-        onError={() => {
-          const transitionType = transitionAudioModeRef.current;
-          if (!transitionType) {
-            return;
-          }
-          console.warn(`[RadioPlayer] ${transitionType} error`, {
-            src: dropAudioRef.current?.currentSrc || dropAudioRef.current?.src || null,
-            mediaError: dropAudioRef.current?.error?.message ?? null,
-          });
-          finishTransitionAndStartTrack("error");
-        }}
-        onLoadedMetadata={() => {
-          const dropAudio = dropAudioRef.current;
-          const dropDuration = dropAudio?.duration ?? NaN;
-          const transitionType = transitionAudioModeRef.current;
-
-          if (!transitionType) {
-            return;
-          }
-
-          console.log(`[RadioPlayer] ${transitionType} duration`, {
-            duration: Number.isFinite(dropDuration) ? dropDuration : null,
-          });
-
-          if (Number.isFinite(dropDuration) && dropDuration < 1) {
-            console.warn(`[RadioPlayer] ${transitionType} duration unexpectedly short`, {
-              duration: dropDuration,
-            });
-          }
-        }}
-        onTimeUpdate={logActiveTransitionCurrentTime}
-        onPause={() => {
-          const transitionType = transitionAudioModeRef.current;
-          if (!transitionType) {
-            setIsPlaying(false);
-            return;
-          }
-          console.log(`[RadioPlayer] ${transitionType} paused`, {
-            src: dropAudioRef.current?.currentSrc || dropAudioRef.current?.src || null,
-            currentTime: dropAudioRef.current?.currentTime ?? null,
-          });
-          setIsPlaying(false);
-        }}
-        onPlay={() => {
-          const transitionType = transitionAudioModeRef.current;
-          if (!transitionType) {
-            setIsPlaying(true);
-            return;
-          }
-          console.log(`[RadioPlayer] ${transitionType} playing`, {
-            src: dropAudioRef.current?.currentSrc || dropAudioRef.current?.src || null,
-            currentTime: dropAudioRef.current?.currentTime ?? null,
-          });
-          setIsPlaying(true);
-        }}
-      />
-      <audio id="bedPlayer" ref={transitionBedAudioRef} preload="metadata" />
-
       <div
         className={`pointer-events-none absolute inset-0 overflow-hidden transition-opacity duration-700 ${
           ambientCoverActive ? "opacity-100" : "opacity-0"
@@ -1722,7 +1867,11 @@ export default function RadioPlayer() {
                 width={260}
                 height={84}
                 priority
-                className="viz-logo h-auto w-[clamp(180px,22vw,260px)] opacity-90"
+                className="viz-logo h-auto w-[clamp(180px,22vw,260px)]"
+                style={{
+                  filter:
+                    "brightness(1.4) drop-shadow(0 0 18px rgba(0,230,255,0.45))",
+                }}
               />
             </div>
             <div className="pointer-events-none absolute inset-0 rounded-[1.8rem] shadow-[inset_0_0_60px_rgba(0,229,255,0.05),inset_0_0_28px_rgba(124,77,255,0.04)]" />

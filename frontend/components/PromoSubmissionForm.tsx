@@ -1,7 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { submitPromoSubmission } from "@/lib/api";
+import { useRouter } from "next/navigation";
+import { generateAiOnboarding } from "@/lib/api";
+import {
+  PROMO_PREVIEW_DRAFT_STORAGE_KEY,
+  type PromoPreviewDraft,
+} from "@/lib/promoOnboarding";
 import type { PromoTier } from "@/lib/stripe";
 
 type PromoSubmissionFormProps = {
@@ -39,10 +44,9 @@ export function PromoSubmissionForm({
   packageTier,
   stripeSessionId,
 }: PromoSubmissionFormProps) {
+  const router = useRouter();
   const [form, setForm] = useState(INITIAL_FORM);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
-  const [submissionReference, setSubmissionReference] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
   function updateField(field: keyof typeof INITIAL_FORM, value: string) {
@@ -55,20 +59,29 @@ export function PromoSubmissionForm({
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsSubmitting(true);
-    setSuccessMessage("");
-    setSubmissionReference("");
     setErrorMessage("");
 
     try {
-      const response = await submitPromoSubmission({
-        ...form,
-        package_tier: packageTier,
-        stripe_session_id: stripeSessionId,
+      const aiProfile = await generateAiOnboarding({
+        trackTitle: form.song_title,
+        artistName: form.artist_name,
+        genre: form.vibe,
+        description: form.message,
       });
 
-      setSuccessMessage(response.message);
-      setSubmissionReference(response.submission.submission_id);
-      setForm(INITIAL_FORM);
+      const draft: PromoPreviewDraft = {
+        amountPaid,
+        packageTier,
+        stripeSessionId,
+        form,
+        aiProfile,
+      };
+
+      window.sessionStorage.setItem(
+        PROMO_PREVIEW_DRAFT_STORAGE_KEY,
+        JSON.stringify(draft),
+      );
+      router.push("/promo/preview");
     } catch (error) {
       setErrorMessage(
         error instanceof Error
@@ -177,15 +190,6 @@ export function PromoSubmissionForm({
             </p>
           </div>
 
-          {successMessage ? (
-            <div className="rounded-[1.2rem] border border-[#00E5FF]/18 bg-[#00E5FF]/10 px-4 py-3 text-sm text-[#F8FAFC]">
-              <p>{successMessage}</p>
-              {submissionReference ? (
-                <p className="mt-2 text-[#CBD5E1]">Reference: {submissionReference}</p>
-              ) : null}
-            </div>
-          ) : null}
-
           {errorMessage ? (
             <div className="rounded-[1.2rem] border border-[#FF2DA6]/18 bg-[#FF2DA6]/10 px-4 py-3 text-sm text-[#F8FAFC]">
               {errorMessage}
@@ -201,7 +205,7 @@ export function PromoSubmissionForm({
               disabled={isSubmitting}
               className="inline-flex min-h-12 items-center justify-center rounded-full border border-cyan-100/70 bg-[linear-gradient(135deg,#67E8F9_0%,#22D3EE_45%,#06B6D4_100%)] px-6 text-sm font-bold text-slate-950 shadow-[0_0_0_1px_rgba(255,255,255,0.12),0_12px_30px_rgba(34,211,238,0.35)] transition hover:-translate-y-0.5 disabled:border-white/8 disabled:bg-white/10 disabled:text-slate-400 disabled:shadow-none disabled:hover:translate-y-0"
             >
-              {isSubmitting ? "Submitting..." : "Complete submission"}
+              {isSubmitting ? "Generating preview..." : "Continue to preview"}
             </button>
           </div>
         </form>

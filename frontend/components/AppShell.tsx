@@ -15,6 +15,7 @@ const SHELL_LINKS = [
   { href: "/radio", label: "Radio" },
   { href: "/songs", label: "Songs" },
   { href: "/artists", label: "Artists" },
+  { href: "/artist/dashboard", label: "Creator Hub" },
   { href: "/visualizer", label: "Visualizer" },
 ] as const;
 
@@ -38,7 +39,10 @@ export function AppShell({
               width={160}
               height={24}
               className="h-5 w-auto md:h-6"
-              style={{ mixBlendMode: "screen" }}
+              style={{
+                mixBlendMode: "screen",
+                filter: "brightness(1.3) drop-shadow(0 0 8px rgba(0,230,255,0.3))",
+              }}
             />
           </Link>
           <div className="mt-4 flex flex-wrap gap-2">

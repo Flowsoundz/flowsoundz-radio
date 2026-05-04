@@ -1,5 +1,6 @@
 import coverMappings from "./coverMappings.json";
 import { getAdminCoverSrc, normalizeCoverKey } from "./coverKeys";
+import type { AiOnboardProfile } from "./promoOnboarding";
 import { Song } from "./types";
 
 export const API_BASE =
@@ -91,6 +92,13 @@ type PromoSubmissionResponse = {
   };
 };
 
+type AiOnboardPayload = {
+  trackTitle: string;
+  artistName: string;
+  genre: string;
+  description: string;
+};
+
 export async function submitPromoSubmission(
   payload: PromoSubmissionPayload,
 ): Promise<PromoSubmissionResponse> {
@@ -109,6 +117,26 @@ export async function submitPromoSubmission(
   }
 
   return data;
+}
+
+export async function generateAiOnboarding(
+  payload: AiOnboardPayload,
+): Promise<AiOnboardProfile> {
+  const res = await fetch("/api/ai/onboard", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await res.json().catch(() => null);
+
+  if (!res.ok) {
+    throw new Error(data?.error || "Failed to generate onboarding copy.");
+  }
+
+  return data as AiOnboardProfile;
 }
 
 type ReleaseSubmissionResponse = {

@@ -46,6 +46,10 @@ export default async function HomePage() {
               width={160}
               height={44}
               className="h-[44px] w-auto"
+              style={{
+                filter:
+                  "brightness(1.3) drop-shadow(0 0 10px rgba(0,230,255,0.35))",
+              }}
             />
           </Link>
 
