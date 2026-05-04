@@ -179,13 +179,14 @@ export async function POST(request: NextRequest) {
 
   let raw = "";
   try {
-    raw = anthropicKey
-      ? await callAnthropic(anthropicKey, prompt)
-      : await callOpenAI(openAiKey!, prompt);
+    raw = openAiKey
+      ? await callOpenAI(openAiKey, prompt)
+      : await callAnthropic(anthropicKey!, prompt);
   } catch {
-    if (anthropicKey && openAiKey) {
+    // Primary (OpenAI) failed — try Claude as fallback
+    if (openAiKey && anthropicKey) {
       try {
-        raw = await callOpenAI(openAiKey, prompt);
+        raw = await callAnthropic(anthropicKey, prompt);
       } catch {
         return Response.json(
           fallback(artistName, songTitle, genre, vibe, artistType, description),

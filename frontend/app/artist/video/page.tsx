@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AppShell } from "@/components/AppShell";
-import { CreatorHubNav } from "@/components/creator-hub/CreatorHubNav";
+import { CreatorHubShell } from "@/components/creator-hub/CreatorHubShell";
 import { ToolCard } from "@/components/creator-hub/ToolCard";
 import {
   generateVideoPrompt,
@@ -10,6 +9,16 @@ import {
   type VideoPromptOutput,
 } from "@/lib/creatorHub/generators";
 import Link from "next/link";
+
+async function fetchVideoPrompt(input: VideoPromptInput): Promise<VideoPromptOutput> {
+  const res = await fetch("/api/artist/generate-video-prompt", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) throw new Error("API error");
+  return (await res.json()) as VideoPromptOutput;
+}
 
 const VIDEO_TOOLS = [
   {
@@ -120,6 +129,7 @@ function CopyButton({ text }: { text: string }) {
 export default function VideoPage() {
   const [form, setForm] = useState<VideoPromptInput>(INITIAL_FORM);
   const [output, setOutput] = useState<VideoPromptOutput | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   function update<K extends keyof VideoPromptInput>(
     key: K,
@@ -128,18 +138,24 @@ export default function VideoPage() {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
-  function handleGenerate() {
+  async function handleGenerate() {
     if (!form.artistName.trim() || !form.songTitle.trim()) return;
-    setOutput(generateVideoPrompt(form));
-    setTimeout(() => {
-      document.getElementById("video-output")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 80);
+    setIsLoading(true);
+    try {
+      const result = await fetchVideoPrompt(form);
+      setOutput(result);
+    } catch {
+      setOutput(generateVideoPrompt(form));
+    } finally {
+      setIsLoading(false);
+      setTimeout(() => {
+        document.getElementById("video-output")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 80);
+    }
   }
 
   return (
-    <AppShell eyebrow="Creator Hub" title="Visuals & Promo Video">
-      <CreatorHubNav />
-
+    <CreatorHubShell eyebrow="Creator Hub" title="Visuals & Promo Video">
       {/* ── Intro ── */}
       <div className="mb-10 glass-card rounded-[1.8rem] p-6 sm:p-8">
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200/75">
@@ -275,11 +291,20 @@ export default function VideoPage() {
 
           <button
             type="button"
-            onClick={handleGenerate}
-            disabled={!form.artistName.trim() || !form.songTitle.trim()}
-            className="mt-6 inline-flex min-h-11 items-center justify-center rounded-full bg-[linear-gradient(135deg,#7c4dff_0%,#00e5ff_100%)] px-6 py-2.5 text-sm font-bold text-white shadow-[0_0_22px_rgba(124,77,255,0.24)] transition disabled:opacity-40"
+            onClick={() => void handleGenerate()}
+            disabled={isLoading || !form.artistName.trim() || !form.songTitle.trim()}
+            className="mt-6 inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#7c4dff_0%,#00e5ff_100%)] px-6 py-2.5 text-sm font-bold text-white shadow-[0_0_22px_rgba(124,77,255,0.24)] transition disabled:opacity-40"
           >
-            ✦ Generate Video Prompt
+            {isLoading ? (
+              <>
+                <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="40" strokeDashoffset="15" />
+                </svg>
+                Generating…
+              </>
+            ) : (
+              "✦ Generate Video Prompt"
+            )}
           </button>
         </div>
       </div>
@@ -338,6 +363,6 @@ export default function VideoPage() {
           Continue: Submit Track →
         </Link>
       </div>
-    </AppShell>
+    </CreatorHubShell>
   );
 }

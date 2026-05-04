@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { AppShell } from "@/components/AppShell";
-import { CreatorHubNav } from "@/components/creator-hub/CreatorHubNav";
+import { CreatorHubShell } from "@/components/creator-hub/CreatorHubShell";
 import { generateArtistPromoAssets } from "@/lib/creatorHub/generators";
 import type { ArtistPromoOutput } from "@/lib/creatorHub/generators";
 
@@ -126,20 +125,26 @@ export default function SubmitPage() {
     try {
       let promo: ArtistPromoOutput;
 
-      // Try server-side AI first
+      // Submit to server: AI generation + email notification
       try {
-        const res = await fetch("/api/artist/generate-promo", {
+        const res = await fetch("/api/artist/submit", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             artistName: form.artistName,
+            email: form.email,
             songTitle: form.songTitle,
             genre: form.genre,
             vibe: form.vibe,
             artistType: form.artistType,
             description: form.description,
+            songLink: form.songLink,
+            streamingLink: form.streamingLink,
+            coverArtLink: form.coverArtLink,
+            socialLink: form.socialLink,
             aiUsed: form.aiUsed === "yes",
             aiTool: form.aiTool,
+            notes: form.notes,
           }),
         });
 
@@ -183,8 +188,7 @@ export default function SubmitPage() {
   }
 
   return (
-    <AppShell eyebrow="Creator Hub" title="Submit to FlowSoundz Radio">
-      <CreatorHubNav />
+    <CreatorHubShell eyebrow="Creator Hub" title="Submit to FlowSoundz Radio">
 
       {/* ── Intro ── */}
       <div className="mb-8 glass-card rounded-[1.8rem] p-6 sm:p-8">
@@ -530,6 +534,6 @@ export default function SubmitPage() {
           Fields marked <span className="text-[#ff2da6]">*</span> are required.
         </p>
       </div>
-    </AppShell>
+    </CreatorHubShell>
   );
 }

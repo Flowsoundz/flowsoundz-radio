@@ -1,14 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { AppShell } from "@/components/AppShell";
-import { CreatorHubNav } from "@/components/creator-hub/CreatorHubNav";
+import { CreatorHubShell } from "@/components/creator-hub/CreatorHubShell";
 import { ToolCard } from "@/components/creator-hub/ToolCard";
 import {
   generateLyricIdeas,
   type LyricIdeasInput,
   type LyricIdeasOutput,
 } from "@/lib/creatorHub/generators";
+
+async function fetchLyricIdeas(input: LyricIdeasInput): Promise<LyricIdeasOutput> {
+  const res = await fetch("/api/artist/generate-lyrics", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) throw new Error("API error");
+  return (await res.json()) as LyricIdeasOutput;
+}
 
 const MUSIC_TOOLS = [
   {
@@ -84,6 +93,7 @@ const INITIAL_FORM: LyricIdeasInput = {
 export default function CreatePage() {
   const [form, setForm] = useState<LyricIdeasInput>(INITIAL_FORM);
   const [output, setOutput] = useState<LyricIdeasOutput | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   function update<K extends keyof LyricIdeasInput>(
     key: K,
@@ -92,18 +102,24 @@ export default function CreatePage() {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
-  function handleGenerate() {
+  async function handleGenerate() {
     if (!form.songIdea.trim() || !form.genre.trim() || !form.mood.trim()) return;
-    setOutput(generateLyricIdeas(form));
-    setTimeout(() => {
-      document.getElementById("lyric-output")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 80);
+    setIsLoading(true);
+    try {
+      const result = await fetchLyricIdeas(form);
+      setOutput(result);
+    } catch {
+      setOutput(generateLyricIdeas(form));
+    } finally {
+      setIsLoading(false);
+      setTimeout(() => {
+        document.getElementById("lyric-output")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 80);
+    }
   }
 
   return (
-    <AppShell eyebrow="Creator Hub" title="Create Music">
-      <CreatorHubNav />
-
+    <CreatorHubShell eyebrow="Creator Hub" title="Create Music">
       {/* ── Intro ── */}
       <div className="mb-10 glass-card rounded-[1.8rem] p-6 sm:p-8">
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200/75">
@@ -242,15 +258,25 @@ export default function CreatePage() {
 
           <button
             type="button"
-            onClick={handleGenerate}
+            onClick={() => void handleGenerate()}
             disabled={
+              isLoading ||
               !form.songIdea.trim() ||
               !form.genre.trim() ||
               !form.mood.trim()
             }
-            className="mt-6 inline-flex min-h-11 items-center justify-center rounded-full bg-[linear-gradient(135deg,#00e5ff_0%,#7c4dff_100%)] px-6 py-2.5 text-sm font-bold text-white shadow-[0_0_22px_rgba(0,229,255,0.24)] transition hover:shadow-[0_0_28px_rgba(124,77,255,0.26)] disabled:opacity-40"
+            className="mt-6 inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#00e5ff_0%,#7c4dff_100%)] px-6 py-2.5 text-sm font-bold text-white shadow-[0_0_22px_rgba(0,229,255,0.24)] transition hover:shadow-[0_0_28px_rgba(124,77,255,0.26)] disabled:opacity-40"
           >
-            ✦ Generate Lyric Ideas
+            {isLoading ? (
+              <>
+                <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="40" strokeDashoffset="15" />
+                </svg>
+                Generating…
+              </>
+            ) : (
+              "✦ Generate Lyric Ideas"
+            )}
           </button>
 
           <p className="mt-4 text-xs text-white/35">
@@ -296,6 +322,6 @@ export default function CreatePage() {
           ))}
         </div>
       ) : null}
-    </AppShell>
+    </CreatorHubShell>
   );
 }

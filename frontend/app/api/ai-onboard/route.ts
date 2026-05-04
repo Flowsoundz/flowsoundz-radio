@@ -170,16 +170,16 @@ export async function POST(request: NextRequest) {
 
   let rawText = "";
   try {
-    if (anthropicKey) {
-      rawText = await generateWithAnthropic(anthropicKey, prompt);
-    } else if (openAiKey) {
+    if (openAiKey) {
       rawText = await generateWithOpenAI(openAiKey, prompt);
+    } else if (anthropicKey) {
+      rawText = await generateWithAnthropic(anthropicKey, prompt);
     }
   } catch (err) {
-    // Primary key failed — try OpenAI as backup if Anthropic was primary
-    if (anthropicKey && openAiKey) {
+    // Primary (OpenAI) failed — try Claude as fallback
+    if (openAiKey && anthropicKey) {
       try {
-        rawText = await generateWithOpenAI(openAiKey, prompt);
+        rawText = await generateWithAnthropic(anthropicKey, prompt);
       } catch {
         return Response.json(
           { error: "Both AI providers failed. Please try again." },
