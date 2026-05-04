@@ -27,7 +27,6 @@ import {
 import { fadeAudioOut } from "@/lib/audioFades";
 import { formatVibeLabel } from "@/lib/format";
 import { getDJPersonality } from "@/lib/djPersonalities";
-import { AiDjChat } from "@/components/AiDjChat";
 import { getNarrationEventForVibe, type NarrationEvent } from "@/lib/narration";
 import {
   getTransitionBedForVibe,
@@ -47,7 +46,6 @@ import {
   type TransitionType,
 } from "@/lib/transitionPlanner";
 import type { Song } from "@/lib/types";
-import { VisualizerCanvasThree } from "@/components/VisualizerCanvasThree";
 import {
   type VisualizerModeId,
 } from "@/lib/visualizerModes";
@@ -57,6 +55,26 @@ const VisualizerModal = dynamic(
   () =>
     import("@/components/VisualizerModal").then((module) => ({
       default: module.VisualizerModal,
+    })),
+  {
+    ssr: false,
+  },
+);
+
+const VisualizerCanvasThree = dynamic(
+  () =>
+    import("@/components/VisualizerCanvasThree").then((module) => ({
+      default: module.VisualizerCanvasThree,
+    })),
+  {
+    ssr: false,
+  },
+);
+
+const AiDjChat = dynamic(
+  () =>
+    import("@/components/AiDjChat").then((module) => ({
+      default: module.AiDjChat,
     })),
   {
     ssr: false,
@@ -89,6 +107,8 @@ const TRACKS_TODAY_STORAGE_KEY = "flowsoundz-tracks-today";
 const RADIO_PLAYER_STATE_STORAGE_KEY = "flowsoundz-radio-player-state";
 const RADIO_BACKEND_ERROR =
   "Station backend offline. Start the API at http://127.0.0.1:8000 to load the live queue.";
+const PLAYBACK_START_ERROR =
+  "Playback could not start. Tap again or check the audio source.";
 
 // ── Strip wave SVG paths (computed once at module load) ──────────────────
 // ViewBox is 200×32. Two SVGs each rendered at width:200% of their container
@@ -326,6 +346,7 @@ function prepareBedAudio(
 export default function RadioPlayer() {
   const {
     audioRef,
+    audioContextRef,
     analyserRef: sharedAnalyserRef,
     isReady: isAudioReady,
     setCurrentTrack,
@@ -642,6 +663,14 @@ export default function RadioPlayer() {
             ? reorderedQueue.findIndex((song) => song.id === persistedState.songId)
             : -1;
 
+        if (process.env.NODE_ENV === "development") {
+          console.log("[RadioPlayer] queue ready", {
+            selectedVibe,
+            queueLength: reorderedQueue.length,
+            firstTrack: reorderedQueue[0] ?? null,
+          });
+        }
+
         setQueue(reorderedQueue);
         setCurrentIndex(restoredIndex >= 0 ? restoredIndex : 0);
         setCurrentTime(restoredIndex >= 0 ? persistedState?.currentTime ?? 0 : 0);
@@ -649,7 +678,7 @@ export default function RadioPlayer() {
         setShouldPlay(
           restoredIndex >= 0
             ? (persistedState?.shouldPlay ?? (nextQueue.length > 0))
-            : nextQueue.length > 0,
+            : false,
         );
         setError(nextQueue.length === 0 ? "No songs are available in this vibe queue yet." : "");
         setIsDropPlaying(false);
@@ -959,8 +988,9 @@ export default function RadioPlayer() {
     }
 
     const mediaElement = audioElement;
-    hlsRef.current?.destroy();
-    hlsRef.current = null;
+    // HLS cleanup is deferred to loadTrackSource — only destroy when the source key
+    // actually changes (new track). Destroying here runs on every shouldPlay toggle
+    // (including pause), which tears down the active HLS.js MediaSource mid-playback.
     const hlsUrl = getHlsUrl(currentSong);
     const preferredUrl = getPreferredPlaybackUrl(currentSong, mediaElement);
     const trackToPlay = {
@@ -969,7 +999,7 @@ export default function RadioPlayer() {
       title: currentSong.title,
       artist: currentSong.artist,
     };
-    const startResolvedTrack = (resolvedSrc: string) => {
+    const startResolvedTrack = async (resolvedSrc: string) => {
       if (!shouldPlay) {
         return;
       }
@@ -987,12 +1017,26 @@ export default function RadioPlayer() {
 
       if (process.env.NODE_ENV === "development") {
         console.log("track start:", trackToPlay.id);
+        console.log("[RadioPlayer] resolved audio src", {
+          trackId: trackToPlay.id,
+          preferredUrl,
+          hlsUrl,
+          resolvedSrc,
+          currentSrc: mediaElement.currentSrc || mediaElement.src,
+        });
       }
 
-      void playTrack(audioRef, {
+      const result = await playTrack(audioRef, {
         ...trackToPlay,
         src: resolvedSrc,
-      });
+      }, audioContextRef);
+
+      if (!result.ok) {
+        setError(PLAYBACK_START_ERROR);
+        return;
+      }
+
+      setError("");
     };
     const sourceKey =
       hlsUrl && !canUseNativeHls(mediaElement)
@@ -1002,15 +1046,18 @@ export default function RadioPlayer() {
     if (hlsUrl && canUseNativeHls(mediaElement)) {
       if ((mediaElement.currentSrc || mediaElement.src).includes(hlsUrl)) {
         activeTrackSourceKeyRef.current = sourceKey;
-        startResolvedTrack(hlsUrl);
+        void startResolvedTrack(hlsUrl);
         return;
       }
 
+      // URL changed — clean up any stale HLS.js instance before native HLS takes over
+      hlsRef.current?.destroy();
+      hlsRef.current = null;
       activeTrackSourceKeyRef.current = sourceKey;
       isPlayingRef.current = false;
       mediaElement.src = hlsUrl;
       mediaElement.load();
-      startResolvedTrack(hlsUrl);
+      void startResolvedTrack(hlsUrl);
       return;
     }
 
@@ -1018,8 +1065,13 @@ export default function RadioPlayer() {
 
     async function loadTrackSource() {
       if (activeTrackSourceKeyRef.current === sourceKey) {
+        await startResolvedTrack(mediaElement.currentSrc || mediaElement.src || preferredUrl);
         return;
       }
+
+      // Source is changing — safe to tear down the existing HLS.js instance now
+      hlsRef.current?.destroy();
+      hlsRef.current = null;
 
       if (hlsUrl) {
         const hlsModule = await loadHlsModule();
@@ -1039,7 +1091,7 @@ export default function RadioPlayer() {
             hls.loadSource(hlsUrl);
           });
           hls.on(HlsCtor.Events.MANIFEST_PARSED, () => {
-            startResolvedTrack(mediaElement.currentSrc || mediaElement.src || hlsUrl);
+            void startResolvedTrack(mediaElement.currentSrc || mediaElement.src || hlsUrl);
           });
           hls.on(HlsCtor.Events.ERROR, (_event, data) => {
             if (!data.fatal) {
@@ -1076,7 +1128,7 @@ export default function RadioPlayer() {
     return () => {
       cancelled = true;
     };
-  }, [audioRef, currentSong, currentUserTier, isDropPlaying, shouldPlay]);
+  }, [audioContextRef, audioRef, currentSong, currentUserTier, isDropPlaying, shouldPlay]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -1553,15 +1605,103 @@ export default function RadioPlayer() {
     }
 
     if (isPlaying) {
+      console.log("[RadioPlayer] pause requested", {
+        currentSrc: activeAudio.currentSrc || activeAudio.src || null,
+        currentTime: activeAudio.currentTime,
+        paused: activeAudio.paused,
+        readyState: activeAudio.readyState,
+      });
       activeAudio.pause();
       setShouldPlay(false);
       return;
     }
 
+    // Resume when the element has a loaded source and is paused — regardless of
+    // currentTime, since time=0 is valid (e.g. right after a track transition).
+    // Using currentTime > 0 was the root cause: it fell through to the first-start
+    // path which called playTrack with preferredUrl, resetting audio.src and
+    // breaking any active HLS.js MediaSource.
+    const isResumingTrack =
+      activeAudio === audioRef.current &&
+      Boolean(currentSong) &&
+      Boolean(activeAudio.currentSrc || activeAudio.src) &&
+      activeAudio.paused &&
+      !activeAudio.ended;
+
+    if (isResumingTrack && currentSong) {
+      console.log("[RadioPlayer] resume requested", {
+        trackId: currentSong.id,
+        currentSrc: activeAudio.currentSrc || activeAudio.src || null,
+        currentTime: activeAudio.currentTime,
+        paused: activeAudio.paused,
+        readyState: activeAudio.readyState,
+        volume: activeAudio.volume,
+        muted: activeAudio.muted,
+      });
+      setError("");
+      setShouldPlay(true);
+      activeAudio.muted = false;
+      if (activeAudio.volume <= 0) {
+        activeAudio.volume = 1;
+      }
+
+      void (async () => {
+        try {
+          if (audioContextRef.current?.state === "suspended") {
+            await audioContextRef.current.resume();
+          }
+          await activeAudio.play();
+          console.log("[RadioPlayer] resume success", {
+            currentSrc: activeAudio.currentSrc || activeAudio.src || null,
+            currentTime: activeAudio.currentTime,
+            paused: activeAudio.paused,
+            readyState: activeAudio.readyState,
+          });
+        } catch (error) {
+          console.error("[RadioPlayer] resume failed", {
+            currentSrc: activeAudio.currentSrc || activeAudio.src || null,
+            currentTime: activeAudio.currentTime,
+            paused: activeAudio.paused,
+            readyState: activeAudio.readyState,
+            error,
+          });
+          setError(PLAYBACK_START_ERROR);
+        }
+      })();
+      return;
+    }
+
     if (currentSong) {
+      const preferredUrl = getPreferredPlaybackUrl(currentSong, audioRef.current);
+      if (process.env.NODE_ENV === "development") {
+        console.log("[RadioPlayer] user requested playback", {
+          trackId: currentSong.id,
+          preferredUrl,
+          currentSrc: audioRef.current?.currentSrc || audioRef.current?.src || null,
+          muted: audioRef.current?.muted ?? null,
+          volume: audioRef.current?.volume ?? null,
+        });
+      }
       requestedTrackStartIdRef.current = currentSong.id;
       currentTrackIdRef.current = null;
+      setError("");
       setShouldPlay(true);
+      void playTrack(
+        audioRef,
+        {
+          id: currentSong.id,
+          src: preferredUrl,
+        },
+        audioContextRef,
+      ).then((result) => {
+        if (!result.ok) {
+          setError(PLAYBACK_START_ERROR);
+          return;
+        }
+
+        currentTrackIdRef.current = currentSong.id;
+        requestedTrackStartIdRef.current = null;
+      });
     }
   }
 
@@ -1733,43 +1873,7 @@ export default function RadioPlayer() {
     : [];
 
   if (!isFullView) {
-    if (!currentSong) return null;
-    const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
-    return (
-      <div className="fixed bottom-[60px] left-0 right-0 z-40 border-t border-white/[0.07] bg-[#050816]/92 backdrop-blur-xl sm:bottom-[68px]">
-        <div className="mx-auto flex max-w-7xl items-center gap-3 px-3 py-2 sm:px-4">
-          <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg">
-            <CoverArt src={getCoverUrl(currentSong)} alt={currentSong.title} sizes="40px" className="object-cover" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-semibold text-[#F8FAFC]">{currentSong.title}</p>
-            <p className="truncate text-[10px] text-white/45">{currentSong.artist}</p>
-            <div className="mt-1.5 h-[2px] overflow-hidden rounded-full bg-white/10">
-              <div className="h-full rounded-full bg-[#00E5FF] transition-[width] duration-200" style={{ width: `${progress}%` }} />
-            </div>
-          </div>
-          <button
-            type="button"
-            aria-label={isPlaying ? "Pause" : "Play"}
-            onClick={() => setShouldPlay(!isPlaying)}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white transition hover:bg-white/10"
-          >
-            {isPlaying ? (
-              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-            ) : (
-              <svg className="h-4 w-4 translate-x-px" viewBox="0 0 24 24" fill="currentColor"><polygon points="5,3 19,12 5,21"/></svg>
-            )}
-          </button>
-          <Link
-            href="/radio"
-            className="flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-[#00E5FF]/20 bg-[#00E5FF]/8 px-3 text-[11px] font-semibold text-[#00E5FF] transition hover:bg-[#00E5FF]/14"
-          >
-            Full
-            <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-          </Link>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   return (
