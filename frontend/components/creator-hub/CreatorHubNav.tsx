@@ -6,9 +6,9 @@ import { usePathname } from "next/navigation";
 const STEPS = [
   { href: "/artist/dashboard", label: "Dashboard", short: "Hub" },
   { href: "/artist/create", label: "Create", short: "Create" },
-  { href: "/artist/distribution", label: "Distribute", short: "Dist." },
+  { href: "/artist/distribution", label: "Distribution", short: "Dist." },
   { href: "/artist/rights", label: "Rights", short: "Rights" },
-  { href: "/artist/video", label: "Visuals", short: "Visual" },
+  { href: "/artist/video", label: "Video", short: "Video" },
   { href: "/artist/submit", label: "Submit", short: "Submit" },
 ] as const;
 

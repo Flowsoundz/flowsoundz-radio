@@ -26,19 +26,17 @@ export function SongGrid({ songs, isLoading, error }: SongGridProps) {
       <div className="glass-card rounded-[1.8rem] border border-rose-400/30 p-6 text-sm leading-6 text-rose-100">
         {error}
         <div className="mt-4 flex flex-wrap gap-3">
-          <a
-            href="http://127.0.0.1:8000"
-            target="_blank"
-            rel="noreferrer"
+          <Link
+            href="/radio"
             className="rounded-full border border-white/12 bg-white/[0.05] px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-white transition hover:bg-white/[0.08]"
           >
-            Check API
-          </a>
+            Return to radio
+          </Link>
           <Link
-            href="/visualizer"
+            href="/membership"
             className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-cyan-100 transition hover:bg-cyan-300/14"
           >
-            Open visualizer
+            Explore membership
           </Link>
         </div>
       </div>
@@ -83,8 +81,6 @@ export function SongGrid({ songs, isLoading, error }: SongGridProps) {
         const isVaultTrack = Boolean(song.is_vault);
         const isDayOneAccess = isTrackInMembersEarlyWindow(song);
         const isFeaturedTrack = isTrackFeatured(song);
-        const isAiGenerated = Boolean(song.is_ai_generated);
-
         return (
           <article
             key={song.id}
@@ -182,7 +178,9 @@ export function SongGrid({ songs, isLoading, error }: SongGridProps) {
               ) : null}
               {canAccess && !isReady ? (
                 <p className="rounded-[1rem] border border-cyan-300/20 bg-cyan-200/10 px-3 py-3 text-xs leading-5 text-cyan-100">
-                  {song.packaging_status === "failed"
+                  {song.curated_fallback
+                    ? "Curated archive selection. Metadata is live for discovery, but direct playback resumes when the broadcast stack is back online."
+                    : song.packaging_status === "failed"
                     ? "Packaging failed. Re-upload this track to retry."
                     : "Track uploaded. Packaging is still running, so playback is not ready yet."}
                 </p>
@@ -191,7 +189,7 @@ export function SongGrid({ songs, isLoading, error }: SongGridProps) {
                 <span>{song.genre ?? "Unknown genre"}</span>
                 <span>{formatDuration(song.duration_sec ?? 0)}</span>
               </div>
-              {canAccess && isReady ? (
+              {canAccess && isReady && !song.curated_fallback ? (
                 <Link
                   href={`/radio?song=${song.id}`}
                   className="state-fade flex w-full items-center justify-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] py-2 text-xs font-semibold text-white/60 transition hover:border-[#00E5FF]/30 hover:bg-[#00E5FF]/8 hover:text-[#00E5FF]"
@@ -201,6 +199,10 @@ export function SongGrid({ songs, isLoading, error }: SongGridProps) {
                   </svg>
                   Play on Radio
                 </Link>
+              ) : song.curated_fallback ? (
+                <div className="state-fade flex w-full items-center justify-center gap-1.5 rounded-full border border-cyan-300/14 bg-cyan-300/[0.06] py-2 text-xs font-semibold uppercase tracking-[0.18em] text-cyan-100/85">
+                  Curated archive preview
+                </div>
               ) : null}
             </div>
           </article>

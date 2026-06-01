@@ -16,6 +16,8 @@ type AdminSongOption = Pick<
   | "duration_sec"
   | "audio_file"
   | "packaging_status"
+  | "packaging_error"
+  | "is_playable"
   | "youtube_url"
   | "artist_visual_file"
 >;
@@ -39,6 +41,8 @@ async function loadCatalog(): Promise<AdminSongOption[]> {
       duration_sec,
       audio_file,
       packaging_status,
+      packaging_error,
+      is_playable,
       youtube_url,
       artist_visual_file,
     }) => ({
@@ -50,6 +54,8 @@ async function loadCatalog(): Promise<AdminSongOption[]> {
       duration_sec,
       audio_file,
       packaging_status,
+      packaging_error,
+      is_playable,
       youtube_url,
       artist_visual_file,
     }),

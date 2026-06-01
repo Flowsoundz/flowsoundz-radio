@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useRef } from "react";
-import { useGlobalAudio } from "@/components/GlobalAudioProvider";
+import { useGlobalAudioRefs } from "@/components/GlobalAudioProvider";
 
 type WaveLayer = {
   baseline: number;
@@ -44,6 +44,7 @@ type Props = {
   fullHeight?: boolean;
   showFrame?: boolean;
   showLogo?: boolean;
+  isActive?: boolean;
 };
 
 const LEFT_CORE = "#00e5ff";
@@ -435,17 +436,19 @@ export function PremiumAudioVisualizer({
   fullHeight = false,
   showFrame = true,
   showLogo = true,
+  isActive = true,
 }: Props) {
   const {
     audioRef: globalAudioRef,
     analyserRef: globalAnalyserRef,
     dataArrayRef: globalDataArrayRef,
-  } = useGlobalAudio();
+  } = useGlobalAudioRefs();
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef<number>(0);
   const analyserRef = useRef<AnalyserNode | null | undefined>(analyser);
   const playingRef = useRef<boolean>(isPlaying);
+  const activeRef = useRef<boolean>(isActive);
 
   const resolveAudioElement = useCallback(() => {
     if (audioRef?.current) {
@@ -483,6 +486,10 @@ export function PremiumAudioVisualizer({
   useEffect(() => {
     playingRef.current = isPlaying;
   }, [isPlaying]);
+
+  useEffect(() => {
+    activeRef.current = isActive;
+  }, [isActive]);
 
   useEffect(() => {
     const wrap = wrapRef.current;
@@ -607,7 +614,8 @@ export function PremiumAudioVisualizer({
     }
 
     function tick(timestamp: number) {
-      if (!visible) {
+      if (!visible || !activeRef.current) {
+        rafRef.current = 0;
         return;
       }
 
@@ -739,22 +747,27 @@ export function PremiumAudioVisualizer({
       visible = !document.hidden;
       if (!visible) {
         window.cancelAnimationFrame(rafRef.current);
+        rafRef.current = 0;
         return;
       }
 
       lastTimestamp = performance.now();
-      rafRef.current = window.requestAnimationFrame(tick);
+      if (activeRef.current) {
+        rafRef.current = window.requestAnimationFrame(tick);
+      }
     };
 
     document.addEventListener("visibilitychange", onVisibilityChange);
-    rafRef.current = window.requestAnimationFrame(tick);
+    if (activeRef.current) {
+      rafRef.current = window.requestAnimationFrame(tick);
+    }
 
     return () => {
       window.cancelAnimationFrame(rafRef.current);
       resizeObserver.disconnect();
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
-  }, [globalAnalyserRef, globalDataArrayRef, resolveAudioElement]);
+  }, [globalAnalyserRef, globalDataArrayRef, isActive, resolveAudioElement]);
 
   return (
     <div

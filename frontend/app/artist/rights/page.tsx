@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { AppShell } from "@/components/AppShell";
-import { CreatorHubNav } from "@/components/creator-hub/CreatorHubNav";
+import { CreatorHubShell } from "@/components/creator-hub/CreatorHubShell";
 
 type CheckItem = {
   id: string;
@@ -95,9 +94,7 @@ export default function RightsPage() {
   const allDone = ownershipDone && submissionDone;
 
   return (
-    <AppShell eyebrow="Creator Hub" title="Rights & Licensing">
-      <CreatorHubNav />
-
+    <CreatorHubShell eyebrow="Creator Hub" title="Rights & Licensing">
       {/* ── Disclaimer ── */}
       <div className="mb-8 rounded-[1.6rem] border border-[#7c4dff]/25 bg-[#7c4dff]/8 p-5 sm:p-6">
         <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#7c4dff]/90">
@@ -255,6 +252,6 @@ export default function RightsPage() {
           Skip to Submission
         </Link>
       </div>
-    </AppShell>
+    </CreatorHubShell>
   );
 }

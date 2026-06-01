@@ -32,8 +32,8 @@ export default function SongsPage() {
       } catch (err) {
         setError(
           err instanceof Error
-            ? `Catalog backend offline. Start the API at http://127.0.0.1:8000 and refresh.`
-            : "Catalog backend offline. Start the API at http://127.0.0.1:8000 and refresh.",
+            ? err.message
+            : "The live catalog is unavailable right now.",
         );
       } finally {
         setLoading(false);
@@ -60,6 +60,7 @@ export default function SongsPage() {
       return matchesVibe && matchesQuery;
     });
   }, [songs, query, vibeFilter]);
+  const isFallbackCatalog = songs.some((song) => song.curated_fallback);
 
   return (
     <AppShell
@@ -68,9 +69,20 @@ export default function SongsPage() {
       subtitle={
         loading
           ? "Loading tracks..."
-          : `${songs.length} track${songs.length !== 1 ? "s" : ""} in rotation`
+          : isFallbackCatalog
+            ? `${songs.length} featured track${songs.length !== 1 ? "s" : ""} in the curated archive`
+            : `${songs.length} track${songs.length !== 1 ? "s" : ""} in rotation`
       }
     >
+      {isFallbackCatalog ? (
+        <div className="mb-6 rounded-[1.9rem] border border-cyan-300/18 bg-[linear-gradient(135deg,rgba(0,229,255,0.1),rgba(124,77,255,0.08),rgba(255,61,242,0.05))] p-5">
+          <p className="text-sm leading-6 text-slate-200">
+            The live station catalog is temporarily unavailable, so you&apos;re browsing the
+            curated archive. Discovery stays open even when the backend media service is restarting.
+          </p>
+        </div>
+      ) : null}
+
       {/* ── Membership upsell ── */}
       <div
         className="mb-6 rounded-[1.9rem] p-px"

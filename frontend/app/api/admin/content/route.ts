@@ -4,6 +4,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { siteContent } from "@/lib/brand-content";
 
 const CONTENT_FILE = path.join(process.cwd(), "content", "homepage.json");
+const CAN_WRITE_CONTENT_FILE =
+  process.env.NODE_ENV !== "production" && !process.env.VERCEL;
 
 export async function GET(): Promise<NextResponse> {
   try {
@@ -31,6 +33,16 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   if (!body.content || typeof body.content !== "object") {
     return NextResponse.json({ error: "Missing content payload" }, { status: 422 });
+  }
+
+  if (!CAN_WRITE_CONTENT_FILE) {
+    return NextResponse.json(
+      {
+        error:
+          "Homepage content editing is not configured for this deployment. Use a persistent CMS or database-backed content store in production.",
+      },
+      { status: 501 },
+    );
   }
 
   await mkdir(path.dirname(CONTENT_FILE), { recursive: true });

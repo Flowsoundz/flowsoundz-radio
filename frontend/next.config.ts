@@ -24,9 +24,10 @@ function getBackendCoverPattern(): RemotePattern | null {
 }
 
 const backendCoverPattern = getBackendCoverPattern();
+const isVercel = Boolean(process.env.VERCEL);
 
 const nextConfig: NextConfig = {
-  distDir: ".next-runtime",
+  distDir: isVercel ? ".next" : ".next-runtime",
   outputFileTracingRoot: path.resolve(__dirname),
   turbopack: {
     root: path.resolve(__dirname),

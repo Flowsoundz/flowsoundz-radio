@@ -1,11 +1,13 @@
 import type { NextRequest } from "next/server";
 import type { ArtistPromoOutput } from "@/lib/creatorHub/generators";
+import { createArtistSubmission } from "@/lib/artistSubmissionStore";
 import { sendArtistSubmissionNotification } from "@/lib/mailer";
 
 export const runtime = "nodejs";
 
 type SubmitRequest = {
   artistName?: unknown;
+  contactName?: unknown;
   email?: unknown;
   songTitle?: unknown;
   genre?: unknown;
@@ -13,11 +15,17 @@ type SubmitRequest = {
   artistType?: unknown;
   description?: unknown;
   songLink?: unknown;
+  versionType?: unknown;
+  producerCredit?: unknown;
   streamingLink?: unknown;
   coverArtLink?: unknown;
   socialLink?: unknown;
   aiUsed?: unknown;
   aiTool?: unknown;
+  rightsConfirmed?: unknown;
+  samplesConfirmed?: unknown;
+  promotionPermissionConfirmed?: unknown;
+  removalPolicyConfirmed?: unknown;
   notes?: unknown;
 };
 
@@ -25,7 +33,7 @@ function str(v: unknown): string {
   return typeof v === "string" ? v.trim() : "";
 }
 
-const VALID_VIBES = ["Chill", "Hype", "Late Night", "Emotional"] as const;
+const VALID_VIBES = ["Chill", "Hype", "Late Night", "Emotional", "Unsure"] as const;
 type Vibe = (typeof VALID_VIBES)[number];
 
 function sanitizeVibe(v: unknown): Vibe {
@@ -62,6 +70,11 @@ function fallbackPromo(
         ? `Up next on FlowSoundz Radio — ${a} with "${s}". ${description.slice(0, 90)}${description.length > 90 ? "…" : ""}`
         : `Up next on FlowSoundz Radio — ${a} with "${s}". Pure ${g} energy, curated just for you.`,
     radioIntro: `This is FlowSoundz Radio. You are about to hear "${s}" by ${a}. Stay locked in.`,
+    socialCaptions: [
+      `${a} just landed on the FlowSoundz radar with "${s}" — ${v.toLowerCase()} energy and a clear point of view.`,
+      `Now in the FlowSoundz discovery lane: "${s}" by ${a}. ${g} roots, curated with intent.`,
+      `Independent music worth sitting with: "${s}" by ${a}, now in the FlowSoundz conversation.`,
+    ],
   };
 }
 
@@ -123,6 +136,7 @@ export async function POST(request: NextRequest) {
   }
 
   const artistName = str(body.artistName);
+  const contactName = str(body.contactName);
   const email = str(body.email);
   const songTitle = str(body.songTitle);
   const genre = str(body.genre);
@@ -130,16 +144,37 @@ export async function POST(request: NextRequest) {
   const artistType = str(body.artistType) || "Independent Artist";
   const description = str(body.description);
   const songLink = str(body.songLink);
+  const versionType = str(body.versionType) || "Clean";
+  const producerCredit = str(body.producerCredit);
   const streamingLink = str(body.streamingLink);
   const coverArtLink = str(body.coverArtLink);
   const socialLink = str(body.socialLink);
   const aiUsed = Boolean(body.aiUsed);
   const aiTool = str(body.aiTool);
+  const rightsConfirmed = Boolean(body.rightsConfirmed);
+  const samplesConfirmed = Boolean(body.samplesConfirmed);
+  const promotionPermissionConfirmed = Boolean(body.promotionPermissionConfirmed);
+  const removalPolicyConfirmed = Boolean(body.removalPolicyConfirmed);
   const notes = str(body.notes);
 
-  if (!artistName || !email || !songTitle || !genre) {
+  if (!artistName || !contactName || !email || !songTitle || !genre || !songLink) {
     return Response.json(
-      { error: "artistName, email, songTitle, and genre are required." },
+      {
+        error:
+          "artistName, contactName, email, songTitle, genre, and songLink are required.",
+      },
+      { status: 422 },
+    );
+  }
+
+  if (
+    !rightsConfirmed ||
+    !samplesConfirmed ||
+    !promotionPermissionConfirmed ||
+    !removalPolicyConfirmed
+  ) {
+    return Response.json(
+      { error: "All permission confirmations are required before submission." },
       { status: 422 },
     );
   }
@@ -154,15 +189,18 @@ export async function POST(request: NextRequest) {
       : "No AI tools disclosed.";
 
   const prompt = [
-    "You are a music marketing assistant for FlowSoundz Radio — a discovery-first underground independent artist station.",
+    "You are a real music curator introducing an independent artist. Keep it polished, specific, and human. Do not sound corporate or generic.",
+    "Avoid fake claims or inflated language. Do not call anyone the next big thing, revolutionary, or game-changing unless the description clearly supports it.",
     "",
-    "Generate four promotional items for this artist submission. Return ONLY valid JSON (no markdown, no extra text).",
+    "Generate five promotional items for this artist submission. Return ONLY valid JSON (no markdown, no extra text).",
     "",
     `Artist: ${artistName}`,
     `Track: "${songTitle}"`,
     `Genre: ${genre}`,
     `Vibe: ${vibe}`,
     `Artist type: ${artistType}`,
+    `Version: ${versionType}`,
+    `Producer credit: ${producerCredit || "Not provided"}`,
     `Description: ${description || "Not provided"}`,
     aiLine,
     "",
@@ -171,10 +209,11 @@ export async function POST(request: NextRequest) {
     '  "bio": "3-sentence artist bio in third person. Capture genre, sound, and what makes this release worth discovering.",',
     '  "suggestedVibe": "Exactly one of: Chill, Hype, Late Night, Emotional — the best fit.",',
     '  "promoBlurb": "1–2 sentences the station uses to introduce this track. Punchy, underground, radio-ready.",',
-    '  "radioIntro": "One sentence the DJ reads right before the track plays. Short, confident, no fluff."',
+    '  "radioIntro": "One sentence the DJ reads right before the track plays. Short, confident, no fluff.",',
+    '  "socialCaptions": ["caption 1", "caption 2", "caption 3"]',
     "}",
     "",
-    "Tone: confident, premium, underground discovery energy.",
+    "Tone: confident, human, music-industry-aware, and not robotic.",
   ].join("\n");
 
   let promo: ArtistPromoOutput;
@@ -208,6 +247,13 @@ export async function POST(request: NextRequest) {
           suggestedVibe: sanitizeVibe(parsed.suggestedVibe),
           promoBlurb: str(parsed.promoBlurb) || fb.promoBlurb,
           radioIntro: str(parsed.radioIntro) || fb.radioIntro,
+          socialCaptions:
+            Array.isArray(parsed.socialCaptions) &&
+            parsed.socialCaptions.filter((caption): caption is string => typeof caption === "string" && caption.trim().length > 0).length > 0
+              ? parsed.socialCaptions
+                  .filter((caption): caption is string => typeof caption === "string" && caption.trim().length > 0)
+                  .slice(0, 3)
+              : fb.socialCaptions,
         };
       } catch {
         promo = fallbackPromo(artistName, songTitle, genre, vibe, artistType, description);
@@ -218,6 +264,7 @@ export async function POST(request: NextRequest) {
   // Fire-and-forget — don't fail the submission if email fails
   void sendArtistSubmissionNotification({
     artistName,
+    contactName,
     email,
     songTitle,
     genre,
@@ -225,18 +272,62 @@ export async function POST(request: NextRequest) {
     artistType,
     description,
     songLink,
+    versionType,
+    producerCredit: producerCredit || undefined,
     streamingLink: streamingLink || undefined,
     coverArtLink: coverArtLink || undefined,
     socialLink: socialLink || undefined,
     aiUsed,
     aiTool: aiTool || undefined,
+    rightsConfirmed,
+    samplesConfirmed,
+    promotionPermissionConfirmed,
+    removalPolicyConfirmed,
     notes: notes || undefined,
     bio: promo.bio,
     promoBlurb: promo.promoBlurb,
     radioIntro: promo.radioIntro,
+    socialCaptions: promo.socialCaptions,
     suggestedVibe: promo.suggestedVibe,
     submittedAt: new Date().toISOString(),
   }).catch(() => undefined);
 
-  return Response.json(promo);
+  try {
+    const submission = await createArtistSubmission({
+      artist_name: artistName,
+      contact_name: contactName,
+      email,
+      song_title: songTitle,
+      genre,
+      vibe,
+      artist_type: artistType,
+      description,
+      song_link: songLink,
+      version_type: versionType,
+      producer_credit: producerCredit || null,
+      streaming_link: streamingLink || null,
+      cover_art_link: coverArtLink || null,
+      social_link: socialLink || null,
+      ai_used: aiUsed,
+      ai_tool: aiTool || null,
+      rights_confirmed: rightsConfirmed,
+      samples_confirmed: samplesConfirmed,
+      promotion_permission_confirmed: promotionPermissionConfirmed,
+      removal_policy_confirmed: removalPolicyConfirmed,
+      notes: notes || null,
+      promo,
+    });
+
+    return Response.json({ ...promo, submission_id: submission.submission_id });
+  } catch (error) {
+    return Response.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to store artist submission.",
+      },
+      { status: 500 },
+    );
+  }
 }

@@ -45,6 +45,11 @@ function fallback(
         ? `Up next on FlowSoundz Radio — ${a} with "${s}". ${description.slice(0, 90)}${description.length > 90 ? "…" : ""}`
         : `Up next on FlowSoundz Radio — ${a} with "${s}". Pure ${g} energy, curated just for you.`,
     radioIntro: `This is FlowSoundz Radio. You're about to hear "${s}" by ${a}. Stay locked in.`,
+    socialCaptions: [
+      `${a} just landed on the FlowSoundz radar with "${s}" — ${vibe.toLowerCase()} energy and a clear point of view.`,
+      `Now in the FlowSoundz discovery lane: "${s}" by ${a}. ${g} roots, curated with intent.`,
+      `Independent music worth sitting with: "${s}" by ${a}, now in the FlowSoundz conversation.`,
+    ],
   };
 }
 
@@ -154,9 +159,10 @@ export async function POST(request: NextRequest) {
     : "No additional description provided.";
 
   const prompt = [
-    "You are a music marketing assistant for FlowSoundz Radio — a discovery-first underground independent artist station.",
+    "You are a real music curator introducing an independent artist. Keep it polished, specific, and human. Do not sound corporate or generic.",
+    "Avoid fake claims or inflated language. Do not call anyone the next big thing, revolutionary, or game-changing unless the description clearly supports it.",
     "",
-    "An artist just submitted their release. Generate four items in valid JSON (no markdown, no extra text).",
+    "An artist just submitted their release. Generate five items in valid JSON (no markdown, no extra text).",
     "",
     `Artist: ${artistName}`,
     `Song: ${songTitle}`,
@@ -171,10 +177,11 @@ export async function POST(request: NextRequest) {
     '  "bio": "3-sentence artist bio in third person. Capture their genre, sound, and what makes this release worth discovering.",',
     '  "suggestedVibe": "Exactly one of: Chill, Hype, Late Night, Emotional — the best fit.",',
     '  "promoBlurb": "1–2 sentences the station uses to introduce this track. Punchy, underground, radio-ready.",',
-    '  "radioIntro": "One sentence the DJ reads right before the track plays. Short, confident, no fluff."',
+    '  "radioIntro": "One sentence the DJ reads right before the track plays. Short, confident, no fluff.",',
+    '  "socialCaptions": ["caption 1", "caption 2", "caption 3"]',
     "}",
     "",
-    "Tone: confident, premium, underground discovery energy. Not spammy. Not corporate.",
+    "Tone: confident, human, music-industry-aware, and not robotic.",
   ].join("\n");
 
   let raw = "";
@@ -221,6 +228,14 @@ export async function POST(request: NextRequest) {
       str(parsed.radioIntro) ||
       fallback(artistName, songTitle, genre, vibe, artistType, description)
         .radioIntro,
+    socialCaptions:
+      Array.isArray(parsed.socialCaptions) &&
+      parsed.socialCaptions.filter((caption): caption is string => typeof caption === "string" && caption.trim().length > 0).length > 0
+        ? parsed.socialCaptions
+            .filter((caption): caption is string => typeof caption === "string" && caption.trim().length > 0)
+            .slice(0, 3)
+        : fallback(artistName, songTitle, genre, vibe, artistType, description)
+            .socialCaptions,
   };
 
   return Response.json(output);

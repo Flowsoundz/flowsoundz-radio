@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AppShell } from "@/components/AppShell";
-import { CreatorHubNav } from "@/components/creator-hub/CreatorHubNav";
+import { CreatorHubShell } from "@/components/creator-hub/CreatorHubShell";
 import { ToolCard } from "@/components/creator-hub/ToolCard";
 
 export const metadata: Metadata = {
@@ -81,9 +80,7 @@ const PRE_DISTRO_CHECKLIST = [
 
 export default function DistributionPage() {
   return (
-    <AppShell eyebrow="Creator Hub" title="Distribution Options">
-      <CreatorHubNav />
-
+    <CreatorHubShell eyebrow="Creator Hub" title="Distribution Options">
       {/* ── Intro ── */}
       <div className="mb-10 glass-card rounded-[1.8rem] p-6 sm:p-8">
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200/75">
@@ -181,6 +178,6 @@ export default function DistributionPage() {
           Skip to Submission
         </Link>
       </div>
-    </AppShell>
+    </CreatorHubShell>
   );
 }

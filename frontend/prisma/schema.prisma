@@ -1,0 +1,205 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SongVibe {
+  CHILL
+  HYPE
+  LATE_NIGHT
+  EMOTIONAL
+  UNSURE
+}
+
+enum ArtistSubmissionStatus {
+  NEW
+  REVIEWING
+  APPROVED
+  REJECTED
+}
+
+enum AnalyticsEventName {
+  PAGE_VIEW
+  START_LISTENING_CLICK
+  SUBMISSION_CLICK
+  SHARE_TRACK_CLICK
+  WAITLIST_SIGNUP
+  PROMO_SUBMIT_CLICK
+  TRACK_SKIP
+  TRACK_COMPLETE
+  VISUALIZER_OPEN
+  ARTIST_SUBMISSION_STARTED
+  ARTIST_SUBMISSION_COMPLETED
+}
+
+model Artist {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  bio         String?
+  artistType  String?
+  email       String?
+  socialLink  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  songs             Song[]
+  analyticsEvents   AnalyticsEvent[]
+
+  @@map("artists")
+}
+
+model Song {
+  id           String    @id @default(cuid())
+  artistId     String
+  title        String
+  slug         String    @unique
+  genre        String
+  vibe         SongVibe
+  durationSec  Int?
+  audioUrl     String
+  coverUrl     String?
+  isFeatured   Boolean   @default(false)
+  isVault      Boolean   @default(false)
+  releaseAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  artist            Artist            @relation(fields: [artistId], references: [id], onDelete: Restrict)
+  analyticsEvents   AnalyticsEvent[]
+  queuePreferences  QueuePreference?
+  radioSessions     RadioSession[]
+
+  @@index([artistId])
+  @@index([vibe])
+  @@index([releaseAt])
+  @@map("songs")
+}
+
+model ArtistSubmission {
+  id             String                  @id @default(cuid())
+  artistName     String
+  contactName    String
+  email          String
+  songTitle      String
+  genre          String
+  vibe           SongVibe
+  artistType     String
+  description    String
+  songLink       String
+  versionType    String
+  producerCredit String?
+  streamingLink  String?
+  coverArtLink   String?
+  socialLink     String?
+  aiUsed         Boolean                 @default(false)
+  aiTool         String?
+  rightsConfirmed Boolean                @default(false)
+  samplesConfirmed Boolean               @default(false)
+  promotionPermissionConfirmed Boolean   @default(false)
+  removalPolicyConfirmed Boolean         @default(false)
+  notes          String?
+  status         ArtistSubmissionStatus  @default(NEW)
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+
+  promoAssets      PromoAsset?
+  reviews          SubmissionReview[]
+  analyticsEvents  AnalyticsEvent[]
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("artist_submissions")
+}
+
+model SubmissionReview {
+  id            String                 @id @default(cuid())
+  submissionId  String
+  status        ArtistSubmissionStatus
+  internalNotes String?
+  reviewedBy    String?
+  reviewedAt    DateTime?
+  createdAt     DateTime               @default(now())
+
+  submission ArtistSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([submissionId])
+  @@index([status])
+  @@map("submission_reviews")
+}
+
+model PromoAsset {
+  id             String   @id @default(cuid())
+  submissionId   String   @unique
+  artistBio      String
+  suggestedVibe  SongVibe
+  promoBlurb     String
+  radioIntro     String
+  socialCaptions Json
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  submission ArtistSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@map("promo_assets")
+}
+
+model AnalyticsEvent {
+  id            String              @id @default(cuid())
+  eventName     AnalyticsEventName
+  songId        String?
+  artistId      String?
+  submissionId  String?
+  sessionId     String?
+  url           String
+  properties    Json?
+  createdAt     DateTime            @default(now())
+
+  song        Song?             @relation(fields: [songId], references: [id], onDelete: SetNull)
+  artist      Artist?           @relation(fields: [artistId], references: [id], onDelete: SetNull)
+  submission  ArtistSubmission? @relation(fields: [submissionId], references: [id], onDelete: SetNull)
+
+  @@index([eventName])
+  @@index([songId])
+  @@index([artistId])
+  @@index([submissionId])
+  @@index([createdAt])
+  @@map("analytics_events")
+}
+
+model QueuePreference {
+  id            String   @id @default(cuid())
+  songId        String   @unique
+  skipRate      Float    @default(0)
+  completeRate  Float    @default(0)
+  playCount     Int      @default(0)
+  lastPlayedAt  DateTime?
+  rotationScore Float    @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  song Song @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  @@index([rotationScore])
+  @@map("queue_preferences")
+}
+
+model RadioSession {
+  id            String   @id @default(cuid())
+  sessionId     String   @unique
+  startedAt     DateTime @default(now())
+  lastSeenAt    DateTime @default(now())
+  currentSongId String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  currentSong Song? @relation(fields: [currentSongId], references: [id], onDelete: SetNull)
+
+  @@index([currentSongId])
+  @@index([lastSeenAt])
+  @@map("radio_sessions")
+}

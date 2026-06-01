@@ -5,6 +5,8 @@ import { type NextRequest, NextResponse } from "next/server";
 export const runtime = "nodejs";
 
 const SONGS_DIR = path.resolve(process.cwd(), "../backend/media/songs");
+const LOCAL_MEDIA_UNAVAILABLE_MESSAGE =
+  "Local audio streaming is not available on this deployment. Connect the backend media service to enable playback.";
 
 function getContentType(fileName: string) {
   const lower = fileName.toLowerCase();
@@ -18,6 +20,13 @@ export async function GET(
   request: NextRequest,
   props: { params: Promise<{ filename: string }> },
 ) {
+  if (process.env.VERCEL || process.env.NODE_ENV === "production") {
+    return NextResponse.json(
+      { error: LOCAL_MEDIA_UNAVAILABLE_MESSAGE },
+      { status: 503 },
+    );
+  }
+
   const { filename } = await props.params;
   const decoded = decodeURIComponent(filename);
   const filePath = path.resolve(SONGS_DIR, decoded);

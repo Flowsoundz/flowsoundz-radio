@@ -3,11 +3,18 @@
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { usePathname } from "next/navigation";
 import { track } from "@/lib/analytics";
-import { useGlobalAudio } from "@/components/GlobalAudioProvider";
+import {
+  useGlobalAudioRefs,
+  useGlobalAudioState,
+} from "@/components/GlobalAudioProvider";
 import { playTrack } from "@/lib/playbackController";
+import {
+  registerTrackSignal,
+  reorderQueueByLocalSignals,
+} from "@/lib/radioQueueTuning";
 import {
   DEFAULT_USER_TIER,
   canUserTierAccessTrack,
@@ -23,8 +30,8 @@ import {
   getHlsUrl,
   getPreferredPlaybackUrl,
   getQueue,
+  getSongs,
 } from "@/lib/api";
-import { fadeAudioOut } from "@/lib/audioFades";
 import { formatVibeLabel } from "@/lib/format";
 import { getDJPersonality } from "@/lib/djPersonalities";
 import { getNarrationEventForVibe, type NarrationEvent } from "@/lib/narration";
@@ -106,9 +113,39 @@ const LIVE_LISTENER_UPDATE_MS = 30_000;
 const TRACKS_TODAY_STORAGE_KEY = "flowsoundz-tracks-today";
 const RADIO_PLAYER_STATE_STORAGE_KEY = "flowsoundz-radio-player-state";
 const RADIO_BACKEND_ERROR =
-  "Station backend offline. Start the API at http://127.0.0.1:8000 to load the live queue.";
+  "The live broadcast is temporarily off-air. FlowSoundz will return as soon as the station stack reconnects.";
 const PLAYBACK_START_ERROR =
   "Playback could not start. Tap again or check the audio source.";
+const RADIO_DEBUG =
+  process.env.NODE_ENV === "development" &&
+  process.env.NEXT_PUBLIC_RADIO_DEBUG === "1";
+const TIME_UPDATE_THROTTLE_MS = 250;
+
+function debugLog(message: string, details?: unknown) {
+  if (!RADIO_DEBUG) {
+    return;
+  }
+
+  if (details === undefined) {
+    console.log(message);
+    return;
+  }
+
+  console.log(message, details);
+}
+
+function debugWarn(message: string, details?: unknown) {
+  if (!RADIO_DEBUG) {
+    return;
+  }
+
+  if (details === undefined) {
+    console.warn(message);
+    return;
+  }
+
+  console.warn(message, details);
+}
 
 // ── Strip wave SVG paths (computed once at module load) ──────────────────
 // ViewBox is 200×32. Two SVGs each rendered at width:200% of their container
@@ -165,6 +202,13 @@ function getTransitionSource(
   }
 
   return transitionAudioMode;
+}
+
+function getInitialBroadcastReturnWindow() {
+  return new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(Date.now() + 45 * 60 * 1000));
 }
 
 function getInitialTracksTodayCount(): number {
@@ -323,7 +367,7 @@ function prepareBedAudio(
   }
 
   if (!bed?.src) {
-    console.log("[BED PRELOAD]", {
+    debugLog("[BED PRELOAD]", {
       bedId: null,
       bedSrc: null,
       reason: "no_bed",
@@ -336,7 +380,7 @@ function prepareBedAudio(
   audio.preload = "metadata";
   audio.load();
 
-  console.log("[BED PRELOAD]", {
+  debugLog("[BED PRELOAD]", {
     bedId: bed.id,
     bedSrc: bed.src,
     vibe: bed.vibe,
@@ -348,11 +392,11 @@ export default function RadioPlayer() {
     audioRef,
     audioContextRef,
     analyserRef: sharedAnalyserRef,
-    isReady: isAudioReady,
     setCurrentTrack,
     togglePlaybackRef,
     skipTrackRef,
-  } = useGlobalAudio();
+  } = useGlobalAudioRefs();
+  const { isReady: isAudioReady } = useGlobalAudioState();
   const pathname = usePathname();
   const isFullView = pathname === "/radio";
   const sectionRef = useRef<HTMLElement | null>(null);
@@ -378,12 +422,20 @@ export default function RadioPlayer() {
   const isSkippingRef = useRef(false);
   const isPlayingRef = useRef(false);
   const isDropPlayingRef = useRef(false);
+  const currentSongRef = useRef<Song | null>(null);
   const currentTrackIdRef = useRef<string | null>(null);
+  const playbackSessionTrackIdRef = useRef<string | null>(null);
+  const playbackRecoveryInFlightRef = useRef(false);
+  const trackFailureCountsRef = useRef<Record<string, number>>({});
   const requestedTrackStartIdRef = useRef<string | null>(null);
   const activeTrackSourceKeyRef = useRef<string | null>(null);
-  const skipToNextTrackRef = useRef<() => Promise<void>>(async () => {});
+  const skipToNextTrackRef = useRef<
+    (reason?: "user" | "complete" | "recovery") => Promise<void>
+  >(async () => {});
   const handleTimeUpdateRef = useRef<() => void>(() => {});
   const handleLoadedMetadataRef = useRef<() => void>(() => {});
+  const lastCurrentTimeUiUpdateRef = useRef(0);
+  const lastPersistedPlaybackKeyRef = useRef("");
 
   const [showVisualizer, setShowVisualizer] = useState(false);
   const [queue, setQueue] = useState<Song[]>([]);
@@ -409,6 +461,7 @@ export default function RadioPlayer() {
     useState<TransitionPlan | null>(null);
   const [recentlyPlayed, setRecentlyPlayed] = useState<PlayedSong[]>([]);
   const [preparedEvent, setPreparedEvent] = useState<PreparedStationEvent | null>(null);
+  const [nextBroadcastTime] = useState(getInitialBroadcastReturnWindow);
   const songsUntilDropRef = useRef(songsUntilDrop);
   const currentUserTier = DEFAULT_USER_TIER;
 
@@ -433,18 +486,23 @@ export default function RadioPlayer() {
           ? "Featured"
           : null
     : null;
+
+  useEffect(() => {
+    currentSongRef.current = currentSong;
+  }, [currentSong]);
   const activeDJ = getDJPersonality(
     selectedVibe === "all" ? "chill" : selectedVibe,
   );
-  const waitingTitle = "Tuning signal";
-  const waitingArtist = "Connecting to station";
+  const waitingTitle = "Broadcast standby";
+  const waitingArtist = "Next broadcast loading";
   const progressPercent =
     duration > 0 ? Math.min((currentTime / duration) * 100, 100) : 0;
   const currentBed = preparedEvent?.plannedBed ?? null;
   const usingLocalCatalog = queue.some((song) => song.local_stream);
+  const maintenanceMode = Boolean(error) && queue.length === 0;
 
   useEffect(() => {
-    console.log("[RadioPlayer] runtime config", {
+    debugLog("[RadioPlayer] runtime config", {
       forceDropTestMode: FORCE_DROP_TEST_MODE,
       narrationTransitionProbability: NARRATION_TRANSITION_PROBABILITY,
       postTransitionDelayMs: DROP_TO_TRACK_DELAY_MS,
@@ -479,15 +537,27 @@ export default function RadioPlayer() {
       return;
     }
 
+    const persistedState = {
+      songId: currentSong?.id ?? null,
+      selectedVibe,
+      currentTime: Math.floor(currentTime),
+      shouldPlay,
+    } satisfies PersistedRadioPlayerState;
+    const persistKey = JSON.stringify({
+      ...persistedState,
+      timeBucket: Math.floor(persistedState.currentTime / 5),
+    });
+
+    if (persistKey === lastPersistedPlaybackKeyRef.current) {
+      return;
+    }
+
+    lastPersistedPlaybackKeyRef.current = persistKey;
+
     try {
       window.localStorage.setItem(
         RADIO_PLAYER_STATE_STORAGE_KEY,
-        JSON.stringify({
-          songId: currentSong?.id ?? null,
-          selectedVibe,
-          currentTime,
-          shouldPlay,
-        } satisfies PersistedRadioPlayerState),
+        JSON.stringify(persistedState),
       );
     } catch {
       // Ignore persistence write failures.
@@ -618,7 +688,7 @@ export default function RadioPlayer() {
 
     document.addEventListener("visibilitychange", onVisibilityChange);
 
-    if (isPlaying && ambientCoverActive) {
+    if (isFullView && isPlaying && ambientCoverActive) {
       tick();
     } else {
       setIdleGlow();
@@ -631,7 +701,7 @@ export default function RadioPlayer() {
       document.removeEventListener("visibilitychange", onVisibilityChange);
       setIdleGlow();
     };
-  }, [ambientCoverActive, audioRef, isPlaying, isDropPlaying]);
+  }, [ambientCoverActive, audioRef, isDropPlaying, isFullView, isPlaying]);
 
 
   useEffect(() => {
@@ -643,7 +713,7 @@ export default function RadioPlayer() {
       try {
         const nextQueue =
           selectedVibe === "all"
-            ? await getQueue()
+            ? await getSongs()
             : await getQueue(selectedVibe);
 
         if (!isMounted) {
@@ -657,21 +727,20 @@ export default function RadioPlayer() {
           nextQueue,
           previousSongIdRef.current,
         );
+        const tunedQueue = reorderQueueByLocalSignals(reorderedQueue);
         const persistedState = pendingRestoreStateRef.current;
         const restoredIndex =
           persistedState?.songId
-            ? reorderedQueue.findIndex((song) => song.id === persistedState.songId)
+            ? tunedQueue.findIndex((song) => song.id === persistedState.songId)
             : -1;
 
-        if (process.env.NODE_ENV === "development") {
-          console.log("[RadioPlayer] queue ready", {
-            selectedVibe,
-            queueLength: reorderedQueue.length,
-            firstTrack: reorderedQueue[0] ?? null,
-          });
-        }
+        debugLog("[RadioPlayer] queue ready", {
+          selectedVibe,
+          queueLength: tunedQueue.length,
+          firstTrack: tunedQueue[0] ?? null,
+        });
 
-        setQueue(reorderedQueue);
+        setQueue(tunedQueue);
         setCurrentIndex(restoredIndex >= 0 ? restoredIndex : 0);
         setCurrentTime(restoredIndex >= 0 ? persistedState?.currentTime ?? 0 : 0);
         setDuration(0);
@@ -690,7 +759,7 @@ export default function RadioPlayer() {
         recentBedIdsRef.current = [];
         songsUntilDropRef.current = getRandomDropInterval();
         setSongsUntilDrop(songsUntilDropRef.current);
-      } catch {
+      } catch (error) {
         if (!isMounted) {
           return;
         }
@@ -698,7 +767,11 @@ export default function RadioPlayer() {
         setQueue([]);
         setCurrentIndex(0);
         setShouldPlay(false);
-        setError(RADIO_BACKEND_ERROR);
+        setError(
+          error instanceof Error && error.message
+            ? error.message
+            : RADIO_BACKEND_ERROR,
+        );
         setIsDropPlaying(false);
         setActiveDropLabel("");
         setPreparedEvent(null);
@@ -733,6 +806,46 @@ export default function RadioPlayer() {
       currentTrackIdRef.current = null;
     }
   }, [isPlaying]);
+
+  const recoverFromPlaybackFailure = useCallback((reason: string, details?: unknown) => {
+    const failedSong = currentSongRef.current;
+
+    if (!failedSong) {
+      setError(PLAYBACK_START_ERROR);
+      setShouldPlay(false);
+      return;
+    }
+
+    registerTrackSignal(failedSong, "fail");
+    const failureCount = (trackFailureCountsRef.current[failedSong.id] ?? 0) + 1;
+    trackFailureCountsRef.current[failedSong.id] = failureCount;
+
+    debugWarn("[RadioPlayer] playback recovery triggered", {
+      reason,
+      songId: failedSong.id,
+      title: failedSong.title,
+      failureCount,
+      details,
+    });
+
+    if (
+      playbackRecoveryInFlightRef.current ||
+      queue.length <= 1 ||
+      failureCount >= 2
+    ) {
+      setError(PLAYBACK_START_ERROR);
+      setShouldPlay(false);
+      return;
+    }
+
+    playbackRecoveryInFlightRef.current = true;
+    setError(`Track issue detected. Skipping "${failedSong.title}" to keep the station moving.`);
+
+    window.setTimeout(() => {
+      playbackRecoveryInFlightRef.current = false;
+      void skipToNextTrackRef.current("recovery");
+    }, 120);
+  }, [queue.length]);
 
   useEffect(() => {
     if (!currentSong) {
@@ -868,7 +981,7 @@ export default function RadioPlayer() {
       recentBedIdsRef.current,
     );
     const narrationHasAudio = Boolean(plannedNarration.clipSrc?.trim());
-    console.log("[RadioPlayer] narration audio resolved", {
+    debugLog("[RadioPlayer] narration audio resolved", {
       vibe: plannedNarration.vibe,
       clipSrc: plannedNarration.clipSrc || null,
     });
@@ -897,7 +1010,7 @@ export default function RadioPlayer() {
       }
 
       if (plannedDrop.drop) {
-        console.log("[RadioPlayer] narration missing audio -> fallback to drop", {
+        debugLog("[RadioPlayer] narration missing audio -> fallback to drop", {
           narrationId: plannedNarration.id,
           vibe: plannedNarration.vibe,
           dropId: plannedDrop.drop.id,
@@ -929,32 +1042,32 @@ export default function RadioPlayer() {
     };
     const transitionSource = getTransitionSource(prepared.transitionAudioMode);
 
-    console.log("[RadioPlayer] selected narration candidate", prepared.plannedNarration);
-    console.log("[RadioPlayer] selected host/vibe", {
+    debugLog("[RadioPlayer] selected narration candidate", prepared.plannedNarration);
+    debugLog("[RadioPlayer] selected host/vibe", {
       voice: prepared.plannedNarration.voice,
       vibe: prepared.plannedNarration.vibe,
       transitionAudioMode: prepared.transitionAudioMode,
       narrationFallback: prepared.plannedNarration.usedFallback,
     });
-    console.log("[RadioPlayer] runtime config", {
+    debugLog("[RadioPlayer] runtime config", {
       forceDropTestMode: FORCE_DROP_TEST_MODE,
       selectedTransitionMode: prepared.transitionAudioMode,
       narrationHasAudio,
     });
-    console.log("[RadioPlayer] transition source resolved", {
+    debugLog("[RadioPlayer] transition source resolved", {
       source: transitionSource,
     });
-    console.log("[RadioPlayer] transition type used", {
+    debugLog("[RadioPlayer] transition type used", {
       transitionAudioMode: prepared.transitionAudioMode,
       forced: transitionSource === "forced",
     });
-    console.log("[RadioPlayer] transition decision final", {
+    debugLog("[RadioPlayer] transition decision final", {
       source: prepared.transitionAudioMode,
       vibe: nextVibe ?? nextSong.vibe ?? selectedVibe,
       narrationHasAudio,
       usedFallback,
     });
-    console.log("[RadioPlayer] transition bed prepared", {
+    debugLog("[RadioPlayer] transition bed prepared", {
       vibe: nextVibe ?? nextSong.vibe ?? selectedVibe,
       bedId: plannedBed?.id ?? null,
       bedSrc: plannedBed?.src ?? null,
@@ -975,7 +1088,7 @@ export default function RadioPlayer() {
     const audioElement = audioRef.current;
     if (!audioElement || !currentSong || isDropPlaying) {
       if (isDropPlaying) {
-        console.log("[RadioPlayer] blocked track load during drop", {
+        debugLog("[RadioPlayer] blocked track load during drop", {
           songId: currentSong?.id ?? null,
         });
       }
@@ -1015,27 +1128,33 @@ export default function RadioPlayer() {
       currentTrackIdRef.current = trackToPlay.id;
       requestedTrackStartIdRef.current = null;
 
-      if (process.env.NODE_ENV === "development") {
-        console.log("track start:", trackToPlay.id);
-        console.log("[RadioPlayer] resolved audio src", {
-          trackId: trackToPlay.id,
-          preferredUrl,
-          hlsUrl,
-          resolvedSrc,
-          currentSrc: mediaElement.currentSrc || mediaElement.src,
-        });
-      }
+      debugLog("track start:", trackToPlay.id);
+      debugLog("[RadioPlayer] resolved audio src", {
+        trackId: trackToPlay.id,
+        preferredUrl,
+        hlsUrl,
+        resolvedSrc,
+        currentSrc: mediaElement.currentSrc || mediaElement.src,
+      });
 
       const result = await playTrack(audioRef, {
         ...trackToPlay,
         src: resolvedSrc,
       }, audioContextRef);
 
+      if (!result.ok && result.reason === "busy") {
+        return;
+      }
+
       if (!result.ok) {
         setError(PLAYBACK_START_ERROR);
         return;
       }
 
+      if (playbackSessionTrackIdRef.current !== trackToPlay.id) {
+        registerTrackSignal(currentSongRef.current, "play");
+        playbackSessionTrackIdRef.current = trackToPlay.id;
+      }
       setError("");
     };
     const sourceKey =
@@ -1148,14 +1267,25 @@ export default function RadioPlayer() {
       if (transitionInFlightRef.current || isDropPlayingRef.current || isSkippingRef.current) {
         return;
       }
-      void skipToNextTrackRef.current();
+      registerTrackSignal(currentSongRef.current, "complete");
+      track("track_complete", {
+        trackId: currentSongRef.current?.id ?? null,
+        title: currentSongRef.current?.title ?? null,
+        artist: currentSongRef.current?.artist ?? null,
+        vibe: currentSongRef.current?.vibe ?? null,
+        source: "radio_player",
+      });
+      void skipToNextTrackRef.current("complete");
     };
 
     audio.onerror = () => {
-      setError(RADIO_BACKEND_ERROR);
-      setShouldPlay(false);
       setIsPlaying(false);
       isPlayingRef.current = false;
+      recoverFromPlaybackFailure("audio_error", {
+        currentSrc: audio.currentSrc || audio.src || null,
+        readyState: audio.readyState,
+        networkState: audio.networkState,
+      });
     };
 
     audio.onloadedmetadata = () => handleLoadedMetadataRef.current();
@@ -1177,10 +1307,10 @@ export default function RadioPlayer() {
       audio.onplay = null;
       audio.ontimeupdate = null;
     };
-  }, [audioRef, isAudioReady]);
+  }, [audioRef, isAudioReady, recoverFromPlaybackFailure]);
 
   function moveToTrack(index: number) {
-    console.log("[RadioPlayer] moveToTrack", {
+    debugLog("[RadioPlayer] moveToTrack", {
       index,
       isDropPlaying,
     });
@@ -1212,89 +1342,9 @@ export default function RadioPlayer() {
     setShouldPlay(true);
     requestedTrackStartIdRef.current = queue[index]?.id ?? null;
     currentTrackIdRef.current = null;
+    playbackSessionTrackIdRef.current = null;
     transitionInFlightRef.current = false;
     isPlayingRef.current = false;
-  }
-
-  function finishTransitionAndStartTrack(reason: "ended" | "error") {
-    const pendingTrackIndex = pendingTrackIndexRef.current;
-    const dropAudio = dropAudioRef.current;
-    const transitionType = transitionAudioModeRef.current ?? "drop";
-
-    clearTransitionAudioStopTimer(transitionAudioStopTimerRef);
-    dropPlaybackTokenRef.current += 1;
-    transitionAudioModeRef.current = null;
-
-    if (audioRef.current) {
-      audioRef.current.volume = 1;
-    }
-
-    console.log(`[RadioPlayer] ${transitionType} finished`, {
-      reason,
-      pendingTrackIndex,
-      activeDropLabel,
-      currentTime: dropAudio?.currentTime ?? null,
-      duration:
-        dropAudio && Number.isFinite(dropAudio.duration) ? dropAudio.duration : null,
-    });
-
-    pendingTrackIndexRef.current = null;
-    setIsDropPlaying(false);
-    setActiveDropLabel("");
-    resetAudioElement(dropAudioRef.current);
-    const bedAudio = transitionBedAudioRef.current;
-    if (transitionType === "narration" && bedAudio && !bedAudio.paused) {
-      void fadeAudioOut(bedAudio, { durationMs: 180, steps: 6 }).catch(() => {
-        resetAudioElement(bedAudio);
-      });
-    } else {
-      resetAudioElement(bedAudio);
-    }
-
-    if (pendingTrackIndex !== null) {
-      console.log("[RadioPlayer] post-drop delay", {
-        delayMs: DROP_TO_TRACK_DELAY_MS,
-        resumeTrackIndex: pendingTrackIndex,
-      });
-      window.setTimeout(() => {
-        console.log("[RadioPlayer] track resume timing", {
-          resumedAt: window.performance.now(),
-          trackIndex: pendingTrackIndex,
-          transitionType,
-        });
-        moveToTrack(pendingTrackIndex);
-      }, DROP_TO_TRACK_DELAY_MS);
-      return;
-    }
-
-    transitionInFlightRef.current = false;
-  }
-
-  async function playSimpleDjDropBeforeTrack(nextIndex: number) {
-    const transitionAudio = dropAudioRef.current;
-
-    if (!ENABLE_DJ_DROPS || !transitionAudio) {
-      moveToTrack(nextIndex);
-      return;
-    }
-
-    const playbackToken = dropPlaybackTokenRef.current + 1;
-    dropPlaybackTokenRef.current = playbackToken;
-    transitionAudioModeRef.current = "drop";
-    pendingTrackIndexRef.current = nextIndex;
-    setActiveDropLabel("FlowSoundz Radio");
-    setIsDropPlaying(true);
-    setShouldPlay(false);
-    setCurrentTime(0);
-    setDuration(0);
-
-    if (audioRef.current) {
-      audioRef.current.volume = 0;
-      audioRef.current.pause();
-    }
-
-    clearTransitionAudioStopTimer(transitionAudioStopTimerRef);
-    finishTransitionAndStartTrack("ended");
   }
 
   async function playTransitionAudioBeforeTrack({
@@ -1312,17 +1362,7 @@ export default function RadioPlayer() {
     playbackRate: number;
     nextIndex: number;
   }) {
-    const transitionAudio = dropAudioRef.current;
     const playbackToken = dropPlaybackTokenRef.current + 1;
-
-    if (!transitionAudio) {
-      moveToTrack(nextIndex);
-      return;
-    }
-
-    dropPlaybackTokenRef.current = playbackToken;
-    transitionAudioModeRef.current = mode;
-    pendingTrackIndexRef.current = nextIndex;
     setActiveDropLabel(label);
     setIsDropPlaying(true);
     setShouldPlay(false);
@@ -1337,13 +1377,17 @@ export default function RadioPlayer() {
     clearTransitionAudioStopTimer(transitionAudioStopTimerRef);
     void volume;
     void playbackRate;
-    console.log(`[RadioPlayer] ${mode} transition bypassed`, {
+    debugLog(`[RadioPlayer] ${mode} transition bypassed`, {
       nextIndex,
       src,
       playbackToken,
       reason: "global_single_playback_engine",
     });
-    finishTransitionAndStartTrack("ended");
+    transitionAudioStopTimerRef.current = window.setTimeout(() => {
+      setIsDropPlaying(false);
+      setActiveDropLabel("");
+      moveToTrack(nextIndex);
+    }, 90);
   }
 
   async function playNarrationBed(src: string, nextIndex: number) {
@@ -1354,7 +1398,7 @@ export default function RadioPlayer() {
     }
 
     if (!src || !isTransitionBedSrc(src)) {
-      console.warn("[RadioPlayer] narration bed skipped due to invalid src", {
+      debugWarn("[RadioPlayer] narration bed skipped due to invalid src", {
         nextIndex,
         src,
       });
@@ -1362,7 +1406,7 @@ export default function RadioPlayer() {
       return;
     }
 
-    console.log("[RadioPlayer] narration bed bypassed", {
+    debugLog("[RadioPlayer] narration bed bypassed", {
       nextIndex,
       src,
       reason: "global_single_playback_engine",
@@ -1390,7 +1434,7 @@ export default function RadioPlayer() {
     const dropSrc = drop ? getDropPlaybackSrc(drop) : null;
     const dropLabel = drop?.label ?? "";
 
-    console.log("[RadioPlayer] selected drop candidate", {
+    debugLog("[RadioPlayer] selected drop candidate", {
       vibe: dropVibe,
       dropId: drop?.id ?? null,
       dropLabel,
@@ -1398,7 +1442,7 @@ export default function RadioPlayer() {
       usedFallback: forcedDropSelection?.usedFallback ?? false,
     });
 
-    console.log("[RadioPlayer] selecting drop path", {
+    debugLog("[RadioPlayer] selecting drop path", {
       nextIndex,
       isForcedDrop: transitionSource === "forced",
       dropSrc,
@@ -1410,7 +1454,7 @@ export default function RadioPlayer() {
     });
 
     if (!transitionAudio || !dropSrc) {
-      console.log("[RadioPlayer] drop unavailable, moving directly to track", {
+      debugLog("[RadioPlayer] drop unavailable, moving directly to track", {
         nextIndex,
         hasDropAudio: Boolean(transitionAudio),
         dropSrc,
@@ -1448,7 +1492,7 @@ export default function RadioPlayer() {
       return;
     }
 
-    console.log("[RadioPlayer] narration candidate selected for playback", {
+    debugLog("[RadioPlayer] narration candidate selected for playback", {
       narrationId: narration.id,
       label: narration.label,
       vibe: narration.vibe,
@@ -1482,7 +1526,7 @@ export default function RadioPlayer() {
     const nextIndex = prepared?.nextIndex ?? getNextTrackIndex(queue, currentIndex);
 
     if (prepared?.transitionAudioMode === "narration") {
-      console.log("[RadioPlayer] routing through narration", {
+      debugLog("[RadioPlayer] routing through narration", {
         nextIndex,
         narrationId: prepared.plannedNarration.id,
       });
@@ -1493,7 +1537,7 @@ export default function RadioPlayer() {
     }
 
     if (prepared?.transitionAudioMode === "drop") {
-      console.log("[RadioPlayer] routing through DJ drop", {
+      debugLog("[RadioPlayer] routing through DJ drop", {
         nextIndex,
         forced: false,
         plannedDropId: prepared?.plannedDrop.drop?.id ?? null,
@@ -1530,7 +1574,7 @@ export default function RadioPlayer() {
       Math.max(400, nextPrepared?.plan.durationMs ?? FADE_DURATION_MS),
     );
 
-    console.log("[RadioPlayer] queue transition", {
+    debugLog("[RadioPlayer] queue transition", {
       reason,
       nextIndex,
       fadeDurationMs,
@@ -1542,28 +1586,40 @@ export default function RadioPlayer() {
         await fadeOutAudio(audio, fadeDurationMs);
       }
 
-      if (ENABLE_DJ_DROPS) {
-        songsUntilDropRef.current = getRandomDropInterval();
-        setSongsUntilDrop(songsUntilDropRef.current);
-        await playSimpleDjDropBeforeTrack(nextIndex);
-        return;
-      }
-
       executeStationEvent(nextPrepared);
-    } finally {
-      if (!ENABLE_DJ_DROPS) {
-        transitionInFlightRef.current = false;
-      }
+    } catch (error) {
+      transitionInFlightRef.current = false;
+      throw error;
     }
   }
 
-  async function skipToNextTrack() {
+  async function skipToNextTrack(
+    skipReason: "user" | "complete" | "recovery" = "user",
+  ) {
     if (isSkippingRef.current) return;
 
     isSkippingRef.current = true;
 
     try {
-      await queueTransitionToNextTrack("skip");
+      if (skipReason === "user") {
+        registerTrackSignal(currentSong, "skip");
+        track("track_skip", {
+          trackId: currentSong?.id ?? null,
+          title: currentSong?.title ?? null,
+          artist: currentSong?.artist ?? null,
+          vibe: currentSong?.vibe ?? null,
+          source: "radio_player",
+        });
+      } else if (skipReason === "recovery") {
+        track("track_skip", {
+          trackId: currentSong?.id ?? null,
+          title: currentSong?.title ?? null,
+          artist: currentSong?.artist ?? null,
+          vibe: currentSong?.vibe ?? null,
+          source: "playback_recovery",
+        });
+      }
+      await queueTransitionToNextTrack(skipReason === "user" ? "skip" : "auto");
     } finally {
       window.setTimeout(() => {
         isSkippingRef.current = false;
@@ -1605,7 +1661,7 @@ export default function RadioPlayer() {
     }
 
     if (isPlaying) {
-      console.log("[RadioPlayer] pause requested", {
+      debugLog("[RadioPlayer] pause requested", {
         currentSrc: activeAudio.currentSrc || activeAudio.src || null,
         currentTime: activeAudio.currentTime,
         paused: activeAudio.paused,
@@ -1629,7 +1685,7 @@ export default function RadioPlayer() {
       !activeAudio.ended;
 
     if (isResumingTrack && currentSong) {
-      console.log("[RadioPlayer] resume requested", {
+      debugLog("[RadioPlayer] resume requested", {
         trackId: currentSong.id,
         currentSrc: activeAudio.currentSrc || activeAudio.src || null,
         currentTime: activeAudio.currentTime,
@@ -1651,7 +1707,7 @@ export default function RadioPlayer() {
             await audioContextRef.current.resume();
           }
           await activeAudio.play();
-          console.log("[RadioPlayer] resume success", {
+          debugLog("[RadioPlayer] resume success", {
             currentSrc: activeAudio.currentSrc || activeAudio.src || null,
             currentTime: activeAudio.currentTime,
             paused: activeAudio.paused,
@@ -1673,15 +1729,13 @@ export default function RadioPlayer() {
 
     if (currentSong) {
       const preferredUrl = getPreferredPlaybackUrl(currentSong, audioRef.current);
-      if (process.env.NODE_ENV === "development") {
-        console.log("[RadioPlayer] user requested playback", {
-          trackId: currentSong.id,
-          preferredUrl,
-          currentSrc: audioRef.current?.currentSrc || audioRef.current?.src || null,
-          muted: audioRef.current?.muted ?? null,
-          volume: audioRef.current?.volume ?? null,
-        });
-      }
+      debugLog("[RadioPlayer] user requested playback", {
+        trackId: currentSong.id,
+        preferredUrl,
+        currentSrc: audioRef.current?.currentSrc || audioRef.current?.src || null,
+        muted: audioRef.current?.muted ?? null,
+        volume: audioRef.current?.volume ?? null,
+      });
       requestedTrackStartIdRef.current = currentSong.id;
       currentTrackIdRef.current = null;
       setError("");
@@ -1711,9 +1765,16 @@ export default function RadioPlayer() {
       return;
     }
 
-    setCurrentTime(audio.currentTime);
+    const now = window.performance.now();
+    if (now - lastCurrentTimeUiUpdateRef.current >= TIME_UPDATE_THROTTLE_MS) {
+      setCurrentTime(audio.currentTime);
+      lastCurrentTimeUiUpdateRef.current = now;
+    }
+
     if (Number.isFinite(audio.duration) && audio.duration > 0) {
-      setDuration(audio.duration);
+      setDuration((current) =>
+        current !== audio.duration ? audio.duration : current,
+      );
 
       if (
         currentSong &&
@@ -1867,10 +1928,12 @@ export default function RadioPlayer() {
   }, [currentSong, isPlaying]);
 
   const upcomingSongs = currentSong
-    ? Array.from({ length: Math.min(queue.length - 1, 6) }, (_, offset) => {
+    ? Array.from({ length: Math.max(queue.length - 1, 0) }, (_, offset) => {
         return queue[(currentIndex + offset + 1) % queue.length];
       }).filter(Boolean)
     : [];
+  const upcomingSongsPreview = upcomingSongs.slice(0, 8);
+  const standbyArchiveSongs = !currentSong ? queue.slice(0, 4) : [];
 
   if (!isFullView) {
     return null;
@@ -1962,6 +2025,7 @@ export default function RadioPlayer() {
           >
             <VisualizerCanvasThree
               isPlaying={isPlaying}
+              isActive={isFullView}
               className="absolute inset-0 h-full w-full"
             />
             <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
@@ -2176,7 +2240,10 @@ export default function RadioPlayer() {
               {/* Visualizer strip — same width as album art, below it */}
               <button
                 type="button"
-                onClick={() => setShowVisualizer(true)}
+                onClick={() => {
+                  setShowVisualizer(true);
+                  track("visualizer_open", { source: "radio_player_hero" });
+                }}
                 className="group mt-2 w-full rounded-[0.85rem] border border-white/[0.06] bg-white/[0.025] px-1.5 pb-1.5 pt-2 transition hover:border-[#00e5ff]/25 hover:bg-[#00e5ff]/[0.05]"
                 title="Open visualizer"
               >
@@ -2207,7 +2274,10 @@ export default function RadioPlayer() {
               {currentSong?.youtube_url && (
                 <button
                   type="button"
-                  onClick={() => setShowVisualizer(true)}
+                  onClick={() => {
+                    setShowVisualizer(true);
+                    track("visualizer_open", { source: "radio_player_card" });
+                  }}
                   className="mt-1.5 flex w-full items-center justify-center gap-1.5 rounded-full border border-[#FF0000]/25 bg-[#FF0000]/8 py-1 text-[10px] font-semibold text-[#ff6b6b] transition hover:bg-[#FF0000]/15"
                 >
                   <svg className="h-3 w-3" viewBox="0 0 24 24" fill="currentColor">
@@ -2258,21 +2328,25 @@ export default function RadioPlayer() {
                     )}
                   </p>
                   <p className="mt-2 text-sm text-[#CBD5E1]/75">
-                    {isDropPlaying
+                    {maintenanceMode
+                      ? "Maintenance mode · curated discovery resumes with the next broadcast window"
+                      : isDropPlaying
                       ? "Live drop before the next record"
                       : currentSong?.album ?? "FlowSoundz station rotation"}
                   </p>
                 </div>
                 <span
                   className={`state-fade rounded-full px-3 py-1 text-xs font-semibold ${
-                    isDropPlaying
+                    maintenanceMode
+                      ? "border border-amber-300/20 bg-amber-200/10 text-amber-100"
+                      : isDropPlaying
                       ? "border border-[#FF2DA6]/20 bg-[#FF2DA6]/10 text-[#F8FAFC]"
                       : isPlaying
                         ? "border border-[#00E5FF]/20 bg-[#00E5FF]/10 text-[#F8FAFC]"
                         : "border border-white/8 bg-white/5 text-[#CBD5E1]"
                   }`}
                 >
-                  {isDropPlaying ? "Drop" : isPlaying ? "Live" : "Paused"}
+                  {maintenanceMode ? "Maintenance" : isDropPlaying ? "Drop" : isPlaying ? "Live" : "Paused"}
                 </span>
               </div>
 
@@ -2280,6 +2354,11 @@ export default function RadioPlayer() {
                 <span className="state-fade rounded-full border border-[#8B5CF6]/18 bg-[#8B5CF6]/12 px-3 py-1 text-xs font-semibold text-[#F8FAFC]">
                   {formatVibeLabel(selectedVibe)}
                 </span>
+                {maintenanceMode ? (
+                  <span className="state-fade rounded-full border border-amber-300/18 bg-amber-200/10 px-3 py-1 text-xs font-medium text-amber-100">
+                    Archive standby
+                  </span>
+                ) : null}
                 {usingLocalCatalog ? (
                   <span className="state-fade rounded-full border border-[#00E5FF]/18 bg-[#00E5FF]/10 px-3 py-1 text-xs font-medium text-[#F8FAFC]">
                     Local catalog
@@ -2296,7 +2375,9 @@ export default function RadioPlayer() {
                   </span>
                 ) : null}
                 <span className="state-fade rounded-full border border-white/8 bg-white/5 px-3 py-1 text-xs font-medium text-[#CBD5E1]">
-                  {isDropPlaying
+                  {maintenanceMode
+                    ? "Curated archive"
+                    : isDropPlaying
                     ? `${songsUntilDrop} songs to next drop`
                     : currentSong?.genre ?? "After-hours mix"}
                 </span>
@@ -2309,7 +2390,9 @@ export default function RadioPlayer() {
                   </Link>
                 ) : null}
                 <span className="state-fade rounded-full border border-white/8 bg-white/5 px-3 py-1 text-xs font-medium text-[#CBD5E1]">
-                  {currentSong?.duration_sec
+                  {maintenanceMode
+                    ? `Returns ${nextBroadcastTime}`
+                    : currentSong?.duration_sec
                     ? `${Math.floor(currentSong.duration_sec / 60)}:${String(
                         currentSong.duration_sec % 60,
                       ).padStart(2, "0")}`
@@ -2325,19 +2408,30 @@ export default function RadioPlayer() {
                   <div className="relative h-[4px] rounded-full bg-white/[0.08]">
                     <div
                       className={`h-full rounded-full bg-[linear-gradient(90deg,#00e5ff,#7c4dff)] transition-[width] duration-200 ${isPlaying ? "shadow-[0_0_10px_rgba(0,229,255,0.7)]" : "shadow-[0_0_6px_rgba(0,229,255,0.35)]"}`}
-                      style={{ width: `${progressPercent}%` }}
+                      style={{ width: `${maintenanceMode ? 100 : progressPercent}%`, opacity: maintenanceMode ? 0.38 : 1 }}
                     />
                     <div
-                      className={`pointer-events-none absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#00e5ff] transition-all duration-200 ${isPlaying ? "shadow-[0_0_12px_rgba(0,229,255,1),0_0_28px_rgba(0,229,255,0.6)] scale-110" : "shadow-[0_0_8px_rgba(0,229,255,0.6)]"}`}
+                      className={`pointer-events-none absolute top-1/2 h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#00e5ff] transition-all duration-200 ${isPlaying ? "shadow-[0_0_12px_rgba(0,229,255,1),0_0_28px_rgba(0,229,255,0.6)] scale-110" : "shadow-[0_0_8px_rgba(0,229,255,0.6)]"} ${maintenanceMode ? "opacity-0" : ""}`}
                       style={{ left: `${progressPercent}%` }}
                     />
                   </div>
                 </div>
                 <div className="mt-2 flex items-center justify-between text-sm text-[#CBD5E1]">
-                  <span>{formatClock(currentTime)}</span>
-                  <span>{formatClock(duration)}</span>
+                  <span>{maintenanceMode ? "Standby" : formatClock(currentTime)}</span>
+                  <span>{maintenanceMode ? nextBroadcastTime : formatClock(duration)}</span>
                 </div>
               </div>
+
+              {maintenanceMode ? (
+                <div className="rounded-[1.15rem] border border-cyan-300/14 bg-cyan-300/[0.06] px-4 py-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-200/75">
+                    Off-air note
+                  </p>
+                  <p className="mt-1 text-sm leading-6 text-slate-200">
+                    The live queue is reconnecting. Browse the featured archive below, open artist profiles, or use the visualizer while the next broadcast window comes online.
+                  </p>
+                </div>
+              ) : null}
 
               <div className="flex flex-col gap-3 sm:flex-row">
                 <button
@@ -2349,7 +2443,7 @@ export default function RadioPlayer() {
                   disabled={(!currentSong && !isDropPlaying) || !!error}
                   className="play-pulse relative flex min-h-16 flex-1 items-center justify-center rounded-full bg-[linear-gradient(135deg,#00e5ff_0%,#7c4dff_100%)] px-6 text-lg font-semibold text-white shadow-[0_10px_30px_rgba(0,229,255,0.22),0_0_28px_rgba(124,77,255,0.2)] transition duration-200 hover:scale-[1.01] active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-white/30 disabled:text-slate-500"
                 >
-                  {isPlaying ? "Pause" : "Play"}
+                  {maintenanceMode ? "Broadcast offline" : isPlaying ? "Pause" : "Play"}
                 </button>
                 <button
                   type="button"
@@ -2416,7 +2510,7 @@ export default function RadioPlayer() {
             </span>
           </div>
 
-          <div className="mt-4 space-y-3">
+          <div className="mt-4 space-y-3 lg:max-h-[34rem] lg:overflow-y-auto lg:pr-1">
             {isLoading ? (
               <>
                 <div className="h-20 animate-pulse rounded-[1.4rem] bg-white/6" />
@@ -2424,11 +2518,39 @@ export default function RadioPlayer() {
                 <div className="h-20 animate-pulse rounded-[1.4rem] bg-white/6" />
               </>
             ) : error ? (
-              <div className="rounded-[1.3rem] border border-[#FF2DA6]/18 bg-[#FF2DA6]/10 px-4 py-4 text-sm text-[#F8FAFC]">
-                <p>{error}</p>
-                <p className="mt-2 text-xs uppercase tracking-[0.18em] text-white/45">
-                  If the separate API is offline, refresh once to use the local catalog fallback.
-                </p>
+              <div className="rounded-[1.3rem] border border-amber-300/18 bg-amber-200/10 px-4 py-4 text-sm text-[#F8FAFC]">
+                <p className="font-semibold text-amber-100">Station Maintenance Mode</p>
+                <p className="mt-2 leading-6 text-slate-200">{error}</p>
+                <div className="mt-3 rounded-[1rem] border border-white/8 bg-black/20 px-3 py-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-200/75">
+                    Next broadcast window
+                  </p>
+                  <p className="mt-1 text-sm text-white">Returning around {nextBroadcastTime}</p>
+                  <p className="mt-1 text-xs leading-5 text-slate-300">
+                    Browse the catalog, check artist profiles, or open the visualizer while the live rotation reconnects.
+                  </p>
+                </div>
+                {standbyArchiveSongs.length > 0 ? (
+                  <div className="mt-4 grid gap-2">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan-200/75">
+                      Featured archive
+                    </p>
+                    {standbyArchiveSongs.map((song) => (
+                      <div
+                        key={song.id}
+                        className="flex items-center justify-between gap-3 rounded-[1rem] border border-white/8 bg-black/20 px-3 py-2"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-white">{song.title}</p>
+                          <p className="truncate text-xs text-slate-300">{song.artist}</p>
+                        </div>
+                        <span className="shrink-0 rounded-full border border-white/8 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-[#CBD5E1]">
+                          {formatVibeLabel(song.vibe ?? selectedVibe)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
               </div>
             ) : upcomingSongs.length > 0 ? (
               upcomingSongs.map((song, index) => {
@@ -2558,18 +2680,18 @@ export default function RadioPlayer() {
         />
 
         {/* ── Coming up this hour ── */}
-        {upcomingSongs.length > 0 && (
+        {upcomingSongsPreview.length > 0 && (
           <div className="mt-6">
             <div className="mb-3 flex items-center justify-between gap-3">
               <p className="text-xs font-semibold uppercase tracking-[0.26em] text-[#CBD5E1]/55">
                 Coming up this hour
               </p>
               <span className="rounded-full border border-white/8 bg-white/5 px-3 py-1 text-xs font-medium text-[#CBD5E1]">
-                {upcomingSongs.length} tracks
+                {upcomingSongsPreview.length} tracks
               </span>
             </div>
             <div className="flex gap-3 overflow-x-auto scrollbar-none pb-2">
-              {upcomingSongs.map((song, i) => (
+              {upcomingSongsPreview.map((song, i) => (
                 <div
                   key={`${song.id}-${i}`}
                   className="queue-card flex shrink-0 flex-col gap-2 rounded-[1.4rem] border border-white/8 bg-[#111827]/72 p-3 w-[130px]"

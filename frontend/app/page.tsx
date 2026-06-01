@@ -29,9 +29,15 @@ const NAV_LINKS = [
   { label: "Contact", href: "/contact" },
 ];
 
+const COMMUNITY_LINKS = [
+  { label: "Instagram", href: "https://www.instagram.com/flowsoundzradio/" },
+  { label: "TikTok", href: "https://www.tiktok.com/@flowsoundzradio" },
+  { label: "YouTube", href: "https://www.youtube.com/@flowsoundzradio" },
+];
+
 
 export default async function HomePage() {
-  const { siteName, heroSubtitle, ctaButtons, footerTagline } =
+  const { siteName, heroSubtitle, ctaButtons, valueCards, trustStripText, footerTagline } =
     await getHomepageContent();
 
   return (
@@ -81,18 +87,21 @@ export default async function HomePage() {
           {/* Left — copy */}
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.34em] text-cyan-400">
-              THE SOUND OF NOW
+              CURATED DISCOVERY RADIO
             </p>
             <h1 className="mt-4 font-headline text-[clamp(40px,7vw,88px)] font-black uppercase leading-[0.92] tracking-tight">
-              REAL MUSIC.
+              UNDERGROUND
               <br />
-              REAL ARTISTS.
+              DISCOVERY,
               <br />
-              <span className="text-[#00e5ff]">REAL</span>{" "}
-              <span className="text-[#7c4dff]">RADIO.</span>
+              <span className="text-[#00e5ff]">PROGRAMMED</span>{" "}
+              <span className="text-[#7c4dff]">LIKE RADIO.</span>
             </h1>
             <p className="mt-6 max-w-md text-sm leading-7 text-white/50 sm:text-[0.95rem]">
               {heroSubtitle}
+            </p>
+            <p className="mt-4 max-w-md text-sm leading-7 text-white/35 sm:text-[0.95rem]">
+              FlowSoundz turns unknown songs into curated discovery moments.
             </p>
             <HomepageCtaGroup ctaButtons={ctaButtons} />
           </div>
@@ -136,6 +145,9 @@ export default async function HomePage() {
       <section className="border-y border-white/[0.06] py-5">
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <HomepageSocialProof />
+          <p className="mt-4 text-center text-sm font-medium text-white/65">
+            {trustStripText}
+          </p>
         </div>
       </section>
 
@@ -150,21 +162,27 @@ export default async function HomePage() {
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
             <a
-              href="#"
+              href="https://open.spotify.com/"
+              target="_blank"
+              rel="noreferrer"
               className="inline-flex items-center gap-2 rounded-full border border-[#1DB954]/30 bg-[#1DB954]/10 px-4 py-2 text-xs font-semibold text-[#1DB954] transition hover:bg-[#1DB954]/18 sm:px-6 sm:py-2.5"
             >
               <SpotifyIcon />
               Spotify
             </a>
             <a
-              href="#"
+              href="https://music.apple.com/"
+              target="_blank"
+              rel="noreferrer"
               className="inline-flex items-center gap-2 rounded-full border border-[#fc3c44]/30 bg-[#fc3c44]/10 px-4 py-2 text-xs font-semibold text-[#fc3c44] transition hover:bg-[#fc3c44]/18 sm:px-6 sm:py-2.5"
             >
               <AppleMusicIcon />
               Apple Music
             </a>
             <a
-              href="#"
+              href="https://www.youtube.com/@flowsoundzradio"
+              target="_blank"
+              rel="noreferrer"
               className="inline-flex items-center gap-2 rounded-full border border-[#FF0000]/30 bg-[#FF0000]/10 px-4 py-2 text-xs font-semibold text-[#FF4444] transition hover:bg-[#FF0000]/18 sm:px-6 sm:py-2.5"
             >
               <YouTubeIcon />
@@ -209,23 +227,23 @@ export default async function HomePage() {
           <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-0 lg:divide-x lg:divide-white/[0.07]">
             <FeatureItem
               icon={<RadioIcon />}
-              title="24/7 RADIO"
-              desc="Non-stop independent music curated for real listeners."
+              title={valueCards[0]?.title?.toUpperCase() ?? "UNDERGROUND DISCOVERY"}
+              desc={valueCards[0]?.text ?? ""}
             />
             <FeatureItem
               icon={<MusicNoteIcon />}
-              title="REAL ARTISTS"
-              desc="We spotlight the next wave of independent talent."
+              title={valueCards[1]?.title?.toUpperCase() ?? "WHY LISTENERS USE IT"}
+              desc={valueCards[1]?.text ?? ""}
             />
             <FeatureItem
               icon={<StarIcon />}
-              title="MEMBERSHIP"
-              desc="Unlock exclusive features and premium perks."
+              title="TRANSPARENT CURATION"
+              desc="No fake streams. No empty playlist promises. FlowSoundz is curated with clear standards."
             />
             <FeatureItem
               icon={<MicIcon />}
-              title="FOR ARTISTS"
-              desc="Get heard. Get discovered. Grow your audience."
+              title={valueCards[2]?.title?.toUpperCase() ?? "WHY ARTISTS SUBMIT"}
+              desc={valueCards[2]?.text ?? ""}
             />
           </div>
         </div>
@@ -319,11 +337,26 @@ export default async function HomePage() {
 
       {/* ── Footer ── */}
       <footer className="border-t border-white/[0.06] px-4 py-8 sm:px-6">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 md:flex-row">
-          <span className="font-display text-sm font-semibold tracking-[0.06em] text-white/45">
-            {siteName}
-          </span>
-          <p className="text-xs text-white/28">{footerTagline}</p>
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 md:flex-row">
+          <div className="flex flex-col items-center gap-2 md:items-start">
+            <span className="font-display text-sm font-semibold tracking-[0.06em] text-white/45">
+              {siteName}
+            </span>
+            <p className="text-xs text-white/28">{footerTagline}</p>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            {COMMUNITY_LINKS.map((link) => (
+              <a
+                key={link.label}
+                href={link.href}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/65 transition hover:border-cyan-300/25 hover:text-white"
+              >
+                {link.label}
+              </a>
+            ))}
+          </div>
         </div>
       </footer>
 

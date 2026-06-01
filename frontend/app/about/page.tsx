@@ -3,10 +3,10 @@ import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 
 const STATS = [
-  { value: "10+", label: "Tracks in rotation" },
-  { value: "2", label: "Artists featured" },
-  { value: "1,200+", label: "Live listeners" },
-  { value: "4", label: "Station vibes" },
+  { value: "Curated", label: "Discovery-first rotation" },
+  { value: "Independent", label: "Artist focus" },
+  { value: "After Hours", label: "Broadcast identity" },
+  { value: "Uncompromised", label: "Audio direction" },
 ];
 
 const HOW_IT_WORKS = [

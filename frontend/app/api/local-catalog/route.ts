@@ -6,6 +6,8 @@ import type { Song } from "@/lib/types";
 export const runtime = "nodejs";
 
 const CATALOG_PATH = path.resolve(process.cwd(), "../backend/app/data/catalog.json");
+const LOCAL_MEDIA_UNAVAILABLE_MESSAGE =
+  "Local media fallback is not available on this deployment. Connect the backend media service to enable radio playback.";
 
 function reorderQueue(songs: Song[]) {
   const featured = songs.filter((song) => song.featured || song.is_featured);
@@ -14,6 +16,13 @@ function reorderQueue(songs: Song[]) {
 }
 
 export async function GET(request: Request) {
+  if (process.env.VERCEL || process.env.NODE_ENV === "production") {
+    return NextResponse.json(
+      { error: LOCAL_MEDIA_UNAVAILABLE_MESSAGE },
+      { status: 503 },
+    );
+  }
+
   const { searchParams } = new URL(request.url);
   const vibe = searchParams.get("vibe");
 

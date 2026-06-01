@@ -20,19 +20,19 @@ export default function ContactPage() {
               accent="#00e5ff"
               title="Artist Submissions"
               body="Want to get your music on the station? Use the Artist Submission topic — or go straight to the Promo page for a faster review."
-              email="flowsoundzradio@gmail.com"
+              email="submissions@flowsoundz.com"
             />
             <ContactCard
               accent="#7c4dff"
               title="Partnerships & Sponsorships"
               body="Brand placements, sponsored slots, or collaborations. Select Partnership and give us the details."
-              email="flowsoundzradio@gmail.com"
+              email="partnerships@flowsoundz.com"
             />
             <ContactCard
               accent="#ff2da6"
               title="General Inquiries"
               body="Feedback, press, or just saying hello. General Inquiry covers it."
-              email="flowsoundzradio@gmail.com"
+              email="contact@flowsoundz.com"
             />
           </div>
 

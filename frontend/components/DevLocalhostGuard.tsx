@@ -14,6 +14,10 @@ export function DevLocalhostGuard() {
       return;
     }
 
+    if (window.sessionStorage.getItem("flowsoundz-dev-runtime-cleared") === "1") {
+      return;
+    }
+
     const cleanupDevRuntimeState = async () => {
       try {
         if ("serviceWorker" in navigator) {
@@ -29,6 +33,8 @@ export function DevLocalhostGuard() {
               .map((cacheKey) => caches.delete(cacheKey)),
           );
         }
+
+        window.sessionStorage.setItem("flowsoundz-dev-runtime-cleared", "1");
       } catch (error) {
         console.warn("Failed to clear local dev runtime state", error);
       }

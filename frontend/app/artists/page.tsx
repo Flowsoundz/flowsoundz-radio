@@ -10,16 +10,23 @@ export const dynamic = "force-dynamic";
 export default async function ArtistsPage() {
   const songs = await getSongs();
   const artists = buildArtistProfiles(songs);
+  const isFallbackCatalog = songs.some((song) => song.curated_fallback);
 
   return (
     <AppShell
       eyebrow="Artists"
       title="Artist Profiles"
-      subtitle={`${artists.length} artist${artists.length === 1 ? "" : "s"} currently in FlowSoundz rotation.`}
+      subtitle={
+        isFallbackCatalog
+          ? `${artists.length} artist${artists.length === 1 ? "" : "s"} featured in the curated archive while the live station reconnects.`
+          : `${artists.length} artist${artists.length === 1 ? "" : "s"} currently in FlowSoundz rotation.`
+      }
     >
       <div className="mb-6 rounded-[1.9rem] border border-white/10 bg-[linear-gradient(135deg,rgba(0,229,255,0.07),rgba(124,77,255,0.07),rgba(255,61,242,0.05))] p-5">
         <p className="text-sm leading-6 text-slate-300">
-          Every profile is generated from the live FlowSoundz catalog. Tracks, cover art, vibes, and featured rotation status stay tied to the existing station data.
+          {isFallbackCatalog
+            ? "These profiles are being served from the FlowSoundz curated archive so listeners can still discover artists while the live catalog reconnects."
+            : "Every profile is generated from the live FlowSoundz catalog. Tracks, cover art, vibes, and featured rotation status stay tied to the existing station data."}
         </p>
       </div>
 

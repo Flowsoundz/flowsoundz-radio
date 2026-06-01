@@ -8,9 +8,13 @@
     "prebuild": "node scripts/generate-narration-manifest.mjs && node scripts/generate-bed-manifest.mjs",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio"
   },
   "dependencies": {
+    "@prisma/client": "^6.8.2",
     "@types/three": "^0.184.0",
     "hls.js": "^1.6.16",
     "next": "16.2.4",
@@ -27,6 +31,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
+    "prisma": "^6.8.2",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

@@ -71,6 +71,15 @@ const ctaClasses = {
     "border border-fuchsia-400/35 bg-fuchsia-400/10 text-fuchsia-50 hover:border-fuchsia-400/55 hover:bg-fuchsia-400/18",
 };
 
+const comparisonRows = [
+  { feature: "Public radio rotation", listener: "Included", insider: "Included", vault: "Included" },
+  { feature: "Day One Access", listener: "—", insider: "Early entry", vault: "Priority window" },
+  { feature: "Behind the Mix", listener: "—", insider: "Included", vault: "Full access" },
+  { feature: "Vault exclusives", listener: "—", insider: "Selected drops", vault: "Full library" },
+  { feature: "Midnight Drop access", listener: "Public only", insider: "Early", vault: "Earliest" },
+  { feature: "Community status", listener: "Listener", insider: "Insider", vault: "Founder Circle" },
+];
+
 export default function MembershipPage() {
   return (
     <AppShell
@@ -78,6 +87,15 @@ export default function MembershipPage() {
       title="Join the FlowSoundz circle"
       subtitle="Built for music discovery before the algorithm catches up. Membership moves you out of the public lane and into early access, Vault exclusives, and Midnight Drops that don't exist anywhere else."
     >
+      <div className="mb-8 rounded-[1.8rem] border border-cyan-300/18 bg-[linear-gradient(135deg,rgba(0,229,255,0.09),rgba(124,77,255,0.08),rgba(255,45,166,0.06))] px-6 py-5">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-200/75">
+          Limited access windows
+        </p>
+        <p className="mt-2 text-sm leading-6 text-slate-200">
+          Insider and Vault members get first call on early drops, archive perks, and creator-side experiments while beta slots remain limited.
+        </p>
+      </div>
+
       <section className="grid gap-4 lg:grid-cols-3">
         {tiers.map((tier) => (
           <article
@@ -136,6 +154,39 @@ export default function MembershipPage() {
             </Link>
           </article>
         ))}
+      </section>
+
+      <section className="mt-10 glass-card overflow-hidden rounded-[1.8rem] border border-white/8">
+        <div className="border-b border-white/8 px-6 py-5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-200/75">
+            Compare tiers
+          </p>
+          <h2 className="mt-2 text-xl font-semibold text-white">
+            Listener vs Insider vs Vault
+          </h2>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-left text-sm text-slate-200">
+            <thead className="bg-white/[0.03] text-[11px] uppercase tracking-[0.2em] text-slate-400">
+              <tr>
+                <th className="px-6 py-4 font-semibold">Feature</th>
+                <th className="px-6 py-4 font-semibold">Listener</th>
+                <th className="px-6 py-4 font-semibold">Insider</th>
+                <th className="px-6 py-4 font-semibold">Vault</th>
+              </tr>
+            </thead>
+            <tbody>
+              {comparisonRows.map((row) => (
+                <tr key={row.feature} className="border-t border-white/8">
+                  <td className="px-6 py-4 font-medium text-white">{row.feature}</td>
+                  <td className="px-6 py-4">{row.listener}</td>
+                  <td className="px-6 py-4 text-cyan-100">{row.insider}</td>
+                  <td className="px-6 py-4 text-fuchsia-100">{row.vault}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </section>
 
       <MembershipFAQ />

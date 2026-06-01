@@ -57,14 +57,26 @@ function makeSprite(): THREE.Texture {
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
-type Props = { isPlaying?: boolean; analyser?: AnalyserNode | null; className?: string };
+type Props = {
+  isPlaying?: boolean;
+  analyser?: AnalyserNode | null;
+  className?: string;
+  isActive?: boolean;
+};
 
-export function VisualizerCanvasThree({ isPlaying = false, analyser = null, className }: Props) {
+export function VisualizerCanvasThree({
+  isPlaying = false,
+  analyser = null,
+  className,
+  isActive = true,
+}: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const playRef      = useRef(isPlaying);
   const analyserRef  = useRef(analyser);
+  const activeRef    = useRef(isActive);
   useEffect(() => { playRef.current     = isPlaying; }, [isPlaying]);
   useEffect(() => { analyserRef.current = analyser;  }, [analyser]);
+  useEffect(() => { activeRef.current   = isActive;  }, [isActive]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -184,13 +196,23 @@ export function VisualizerCanvasThree({ isPlaying = false, analyser = null, clas
     let lastRenderTs = 0;
 
     const onVisibility = () => {
-      if (document.hidden) window.cancelAnimationFrame(fid);
-      else fid = window.requestAnimationFrame(tick);
+      if (document.hidden || !activeRef.current) {
+        window.cancelAnimationFrame(fid);
+        fid = 0;
+        return;
+      }
+
+      fid = window.requestAnimationFrame(tick);
     };
     document.addEventListener("visibilitychange", onVisibility);
 
     // ── Tick ──────────────────────────────────────────────────────────────
     const tick = () => {
+      if (!activeRef.current) {
+        fid = 0;
+        return;
+      }
+
       const now = performance.now();
       if (now - lastRenderTs < minFrameMs) {
         fid = window.requestAnimationFrame(tick);
@@ -341,7 +363,9 @@ export function VisualizerCanvasThree({ isPlaying = false, analyser = null, clas
       fid = window.requestAnimationFrame(tick);
     };
 
-    fid = window.requestAnimationFrame(tick);
+    if (activeRef.current) {
+      fid = window.requestAnimationFrame(tick);
+    }
     return () => {
       window.cancelAnimationFrame(fid);
       document.removeEventListener("visibilitychange", onVisibility);

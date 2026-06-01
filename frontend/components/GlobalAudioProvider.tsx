@@ -17,6 +17,16 @@ type GlobalAudioContextValue = {
   analyserRef: MutableRefObject<AnalyserNode | null>;
   dataArrayRef: MutableRefObject<Uint8Array<ArrayBuffer> | null>;
   audioContextRef: MutableRefObject<AudioContext | null>;
+  togglePlaybackRef: MutableRefObject<(() => void) | null>;
+  skipTrackRef: MutableRefObject<(() => Promise<void> | void) | null>;
+  setCurrentTrack: (
+    track: {
+      id: string;
+      src: string;
+      title: string;
+      artist: string;
+    } | null,
+  ) => void;
   isReady: boolean;
   isPlaying: boolean;
   hasStartedPlayback: boolean;
@@ -26,6 +36,15 @@ type GlobalAudioContextValue = {
     title: string;
     artist: string;
   } | null;
+};
+
+type GlobalAudioRefsContextValue = {
+  audioRef: MutableRefObject<HTMLAudioElement | null>;
+  analyserRef: MutableRefObject<AnalyserNode | null>;
+  dataArrayRef: MutableRefObject<Uint8Array<ArrayBuffer> | null>;
+  audioContextRef: MutableRefObject<AudioContext | null>;
+  togglePlaybackRef: MutableRefObject<(() => void) | null>;
+  skipTrackRef: MutableRefObject<(() => Promise<void> | void) | null>;
   setCurrentTrack: (
     track: {
       id: string;
@@ -34,11 +53,22 @@ type GlobalAudioContextValue = {
       artist: string;
     } | null,
   ) => void;
-  togglePlaybackRef: MutableRefObject<(() => void) | null>;
-  skipTrackRef: MutableRefObject<(() => Promise<void> | void) | null>;
 };
 
-const AudioContextGlobal = createContext<GlobalAudioContextValue | null>(null);
+type GlobalAudioStateContextValue = {
+  isReady: boolean;
+  isPlaying: boolean;
+  hasStartedPlayback: boolean;
+  currentTrack: {
+    id: string;
+    src: string;
+    title: string;
+    artist: string;
+  } | null;
+};
+
+const AudioRefsContextGlobal = createContext<GlobalAudioRefsContextValue | null>(null);
+const AudioStateContextGlobal = createContext<GlobalAudioStateContextValue | null>(null);
 
 export function GlobalAudioProvider({ children }: { children: ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -153,34 +183,62 @@ export function GlobalAudioProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const value = useMemo<GlobalAudioContextValue>(
+  const refsValue = useMemo<GlobalAudioRefsContextValue>(
     () => ({
       audioRef,
       analyserRef,
       dataArrayRef,
       audioContextRef,
+      togglePlaybackRef,
+      skipTrackRef,
+      setCurrentTrack,
+    }),
+    [],
+  );
+
+  const stateValue = useMemo<GlobalAudioStateContextValue>(
+    () => ({
       isReady,
       isPlaying,
       hasStartedPlayback,
       currentTrack,
-      setCurrentTrack,
-      togglePlaybackRef,
-      skipTrackRef,
     }),
     [currentTrack, hasStartedPlayback, isPlaying, isReady],
   );
 
   return (
-    <AudioContextGlobal.Provider value={value}>
-      {children}
-    </AudioContextGlobal.Provider>
+    <AudioRefsContextGlobal.Provider value={refsValue}>
+      <AudioStateContextGlobal.Provider value={stateValue}>
+        {children}
+      </AudioStateContextGlobal.Provider>
+    </AudioRefsContextGlobal.Provider>
   );
 }
 
 export function useGlobalAudio() {
-  const context = useContext(AudioContextGlobal);
-  if (!context) {
+  const refs = useContext(AudioRefsContextGlobal);
+  const state = useContext(AudioStateContextGlobal);
+  if (!refs || !state) {
     throw new Error("useGlobalAudio must be used inside GlobalAudioProvider");
+  }
+  return {
+    ...refs,
+    ...state,
+  } satisfies GlobalAudioContextValue;
+}
+
+export function useGlobalAudioRefs() {
+  const context = useContext(AudioRefsContextGlobal);
+  if (!context) {
+    throw new Error("useGlobalAudioRefs must be used inside GlobalAudioProvider");
+  }
+  return context;
+}
+
+export function useGlobalAudioState() {
+  const context = useContext(AudioStateContextGlobal);
+  if (!context) {
+    throw new Error("useGlobalAudioState must be used inside GlobalAudioProvider");
   }
   return context;
 }

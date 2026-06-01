@@ -24,7 +24,7 @@ function stripCodeFence(raw: string): string {
   return text;
 }
 
-function fallback(songIdea: string, genre: string, mood: string, goal: string): LyricIdeasOutput {
+function fallback(songIdea: string, genre: string, mood: string): LyricIdeasOutput {
   const idea = songIdea || "the feeling";
   const g = genre || "music";
   const m = mood || "this";
@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
   const anthropicKey = process.env.ANTHROPIC_API_KEY?.trim();
 
   if (!openAiKey && !anthropicKey) {
-    return Response.json(fallback(songIdea, genre, mood, goal));
+    return Response.json(fallback(songIdea, genre, mood));
   }
 
   const prompt = [
@@ -157,10 +157,10 @@ export async function POST(request: NextRequest) {
       try {
         raw = await callAnthropic(anthropicKey, prompt);
       } catch {
-        return Response.json(fallback(songIdea, genre, mood, goal));
+        return Response.json(fallback(songIdea, genre, mood));
       }
     } else {
-      return Response.json(fallback(songIdea, genre, mood, goal));
+      return Response.json(fallback(songIdea, genre, mood));
     }
   }
 
@@ -168,7 +168,7 @@ export async function POST(request: NextRequest) {
   try {
     parsed = JSON.parse(stripCodeFence(raw)) as Record<string, unknown>;
   } catch {
-    return Response.json(fallback(songIdea, genre, mood, goal));
+    return Response.json(fallback(songIdea, genre, mood));
   }
 
   function toStringArray(v: unknown): string[] {
@@ -180,15 +180,15 @@ export async function POST(request: NextRequest) {
     hookIdeas:
       toStringArray(parsed.hookIdeas).length > 0
         ? toStringArray(parsed.hookIdeas)
-        : fallback(songIdea, genre, mood, goal).hookIdeas,
+        : fallback(songIdea, genre, mood).hookIdeas,
     titleIdeas:
       toStringArray(parsed.titleIdeas).length > 0
         ? toStringArray(parsed.titleIdeas)
-        : fallback(songIdea, genre, mood, goal).titleIdeas,
+        : fallback(songIdea, genre, mood).titleIdeas,
     captionIdeas:
       toStringArray(parsed.captionIdeas).length > 0
         ? toStringArray(parsed.captionIdeas)
-        : fallback(songIdea, genre, mood, goal).captionIdeas,
+        : fallback(songIdea, genre, mood).captionIdeas,
   };
 
   return Response.json(output);

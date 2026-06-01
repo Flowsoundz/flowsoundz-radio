@@ -8,6 +8,15 @@ export function PwaRegistrar() {
       return;
     }
 
+    if (typeof window !== "undefined") {
+      const isLocalHost =
+        window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+
+      if (process.env.NODE_ENV !== "production" && isLocalHost) {
+        return;
+      }
+    }
+
     const registerServiceWorker = async () => {
       try {
         await navigator.serviceWorker.register("/sw.js");

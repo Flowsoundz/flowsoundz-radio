@@ -13,6 +13,8 @@ type AdminSongOption = {
   youtube_url?: string | null;
   artist_visual_file?: string | null;
   packaging_status?: "pending" | "processing" | "ready" | "failed";
+  packaging_error?: string | null;
+  is_playable?: boolean;
 };
 
 type AdminMusicUploaderProps = {
@@ -56,6 +58,10 @@ async function readAudioDuration(file: File): Promise<number | null> {
 export function AdminMusicUploader({ songs }: AdminMusicUploaderProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [password, setPassword] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "ready" | "pending" | "processing" | "failed"
+  >("all");
   const [existingSongId, setExistingSongId] = useState("");
   const [title, setTitle] = useState("");
   const [artist, setArtist] = useState("");
@@ -74,6 +80,20 @@ export function AdminMusicUploader({ songs }: AdminMusicUploaderProps) {
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const filteredSongs = songs
+    .filter((song) => {
+      const matchesStatus =
+        statusFilter === "all"
+          ? true
+          : (song.packaging_status ?? "ready") === statusFilter;
+      const haystack = `${song.title} ${song.artist} ${song.genre ?? ""} ${song.audio_file}`.toLowerCase();
+      const matchesQuery =
+        searchQuery.trim().length === 0
+          ? true
+          : haystack.includes(searchQuery.trim().toLowerCase());
+      return matchesStatus && matchesQuery;
+    })
+    .sort((a, b) => a.title.localeCompare(b.title));
   const selectedSong = songs.find((entry) => entry.id === existingSongId) ?? null;
   const selectedSongPackagingStatus = selectedSong?.packaging_status;
   const isSelectedSongBusy =
@@ -472,6 +492,37 @@ export function AdminMusicUploader({ songs }: AdminMusicUploaderProps) {
             <label className="block text-sm font-medium text-slate-200">
               Edit existing song
             </label>
+            <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto]">
+              <input
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Search title, artist, genre, or file"
+                className="w-full rounded-2xl border border-white/10 bg-white/6 px-4 py-3 text-sm text-white outline-none"
+              />
+              <select
+                value={statusFilter}
+                onChange={(event) =>
+                  setStatusFilter(
+                    event.target.value as
+                      | "all"
+                      | "ready"
+                      | "pending"
+                      | "processing"
+                      | "failed",
+                  )
+                }
+                className="rounded-2xl border border-white/10 bg-white/6 px-4 py-3 text-sm text-white outline-none"
+              >
+                <option value="all" className="bg-slate-950">All statuses</option>
+                <option value="ready" className="bg-slate-950">Ready</option>
+                <option value="pending" className="bg-slate-950">Pending</option>
+                <option value="processing" className="bg-slate-950">Processing</option>
+                <option value="failed" className="bg-slate-950">Failed</option>
+              </select>
+            </div>
+            <p className="mt-3 text-xs text-slate-400">
+              {filteredSongs.length} of {songs.length} songs shown
+            </p>
             <select
               value={existingSongId}
               onChange={(event) => loadSong(event.target.value)}
@@ -480,7 +531,7 @@ export function AdminMusicUploader({ songs }: AdminMusicUploaderProps) {
               <option value="" className="bg-slate-950">
                 New song upload
               </option>
-              {songs.map((song) => (
+              {filteredSongs.map((song) => (
                 <option key={song.id} value={song.id} className="bg-slate-950">
                   {song.title} · {song.artist}
                 </option>
@@ -498,6 +549,16 @@ export function AdminMusicUploader({ songs }: AdminMusicUploaderProps) {
                         ? "Pending"
                         : "Ready"}
                 </span>
+              </p>
+            ) : null}
+            {selectedSong?.audio_file ? (
+              <p className="mt-2 text-xs text-slate-400">
+                Audio file: <span className="text-slate-200">{selectedSong.audio_file}</span>
+              </p>
+            ) : null}
+            {selectedSong?.packaging_error ? (
+              <p className="mt-2 text-xs text-rose-300">
+                Packaging error: {selectedSong.packaging_error}
               </p>
             ) : null}
           </div>

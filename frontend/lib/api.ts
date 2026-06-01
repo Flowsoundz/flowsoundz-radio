@@ -1,5 +1,6 @@
 import coverMappings from "./coverMappings.json";
 import { getAdminCoverSrc, normalizeCoverKey } from "./coverKeys";
+import { getCuratedCatalog } from "./curatedCatalog";
 import type { AiOnboardProfile } from "./promoOnboarding";
 import { Song } from "./types";
 
@@ -43,11 +44,18 @@ export async function getSongs(): Promise<Song[]> {
     }
     return res.json();
   } catch {
-    const res = await fetch(`${LOCAL_APP_BASE}/api/local-catalog`, {
-      cache: "no-store",
-    });
-    if (!res.ok) throw new Error("Failed to load songs");
-    return res.json();
+    try {
+      const res = await fetch(`${LOCAL_APP_BASE}/api/local-catalog`, {
+        cache: "no-store",
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error || "Failed to load songs");
+      }
+      return res.json();
+    } catch {
+      return getCuratedCatalog();
+    }
   }
 }
 
@@ -58,17 +66,52 @@ export async function getQueue(vibe?: string): Promise<Song[]> {
 
   try {
     const res = await fetch(url, { cache: "no-store" });
+    if (process.env.NODE_ENV === "development") {
+      console.log("[RadioPlayer] queue response", {
+        source: "backend",
+        url,
+        status: res.status,
+        ok: res.ok,
+      });
+    }
     if (!res.ok) {
       throw new Error("Failed to load queue");
     }
-    return res.json();
+    const data = (await res.json()) as Song[];
+    if (process.env.NODE_ENV === "development") {
+      console.log("[RadioPlayer] queue payload", {
+        source: "backend",
+        length: data.length,
+        firstTrack: data[0] ?? null,
+      });
+    }
+    return data;
   } catch {
     const fallbackUrl = vibe
       ? `${LOCAL_APP_BASE}/api/local-catalog?vibe=${encodeURIComponent(vibe)}`
       : `${LOCAL_APP_BASE}/api/local-catalog`;
     const res = await fetch(fallbackUrl, { cache: "no-store" });
-    if (!res.ok) throw new Error("Failed to load queue");
-    return res.json();
+    if (process.env.NODE_ENV === "development") {
+      console.log("[RadioPlayer] queue response", {
+        source: "local-fallback",
+        url: fallbackUrl,
+        status: res.status,
+        ok: res.ok,
+      });
+    }
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      throw new Error(data?.error || "Failed to load queue");
+    }
+    const data = (await res.json()) as Song[];
+    if (process.env.NODE_ENV === "development") {
+      console.log("[RadioPlayer] queue payload", {
+        source: "local-fallback",
+        length: data.length,
+        firstTrack: data[0] ?? null,
+      });
+    }
+    return data;
   }
 }
 

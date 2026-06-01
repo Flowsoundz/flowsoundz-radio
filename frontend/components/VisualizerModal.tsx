@@ -168,12 +168,14 @@ export function VisualizerModal({
         <VisualizerCanvasThree
           isPlaying={isPlaying}
           analyser={analyser}
+          isActive={isOpen}
           className="absolute inset-0 h-full w-full"
         />
       ) : (
         <PremiumAudioVisualizer
           isPlaying={isPlaying}
           analyser={analyser}
+          isActive={isOpen}
           className="absolute inset-0 h-full w-full"
           fullHeight
           showFrame={false}

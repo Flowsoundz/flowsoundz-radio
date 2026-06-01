@@ -3,6 +3,12 @@ import { AppShell } from "@/components/AppShell";
 
 const ADMIN_TOOLS = [
   {
+    href: "/admin/insights",
+    title: "Listener Insights",
+    description:
+      "Track play, pause, skip, completion, visualizer opens, and Creator Hub conversion in one local-first dashboard.",
+  },
+  {
     href: "/admin/waitlist",
     title: "Waitlist",
     description:
@@ -43,6 +49,12 @@ const ADMIN_TOOLS = [
     title: "Release Inbox",
     description:
       "Review homepage release submissions, inspect uploaded assets, and mark each artist intake as reviewed, approved, or rejected.",
+  },
+  {
+    href: "/admin/artist-submissions",
+    title: "Artist Hub Inbox",
+    description:
+      "Review Creator Hub track submissions, inspect AI promo drafts, and mark each submission as new, reviewing, approved, or rejected.",
   },
   {
     href: "/admin/outreach",

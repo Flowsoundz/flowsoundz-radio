@@ -56,6 +56,19 @@ export function ReleaseSubmissionModal({
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successReference, setSuccessReference] = useState("");
+  const [prevOpen, setPrevOpen] = useState(open);
+
+  // Reset when modal re-opens (render-time update, no extra effect needed)
+  if (prevOpen !== open) {
+    setPrevOpen(open);
+    if (!open) {
+      setStep(1);
+      setForm(INITIAL_FORM);
+      setAiProfile(null);
+      setErrorMessage("");
+      setSuccessReference("");
+    }
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -65,17 +78,6 @@ export function ReleaseSubmissionModal({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [open, onClose]);
-
-  // Reset when closed
-  useEffect(() => {
-    if (!open) {
-      setStep(1);
-      setForm(INITIAL_FORM);
-      setAiProfile(null);
-      setErrorMessage("");
-      setSuccessReference("");
-    }
-  }, [open]);
 
   const stepTitle = useMemo(() => {
     switch (step) {

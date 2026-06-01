@@ -39,17 +39,16 @@ function isLive(data: NowPlayingData) {
 }
 
 export default function NowPlayingWidget() {
-  const [data, setData] = useState<NowPlayingData | null>(null);
-
-  useEffect(() => {
+  const [data, setData] = useState<NowPlayingData | null>(() => {
+    if (typeof window === "undefined") return null;
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed: NowPlayingData = JSON.parse(raw);
-        setData(parsed);
-      }
+      if (raw) return JSON.parse(raw) as NowPlayingData;
     } catch {}
+    return null;
+  });
 
+  useEffect(() => {
     const ch = new BroadcastChannel(CHANNEL_NAME);
     ch.onmessage = (e: MessageEvent<NowPlayingData>) => setData(e.data);
     return () => ch.close();

@@ -1,0 +1,609 @@
+[
+  {
+    "event": "artist_submission_started",
+    "url": "/artist/submit",
+    "ts": "2026-06-01T17:25:19.289Z",
+    "source": "artist_submit_page"
+  },
+  {
+    "event": "start_listening_click",
+    "url": "/radio",
+    "ts": "2026-06-01T16:47:46.184Z",
+    "action": "play"
+  },
+  {
+    "event": "start_listening_click",
+    "url": "/radio",
+    "ts": "2026-06-01T16:23:42.818Z",
+    "action": "play"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-06-01T14:47:30.394Z",
+    "trackId": "track_029",
+    "title": "Just Want to Dance",
+    "artist": "Adonyz",
+    "vibe": "chill",
+    "source": "radio_player"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-06-01T14:47:29.073Z",
+    "trackId": "track_044",
+    "title": "Tú Me Fallaste",
+    "artist": "Adonyz",
+    "vibe": "emotional",
+    "source": "radio_player"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-06-01T14:47:27.220Z",
+    "trackId": "track_024",
+    "title": "HOT IN THIS",
+    "artist": "Adonyz",
+    "vibe": "hype",
+    "source": "radio_player"
+  },
+  {
+    "event": "start_listening_click",
+    "url": "/radio",
+    "ts": "2026-06-01T14:47:13.151Z",
+    "action": "play"
+  },
+  {
+    "event": "start_listening_click",
+    "url": "/radio",
+    "ts": "2026-06-01T14:47:04.990Z",
+    "action": "play"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-06-01T14:47:00.189Z",
+    "trackId": "track_013",
+    "title": "Doctora",
+    "artist": "Adonyz",
+    "vibe": "hype",
+    "source": "radio_player"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-06-01T14:46:58.616Z",
+    "trackId": "track_021",
+    "title": "Head in the Game",
+    "artist": "Adonyz",
+    "vibe": "hype",
+    "source": "radio_player"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-06-01T14:46:57.150Z",
+    "trackId": "track_028",
+    "title": "Jungla de Concreto",
+    "artist": "Adonyz",
+    "vibe": "hype",
+    "source": "radio_player"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-06-01T14:46:55.444Z",
+    "trackId": "track_005",
+    "title": "Algoritmo",
+    "artist": "Adonyz",
+    "vibe": "hype",
+    "source": "radio_player"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-06-01T14:46:49.878Z",
+    "trackId": "track_040",
+    "title": "Pinocho Gelato",
+    "artist": "Adonyz",
+    "vibe": "hype",
+    "source": "radio_player"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-06-01T14:46:46.875Z",
+    "trackId": "track_050",
+    "title": "Gangster Falso",
+    "artist": "Naz T",
+    "vibe": "hype",
+    "source": "radio_player"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-06-01T14:46:44.170Z",
+    "trackId": "track_013",
+    "title": "Doctora",
+    "artist": "Adonyz",
+    "vibe": "hype",
+    "source": "radio_player"
+  },
+  {
+    "event": "start_listening_click",
+    "url": "/radio",
+    "ts": "2026-06-01T14:46:42.866Z",
+    "action": "play"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-06-01T14:46:39.436Z",
+    "trackId": "track_026",
+    "title": "I Was Just Playing",
+    "artist": "Adonyz",
+    "vibe": "late_night",
+    "source": "radio_player"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-06-01T14:46:37.729Z",
+    "trackId": "track_055",
+    "title": "Adonis",
+    "artist": "Adonis",
+    "vibe": "late_night",
+    "source": "radio_player"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-06-01T14:46:35.654Z",
+    "trackId": "track_031",
+    "title": "Lose Control",
+    "artist": "Adonyz",
+    "vibe": "late_night",
+    "source": "radio_player"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-06-01T14:46:34.444Z",
+    "trackId": "track_038",
+    "title": "O.M.W.",
+    "artist": "Adonyz",
+    "vibe": "late_night",
+    "source": "radio_player"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-06-01T14:46:33.244Z",
+    "trackId": "track_001",
+    "title": "1888",
+    "artist": "Adonyz",
+    "vibe": "late_night",
+    "source": "radio_player"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-06-01T14:46:31.069Z",
+    "trackId": "track_002",
+    "title": "3AM",
+    "artist": "Adonyz",
+    "vibe": "late_night",
+    "source": "radio_player"
+  },
+  {
+    "event": "start_listening_click",
+    "url": "/radio",
+    "ts": "2026-06-01T14:40:44.510Z",
+    "action": "play"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-06-01T14:40:24.722Z",
+    "trackId": "track_047",
+    "title": "Doctora Alt",
+    "artist": "Adonyz",
+    "vibe": "hype",
+    "source": "radio_player"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-06-01T14:40:23.144Z",
+    "trackId": "track_019",
+    "title": "Galacta",
+    "artist": "Adonyz",
+    "vibe": "hype",
+    "source": "radio_player"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-06-01T14:40:21.516Z",
+    "trackId": "track_035",
+    "title": "No More",
+    "artist": "Adonyz",
+    "vibe": "emotional",
+    "source": "radio_player"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-06-01T14:40:19.792Z",
+    "trackId": "track_055",
+    "title": "Adonis",
+    "artist": "Adonis",
+    "vibe": "late_night",
+    "source": "radio_player"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-06-01T14:40:16.028Z",
+    "trackId": "track_048",
+    "title": "MIA 2",
+    "artist": "Adonyz",
+    "vibe": "late_night",
+    "source": "radio_player"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-06-01T14:40:13.114Z",
+    "trackId": "track_016",
+    "title": "Far Away",
+    "artist": "Adonyz",
+    "vibe": "emotional",
+    "source": "radio_player"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-06-01T14:40:10.010Z",
+    "trackId": "track_047",
+    "title": "Doctora Alt",
+    "artist": "Adonyz",
+    "vibe": "hype",
+    "source": "radio_player"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-06-01T14:33:20.140Z",
+    "trackId": "track_055",
+    "title": "Adonis",
+    "artist": "Adonis",
+    "vibe": "late_night",
+    "source": "radio_player"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-06-01T14:32:50.611Z",
+    "trackId": "track_048",
+    "title": "MIA 2",
+    "artist": "Adonyz",
+    "vibe": "late_night",
+    "source": "radio_player"
+  },
+  {
+    "event": "start_listening_click",
+    "url": "/radio",
+    "ts": "2026-06-01T14:31:27.500Z",
+    "action": "play"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-05-30T22:48:49.412Z",
+    "trackId": "track_039",
+    "title": "On Ice",
+    "artist": "Adonyz",
+    "vibe": "chill",
+    "source": "radio_player"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-05-30T22:48:46.997Z",
+    "trackId": "track_042",
+    "title": "Te Quise en Silencio",
+    "artist": "Adonyz",
+    "vibe": "emotional",
+    "source": "radio_player"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-05-30T22:23:54.995Z",
+    "trackId": "track_010",
+    "title": "Cirujano Final",
+    "artist": "Adonyz",
+    "vibe": "hype",
+    "source": "radio_player"
+  },
+  {
+    "event": "start_listening_click",
+    "url": "/radio",
+    "ts": "2026-05-30T22:21:49.968Z",
+    "action": "play"
+  },
+  {
+    "event": "start_listening_click",
+    "url": "/radio",
+    "ts": "2026-05-30T22:21:44.348Z",
+    "action": "pause"
+  },
+  {
+    "event": "start_listening_click",
+    "url": "/radio",
+    "ts": "2026-05-30T22:21:32.155Z",
+    "action": "play"
+  },
+  {
+    "event": "start_listening_click",
+    "url": "/radio",
+    "ts": "2026-05-30T22:17:05.124Z",
+    "action": "play"
+  },
+  {
+    "event": "start_listening_click",
+    "url": "/radio",
+    "ts": "2026-05-30T22:17:04.555Z",
+    "action": "pause"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-05-30T21:58:42.511Z",
+    "trackId": "track_022",
+    "title": "His Glory",
+    "artist": "Adonyz",
+    "vibe": "emotional",
+    "source": "radio_player"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-05-30T21:58:40.769Z",
+    "trackId": "track_042",
+    "title": "Te Quise en Silencio",
+    "artist": "Adonyz",
+    "vibe": "emotional",
+    "source": "radio_player"
+  },
+  {
+    "event": "start_listening_click",
+    "url": "/radio",
+    "ts": "2026-05-30T21:58:38.852Z",
+    "action": "play"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-05-30T21:45:28.575Z",
+    "trackId": "track_019",
+    "title": "Galacta",
+    "artist": "Adonyz",
+    "vibe": "hype",
+    "source": "radio_player"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-05-30T21:45:25.828Z",
+    "trackId": "track_011",
+    "title": "Conteo Official",
+    "artist": "Adonyz",
+    "vibe": "hype",
+    "source": "radio_player"
+  },
+  {
+    "event": "start_listening_click",
+    "url": "/radio",
+    "ts": "2026-05-30T21:44:10.720Z",
+    "action": "play"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-05-30T21:44:05.811Z",
+    "trackId": "track_020",
+    "title": "Getting Down Tonight",
+    "artist": "Adonyz",
+    "vibe": "late_night",
+    "source": "radio_player"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-05-30T21:41:50.780Z",
+    "trackId": "track_002",
+    "title": "3AM",
+    "artist": "Adonyz",
+    "vibe": "late_night",
+    "source": "radio_player"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-05-30T21:38:10.136Z",
+    "trackId": "track_012",
+    "title": "Conversation",
+    "artist": "Adonyz",
+    "vibe": "late_night",
+    "source": "radio_player"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-05-30T21:33:50.677Z",
+    "trackId": "track_032",
+    "title": "Love Sex and Pain",
+    "artist": "Adonyz",
+    "vibe": "late_night",
+    "source": "radio_player"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-05-30T21:17:10.774Z",
+    "trackId": "track_012",
+    "title": "Conversation",
+    "artist": "Adonyz",
+    "vibe": "late_night",
+    "source": "radio_player"
+  },
+  {
+    "event": "start_listening_click",
+    "url": "/radio",
+    "ts": "2026-05-30T21:17:10.037Z",
+    "action": "play"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-05-30T21:17:05.854Z",
+    "trackId": "track_017",
+    "title": "Find a Way",
+    "artist": "Adonyz",
+    "vibe": "emotional",
+    "source": "radio_player"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-05-30T21:17:03.200Z",
+    "trackId": "track_014",
+    "title": "Ese Olorcito Caramelo",
+    "artist": "Adonyz",
+    "vibe": "chill",
+    "source": "radio_player"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-05-30T21:17:01.285Z",
+    "trackId": "track_041",
+    "title": "Still Love",
+    "artist": "Adonyz",
+    "vibe": "emotional",
+    "source": "radio_player"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-05-30T21:17:00.147Z",
+    "trackId": "track_025",
+    "title": "I Just Decided",
+    "artist": "Adonyz",
+    "vibe": "emotional",
+    "source": "radio_player"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-05-30T21:16:58.719Z",
+    "trackId": "track_018",
+    "title": "Finji",
+    "artist": "Adonyz",
+    "vibe": "chill",
+    "source": "radio_player"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-05-30T21:16:55.668Z",
+    "trackId": "track_016",
+    "title": "Far Away",
+    "artist": "Adonyz",
+    "vibe": "emotional",
+    "source": "radio_player"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-05-30T21:16:53.587Z",
+    "trackId": "track_017",
+    "title": "Find a Way",
+    "artist": "Adonyz",
+    "vibe": "emotional",
+    "source": "radio_player"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-05-30T21:16:51.738Z",
+    "trackId": "track_014",
+    "title": "Ese Olorcito Caramelo",
+    "artist": "Adonyz",
+    "vibe": "chill",
+    "source": "radio_player"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-05-30T21:16:49.063Z",
+    "trackId": "track_041",
+    "title": "Still Love",
+    "artist": "Adonyz",
+    "vibe": "emotional",
+    "source": "radio_player"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-05-30T21:05:03.308Z",
+    "trackId": "track_014",
+    "title": "Ese Olorcito Caramelo",
+    "artist": "Adonyz",
+    "vibe": "chill",
+    "source": "radio_player"
+  },
+  {
+    "event": "track_skip",
+    "url": "/radio",
+    "ts": "2026-05-30T20:56:58.173Z",
+    "trackId": "track_018",
+    "title": "Finji",
+    "artist": "Adonyz",
+    "vibe": "chill",
+    "source": "radio_player"
+  },
+  {
+    "event": "start_listening_click",
+    "url": "/radio",
+    "ts": "2026-05-30T20:56:45.491Z",
+    "action": "play"
+  },
+  {
+    "event": "start_listening_click",
+    "url": "/",
+    "ts": "2026-05-30T20:56:44.018Z",
+    "source": "homepage_cta",
+    "label": "Listen Live"
+  },
+  {
+    "event": "start_listening_click",
+    "url": "/radio",
+    "ts": "2026-05-30T20:12:47.460Z",
+    "action": "play"
+  },
+  {
+    "event": "start_listening_click",
+    "url": "/radio",
+    "ts": "2026-05-05T03:32:42.406Z",
+    "action": "pause"
+  },
+  {
+    "event": "start_listening_click",
+    "url": "/radio",
+    "ts": "2026-05-05T03:32:40.997Z",
+    "action": "play"
+  }
+]

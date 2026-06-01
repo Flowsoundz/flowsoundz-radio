@@ -32,6 +32,7 @@ export type Song = {
   local_stream?: boolean;
   is_ai_generated?: boolean;
   ai_platform?: string | null;
+  curated_fallback?: boolean;
 };
 
 export type VibeOption = {

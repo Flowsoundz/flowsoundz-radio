@@ -17,9 +17,38 @@ import {
 
 type Props = {
   initialArtistName?: string;
+  initialTrackTitle?: string;
+  initialPersonaLabel?: string;
+  initialExportTarget?: string;
 };
 
-export function ConnectedVisualizerStudio({ initialArtistName }: Props) {
+const EXPORT_TARGETS = [
+  {
+    id: "tiktok",
+    label: "TikTok",
+    format: "9:16 vertical loop",
+    guidance: "Fast hook, bold text overlays, and movement in the first second.",
+  },
+  {
+    id: "reels",
+    label: "Reels",
+    format: "9:16 social cut",
+    guidance: "Favor clean artist/title framing and a strong middle section for reshares.",
+  },
+  {
+    id: "shorts",
+    label: "Shorts",
+    format: "9:16 discovery cut",
+    guidance: "Lead with the strongest visual moment and keep branding readable on mobile.",
+  },
+] as const;
+
+export function ConnectedVisualizerStudio({
+  initialArtistName,
+  initialTrackTitle,
+  initialPersonaLabel,
+  initialExportTarget,
+}: Props) {
   const artistInputId = useId();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -34,7 +63,13 @@ export function ConnectedVisualizerStudio({ initialArtistName }: Props) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [analyserNode, setAnalyserNode] = useState<AnalyserNode | null>(null);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
-  const [trackLabel, setTrackLabel] = useState("Idle preview");
+  const [trackLabel, setTrackLabel] = useState(initialTrackTitle?.trim() || "Idle preview");
+  const [shareCopied, setShareCopied] = useState(false);
+  const [exportTargetId, setExportTargetId] = useState(
+    EXPORT_TARGETS.some((target) => target.id === initialExportTarget)
+      ? (initialExportTarget as (typeof EXPORT_TARGETS)[number]["id"])
+      : "tiktok",
+  );
 
   useEffect(() => {
     const audio = new Audio();
@@ -181,6 +216,28 @@ export function ConnectedVisualizerStudio({ initialArtistName }: Props) {
 
   const trimmedArtistName = artistName.trim();
   const artistSlug = trimmedArtistName ? slugifyArtistName(trimmedArtistName) : "";
+  const exportTarget =
+    EXPORT_TARGETS.find((target) => target.id === exportTargetId) ?? EXPORT_TARGETS[0];
+  const promoBriefTitle =
+    initialTrackTitle?.trim() ||
+    `${trimmedArtistName || "FlowSoundz"} ${exportTarget.label} Promo`;
+
+  async function handleSharePreview() {
+    const shareMessage = `${trimmedArtistName || "FlowSoundz Radio"} visualizer preview — ${audioFile?.name ?? "local track"} • Built in FlowSoundz Visualizer Studio`;
+
+    if (navigator.share) {
+      await navigator.share({
+        title: "FlowSoundz Visualizer Studio",
+        text: shareMessage,
+        url: `${window.location.origin}/visualizer`,
+      }).catch(() => undefined);
+      return;
+    }
+
+    await navigator.clipboard.writeText(`${shareMessage} ${window.location.origin}/visualizer`);
+    setShareCopied(true);
+    window.setTimeout(() => setShareCopied(false), 2200);
+  }
 
   return (
     <section className="grid gap-6 xl:grid-cols-[minmax(320px,0.94fr)_minmax(0,1.42fr)]">
@@ -198,8 +255,84 @@ export function ConnectedVisualizerStudio({ initialArtistName }: Props) {
         />
 
         <div className="glass-card rounded-[1.75rem] border border-white/10 p-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-fuchsia-200/75">
+            Creator handoff
+          </p>
+          <h2 className="mt-2 text-lg font-semibold text-white">Promo brief is already loaded</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-300">
+            The Creator Hub can hand artist context directly into the studio so Step 5 feels like
+            a real production lane, not a dead-end link.
+          </p>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-[1rem] border border-white/8 bg-white/[0.03] px-4 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                Artist
+              </p>
+              <p className="mt-2 text-sm font-semibold text-white">
+                {trimmedArtistName || "FlowSoundz Radio"}
+              </p>
+            </div>
+            <div className="rounded-[1rem] border border-white/8 bg-white/[0.03] px-4 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                Promo brief
+              </p>
+              <p className="mt-2 text-sm font-semibold text-white">{promoBriefTitle}</p>
+            </div>
+            <div className="rounded-[1rem] border border-white/8 bg-white/[0.03] px-4 py-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+                Creator lane
+              </p>
+              <p className="mt-2 text-sm font-semibold text-white">
+                {initialPersonaLabel || "General release"}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="glass-card rounded-[1.75rem] border border-fuchsia-400/14 bg-fuchsia-500/[0.04] p-5">
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200/70">
-            Connected Mode
+            Export target
+          </p>
+          <h2 className="mt-2 text-lg font-semibold text-white">Build for the platform you need</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-300">
+            Pick a destination and the studio will frame the promo around that short-form format.
+          </p>
+
+          <div className="mt-4 flex flex-wrap gap-3">
+            {EXPORT_TARGETS.map((target) => {
+              const active = target.id === exportTargetId;
+
+              return (
+                <button
+                  key={target.id}
+                  type="button"
+                  onClick={() => setExportTargetId(target.id)}
+                  className={`rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] transition ${
+                    active
+                      ? "border-fuchsia-300/28 bg-[linear-gradient(135deg,rgba(255,45,166,0.15),rgba(124,77,255,0.16),rgba(0,229,255,0.12))] text-white shadow-[0_0_28px_rgba(255,45,166,0.12)]"
+                      : "border-white/10 bg-white/[0.03] text-slate-300 hover:border-white/18 hover:text-white"
+                  }`}
+                  title={target.guidance}
+                >
+                  {target.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="mt-4 rounded-[1rem] border border-white/8 bg-black/20 px-4 py-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-fuchsia-200/75">
+              Active format
+            </p>
+            <p className="mt-2 text-sm font-semibold text-white">{exportTarget.format}</p>
+            <p className="mt-2 text-sm leading-6 text-slate-300">{exportTarget.guidance}</p>
+          </div>
+        </div>
+
+        <div className="glass-card rounded-[1.75rem] border border-white/10 p-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200/70">
+            Visual engine
           </p>
           <h2 className="mt-2 text-lg font-semibold text-white">Shared with radio visualizer</h2>
           <p className="mt-2 text-sm leading-6 text-slate-300">
@@ -278,6 +411,13 @@ export function ConnectedVisualizerStudio({ initialArtistName }: Props) {
             <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs font-medium uppercase tracking-[0.16em] text-slate-300">
               {trackLabel}
             </span>
+            <button
+              type="button"
+              onClick={() => void handleSharePreview()}
+              className="rounded-full border border-cyan-300/18 bg-cyan-300/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-100 transition hover:bg-cyan-300/[0.16]"
+            >
+              {shareCopied ? "Link copied" : "Share preview"}
+            </button>
           </div>
 
           {playbackError ? (
@@ -302,6 +442,7 @@ export function ConnectedVisualizerStudio({ initialArtistName }: Props) {
               <VisualizerCanvasThree
                 analyser={analyserNode}
                 isPlaying={isPlaying}
+                isActive
                 className="absolute inset-0 h-full w-full"
               />
               <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_18%,rgba(1,5,16,0.18)_56%,rgba(1,5,16,0.74)_100%)]" />
@@ -320,6 +461,7 @@ export function ConnectedVisualizerStudio({ initialArtistName }: Props) {
             <PremiumAudioVisualizer
               analyser={analyserNode}
               isPlaying={isPlaying}
+              isActive
               className="absolute inset-0 h-full w-full"
               fullHeight
               showFrame={false}
@@ -337,11 +479,21 @@ export function ConnectedVisualizerStudio({ initialArtistName }: Props) {
               Connected to radio modal
             </p>
             <p className="mt-2 text-xl font-semibold text-white">
-              {audioFile?.name ?? "Load a local track"}
+              {audioFile?.name ?? promoBriefTitle}
             </p>
             <p className="mt-1 text-sm text-slate-300">
               {trimmedArtistName || "FlowSoundz Radio"}
             </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/75">
+                {exportTarget.label}
+              </span>
+              {initialPersonaLabel ? (
+                <span className="rounded-full border border-fuchsia-400/18 bg-fuchsia-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-fuchsia-100">
+                  {initialPersonaLabel}
+                </span>
+              ) : null}
+            </div>
           </div>
         </div>
 
@@ -364,10 +516,35 @@ export function ConnectedVisualizerStudio({ initialArtistName }: Props) {
           </div>
           <div className="glass-card rounded-[1.45rem] border border-white/10 p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200/70">
-              Artist Loop
+              Export Presets
             </p>
             <p className="mt-3 text-sm leading-6 text-slate-300">
-              Jump from studio to artist profile, then back into the studio with the artist name prefilled.
+              Start with TikTok, Reels, or Shorts framing. This keeps Step 5 focused on promo production instead of generic experimentation.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-[1.2fr_0.8fr]">
+          <div className="glass-card rounded-[1.45rem] border border-white/10 p-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200/70">
+              Share Engine
+            </p>
+            <h3 className="mt-2 text-lg font-semibold text-white">
+              Turn every preview into social promotion
+            </h3>
+            <p className="mt-3 text-sm leading-6 text-slate-300">
+              Use the share control above to send this studio page to collaborators, or use it as the launch point for short-form promo clips once export rendering is enabled.
+            </p>
+          </div>
+          <div className="glass-card rounded-[1.45rem] border border-fuchsia-400/14 bg-fuchsia-500/[0.04] p-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-fuchsia-200/75">
+              Premium templates
+            </p>
+            <h3 className="mt-2 text-lg font-semibold text-white">
+              Particle-heavy scenes coming to membership
+            </h3>
+            <p className="mt-3 text-sm leading-6 text-slate-300">
+              Aurora Field and Liquid Mercury are live now. Advanced shader packs, heavier particle presets, and export-ready layouts are reserved for premium rollout.
             </p>
           </div>
         </div>

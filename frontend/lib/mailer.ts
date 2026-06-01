@@ -82,6 +82,7 @@ export async function sendContactNotification(msg: {
 
 export async function sendArtistSubmissionNotification(data: {
   artistName: string;
+  contactName: string;
   email: string;
   songTitle: string;
   genre: string;
@@ -89,15 +90,22 @@ export async function sendArtistSubmissionNotification(data: {
   artistType: string;
   description: string;
   songLink: string;
+  versionType: string;
+  producerCredit?: string;
   streamingLink?: string;
   coverArtLink?: string;
   socialLink?: string;
   aiUsed: boolean;
   aiTool?: string;
+  rightsConfirmed: boolean;
+  samplesConfirmed: boolean;
+  promotionPermissionConfirmed: boolean;
+  removalPolicyConfirmed: boolean;
   notes?: string;
   bio: string;
   promoBlurb: string;
   radioIntro: string;
+  socialCaptions: string[];
   suggestedVibe: string;
   submittedAt: string;
 }) {
@@ -121,10 +129,13 @@ export async function sendArtistSubmissionNotification(data: {
       `New track submission on FlowSoundz Creator Hub.`,
       ``,
       `Artist: ${data.artistName} <${data.email}>`,
+      `Contact: ${data.contactName}`,
       `Track: ${data.songTitle}`,
       `Genre: ${data.genre}`,
       `Vibe: ${data.vibe}`,
       `Artist type: ${data.artistType}`,
+      `Version: ${data.versionType}`,
+      data.producerCredit ? `Producer credit: ${data.producerCredit}` : "",
       `AI used: ${data.aiUsed ? `Yes — ${data.aiTool || "unspecified"}` : "No"}`,
       `Submitted: ${data.submittedAt}`,
       ``,
@@ -135,6 +146,11 @@ export async function sendArtistSubmissionNotification(data: {
       data.streamingLink ? `Streaming: ${data.streamingLink}` : "",
       data.coverArtLink ? `Cover art: ${data.coverArtLink}` : "",
       data.socialLink ? `Social: ${data.socialLink}` : "",
+      ``,
+      `Rights confirmed: ${data.rightsConfirmed ? "Yes" : "No"}`,
+      `Samples confirmed: ${data.samplesConfirmed ? "Yes" : "No"}`,
+      `Promotion permission confirmed: ${data.promotionPermissionConfirmed ? "Yes" : "No"}`,
+      `Removal policy acknowledged: ${data.removalPolicyConfirmed ? "Yes" : "No"}`,
       data.notes ? `\nNotes:\n${data.notes}` : "",
       ``,
       `── AI-Generated Promo Assets ──`,
@@ -146,6 +162,9 @@ export async function sendArtistSubmissionNotification(data: {
       ``,
       `Promo blurb:`,
       data.promoBlurb,
+      ``,
+      `Social captions:`,
+      ...data.socialCaptions.map((caption, index) => `${index + 1}. ${caption}`),
       ``,
       `Radio intro:`,
       data.radioIntro,
@@ -166,11 +185,14 @@ export async function sendArtistSubmissionNotification(data: {
         <div style="background:#f8fafc;padding:24px 28px;border-radius:0 0 12px 12px;border:1px solid #e2e8f0;border-top:none">
           <table style="width:100%;border-collapse:collapse;margin-bottom:20px">
             <tr><td style="padding:5px 0;font-size:13px;color:#64748b;width:110px">Artist</td><td style="padding:5px 0;font-size:13px;font-weight:600">${data.artistName}</td></tr>
+            <tr><td style="padding:5px 0;font-size:13px;color:#64748b">Contact</td><td style="padding:5px 0;font-size:13px">${data.contactName}</td></tr>
             <tr><td style="padding:5px 0;font-size:13px;color:#64748b">Email</td><td style="padding:5px 0;font-size:13px"><a href="mailto:${data.email}" style="color:#0ea5e9">${data.email}</a></td></tr>
             <tr><td style="padding:5px 0;font-size:13px;color:#64748b">Track</td><td style="padding:5px 0;font-size:13px;font-weight:600">"${data.songTitle}"</td></tr>
             <tr><td style="padding:5px 0;font-size:13px;color:#64748b">Genre</td><td style="padding:5px 0;font-size:13px">${data.genre}</td></tr>
             <tr><td style="padding:5px 0;font-size:13px;color:#64748b">Vibe</td><td style="padding:5px 0;font-size:13px">${data.vibe}</td></tr>
             <tr><td style="padding:5px 0;font-size:13px;color:#64748b">Artist type</td><td style="padding:5px 0;font-size:13px">${data.artistType}</td></tr>
+            <tr><td style="padding:5px 0;font-size:13px;color:#64748b">Version</td><td style="padding:5px 0;font-size:13px">${data.versionType}</td></tr>
+            ${data.producerCredit ? `<tr><td style="padding:5px 0;font-size:13px;color:#64748b">Producer</td><td style="padding:5px 0;font-size:13px">${data.producerCredit}</td></tr>` : ""}
             <tr><td style="padding:5px 0;font-size:13px;color:#64748b">AI used</td><td style="padding:5px 0;font-size:13px">${data.aiUsed ? `Yes — ${data.aiTool || "unspecified"}` : "No"}</td></tr>
             <tr><td style="padding:5px 0;font-size:13px;color:#64748b">Submitted</td><td style="padding:5px 0;font-size:13px;color:#94a3b8">${data.submittedAt}</td></tr>
             ${linkRow("Song link", data.songLink)}
@@ -184,6 +206,16 @@ export async function sendArtistSubmissionNotification(data: {
             <p style="margin:0;font-size:14px;line-height:1.7;color:#1e293b">${data.description}</p>
           </div>
 
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:14px 18px;margin-bottom:20px">
+            <p style="margin:0 0 6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#64748b">Permissions Confirmed</p>
+            <p style="margin:0;font-size:14px;line-height:1.8;color:#1e293b">
+              Rights to recording: ${data.rightsConfirmed ? "Yes" : "No"}<br/>
+              Sample clearance: ${data.samplesConfirmed ? "Yes" : "No"}<br/>
+              FlowSoundz streaming and promotion permission: ${data.promotionPermissionConfirmed ? "Yes" : "No"}<br/>
+              Removal policy acknowledged: ${data.removalPolicyConfirmed ? "Yes" : "No"}
+            </p>
+          </div>
+
           ${data.notes ? `<div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:14px 18px;margin-bottom:20px"><p style="margin:0 0 6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#64748b">Additional Notes</p><p style="margin:0;font-size:14px;line-height:1.7;color:#1e293b">${data.notes}</p></div>` : ""}
 
           <div style="background:#07111f;border-radius:10px;padding:18px 22px;margin-bottom:20px">
@@ -194,6 +226,10 @@ export async function sendArtistSubmissionNotification(data: {
             <p style="margin:0 0 14px;font-size:13px;color:#7c4dff;font-weight:700">${data.suggestedVibe}</p>
             <p style="margin:0 0 4px;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.1em">Station Promo Blurb</p>
             <p style="margin:0 0 14px;font-size:13px;line-height:1.7;color:#e2e8f0">${data.promoBlurb}</p>
+            <p style="margin:0 0 4px;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.1em">Social Captions</p>
+            <div style="margin:0 0 14px;font-size:13px;line-height:1.7;color:#e2e8f0">
+              ${data.socialCaptions.map((caption) => `<p style="margin:0 0 8px">${caption}</p>`).join("")}
+            </div>
             <p style="margin:0 0 4px;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.1em">Radio Intro Line</p>
             <p style="margin:0;font-size:13px;line-height:1.7;color:#e2e8f0">${data.radioIntro}</p>
           </div>

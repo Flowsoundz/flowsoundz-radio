@@ -1,31 +1,39 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CreatorHubShell } from "@/components/creator-hub/CreatorHubShell";
+import { track } from "@/lib/analytics";
 import { generateArtistPromoAssets } from "@/lib/creatorHub/generators";
 import type { ArtistPromoOutput } from "@/lib/creatorHub/generators";
 
+type SubmitResponse = ArtistPromoOutput & {
+  submission_id?: string;
+};
+
 type FormState = {
   artistName: string;
+  contactName: string;
   email: string;
   songTitle: string;
   genre: string;
-  vibe: "Chill" | "Hype" | "Late Night" | "Emotional";
+  vibe: "Chill" | "Hype" | "Late Night" | "Emotional" | "Unsure";
   artistType: string;
   description: string;
   songLink: string;
+  versionType: "Explicit" | "Clean";
+  producerCredit: string;
   streamingLink: string;
   coverArtLink: string;
   socialLink: string;
   aiUsed: "yes" | "no";
   aiTool: string;
-  ownsRights: "yes" | "no" | "";
   notes: string;
 };
 
 const INITIAL_FORM: FormState = {
   artistName: "",
+  contactName: "",
   email: "",
   songTitle: "",
   genre: "",
@@ -33,16 +41,17 @@ const INITIAL_FORM: FormState = {
   artistType: "Independent Artist",
   description: "",
   songLink: "",
+  versionType: "Clean",
+  producerCredit: "",
   streamingLink: "",
   coverArtLink: "",
   socialLink: "",
   aiUsed: "no",
   aiTool: "",
-  ownsRights: "",
   notes: "",
 };
 
-const VIBE_OPTIONS = ["Chill", "Hype", "Late Night", "Emotional"] as const;
+const VIBE_OPTIONS = ["Chill", "Hype", "Late Night", "Emotional", "Unsure"] as const;
 const ARTIST_TYPES = [
   "Independent Artist",
   "AI-Assisted Artist",
@@ -54,22 +63,22 @@ const REQUIRED_CHECKS = [
   {
     id: "rights",
     label:
-      "I confirm I own or control the rights to this submission.",
+      "I confirm that I own or control the rights to this recording.",
   },
   {
-    id: "permissions",
+    id: "samples",
     label:
-      "I confirm I have permission from all producers, writers, and featured artists.",
-  },
-  {
-    id: "ai_terms",
-    label:
-      "I confirm any AI-generated content follows the tool's commercial-use terms.",
+      "I confirm that this song does not contain uncleared samples, or I have permission for all samples used.",
   },
   {
     id: "grant_fsr",
     label:
-      "I grant FlowSoundz permission to review, stream, display, and promote this submission if approved.",
+      "I grant FlowSoundz Radio permission to stream, display, and promote this submitted track on the FlowSoundz Radio platform and social channels.",
+  },
+  {
+    id: "removal",
+    label:
+      "I understand that approval is not guaranteed and I can request removal by contacting FlowSoundz Radio.",
   },
 ] as const;
 
@@ -86,12 +95,13 @@ const SELECT_CLASS =
 
 export default function SubmitPage() {
   const router = useRouter();
+  const startedRef = useRef(false);
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
   const [checks, setChecks] = useState<Record<CheckId, boolean>>({
     rights: false,
-    permissions: false,
-    ai_terms: false,
+    samples: false,
     grant_fsr: false,
+    removal: false,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -100,15 +110,24 @@ export default function SubmitPage() {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
+  useEffect(() => {
+    if (startedRef.current) {
+      return;
+    }
+
+    startedRef.current = true;
+    track("artist_submission_started", { source: "artist_submit_page" });
+  }, []);
+
   const allChecked = REQUIRED_CHECKS.every((c) => checks[c.id]);
   const canSubmit =
     form.artistName.trim() &&
+    form.contactName.trim() &&
     form.email.trim() &&
     form.songTitle.trim() &&
     form.genre.trim() &&
     form.description.trim() &&
     form.songLink.trim() &&
-    form.ownsRights === "yes" &&
     allChecked;
 
   async function handleSubmit() {
@@ -124,6 +143,7 @@ export default function SubmitPage() {
 
     try {
       let promo: ArtistPromoOutput;
+      let submissionId: string | null = null;
 
       // Submit to server: AI generation + email notification
       try {
@@ -132,6 +152,7 @@ export default function SubmitPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             artistName: form.artistName,
+            contactName: form.contactName,
             email: form.email,
             songTitle: form.songTitle,
             genre: form.genre,
@@ -139,17 +160,31 @@ export default function SubmitPage() {
             artistType: form.artistType,
             description: form.description,
             songLink: form.songLink,
+            versionType: form.versionType,
+            producerCredit: form.producerCredit,
             streamingLink: form.streamingLink,
             coverArtLink: form.coverArtLink,
             socialLink: form.socialLink,
             aiUsed: form.aiUsed === "yes",
             aiTool: form.aiTool,
+            rightsConfirmed: checks.rights,
+            samplesConfirmed: checks.samples,
+            promotionPermissionConfirmed: checks.grant_fsr,
+            removalPolicyConfirmed: checks.removal,
             notes: form.notes,
           }),
         });
 
         if (res.ok) {
-          promo = (await res.json()) as ArtistPromoOutput;
+          const data = (await res.json()) as SubmitResponse;
+          promo = {
+            bio: data.bio,
+            suggestedVibe: data.suggestedVibe,
+            promoBlurb: data.promoBlurb,
+            radioIntro: data.radioIntro,
+            socialCaptions: data.socialCaptions,
+          };
+          submissionId = data.submission_id ?? null;
         } else {
           throw new Error("Server fallback");
         }
@@ -173,9 +208,17 @@ export default function SubmitPage() {
         JSON.stringify({
           form,
           promo,
+          submissionId,
           submittedAt: new Date().toISOString(),
         }),
       );
+
+      track("artist_submission_completed", {
+        source: "artist_submit_page",
+        vibe: form.vibe,
+        genre: form.genre,
+        aiUsed: form.aiUsed === "yes",
+      });
 
       router.push("/artist/confirmation");
     } catch (err) {
@@ -203,13 +246,16 @@ export default function SubmitPage() {
           rotation and promoted through artist discovery content. Submissions are reviewed
           manually — approval is not guaranteed.
         </p>
+        <p className="mt-3 text-sm font-medium text-cyan-100/80">
+          FlowSoundz Radio is curated. Not every submission will be approved.
+        </p>
       </div>
 
       {/* ── Form ── */}
       <div className="mb-10 glass-card rounded-[1.8rem] p-6 sm:p-8">
         <div className="grid gap-5">
 
-          {/* Row 1: Artist + Email */}
+          {/* Row 1: Artist + Contact */}
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="grid gap-2">
               <span className="text-sm font-medium text-white">
@@ -225,6 +271,22 @@ export default function SubmitPage() {
             </label>
             <label className="grid gap-2">
               <span className="text-sm font-medium text-white">
+                Legal name or contact name <span className="text-[#ff2da6]">*</span>
+              </span>
+              <input
+                type="text"
+                value={form.contactName}
+                onChange={(e) => update("contactName", e.target.value)}
+                placeholder="Who we should contact about this submission"
+                className={INPUT_CLASS}
+              />
+            </label>
+          </div>
+
+          {/* Row 2: Email + Song */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="grid gap-2">
+              <span className="text-sm font-medium text-white">
                 Email <span className="text-[#ff2da6]">*</span>
               </span>
               <input
@@ -235,10 +297,6 @@ export default function SubmitPage() {
                 className={INPUT_CLASS}
               />
             </label>
-          </div>
-
-          {/* Row 2: Song + Genre */}
-          <div className="grid gap-4 sm:grid-cols-2">
             <label className="grid gap-2">
               <span className="text-sm font-medium text-white">
                 Song title <span className="text-[#ff2da6]">*</span>
@@ -251,6 +309,10 @@ export default function SubmitPage() {
                 className={INPUT_CLASS}
               />
             </label>
+          </div>
+
+          {/* Row 3: Genre + version */}
+          <div className="grid gap-4 sm:grid-cols-2">
             <label className="grid gap-2">
               <span className="text-sm font-medium text-white">
                 Genre <span className="text-[#ff2da6]">*</span>
@@ -262,6 +324,21 @@ export default function SubmitPage() {
                 placeholder="Afrobeats, Alt-R&B, Electronic…"
                 className={INPUT_CLASS}
               />
+            </label>
+            <label className="grid gap-2">
+              <span className="text-sm font-medium text-white">
+                Track version <span className="text-[#ff2da6]">*</span>
+              </span>
+              <select
+                value={form.versionType}
+                onChange={(e) =>
+                  update("versionType", e.target.value as FormState["versionType"])
+                }
+                className={SELECT_CLASS}
+              >
+                <option value="Clean">Clean</option>
+                <option value="Explicit">Explicit</option>
+              </select>
             </label>
           </div>
 
@@ -285,6 +362,20 @@ export default function SubmitPage() {
               ))}
             </div>
           </div>
+
+          <label className="grid gap-2">
+            <span className="text-sm font-medium text-white/80">
+              Producer credit{" "}
+              <span className="font-normal text-white/40">(optional)</span>
+            </span>
+            <input
+              type="text"
+              value={form.producerCredit}
+              onChange={(e) => update("producerCredit", e.target.value)}
+              placeholder="Producer, co-producer, or beat credit"
+              className={INPUT_CLASS}
+            />
+          </label>
 
           {/* Artist Type */}
           <label className="grid gap-2">
@@ -316,7 +407,7 @@ export default function SubmitPage() {
             />
           </label>
 
-          {/* Song + Streaming Links */}
+          {/* Song + Platform Links */}
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="grid gap-2">
               <span className="text-sm font-medium text-white">
@@ -332,14 +423,14 @@ export default function SubmitPage() {
             </label>
             <label className="grid gap-2">
               <span className="text-sm font-medium text-white text-white/80">
-                Streaming link{" "}
+                Spotify / Apple / YouTube / SoundCloud{" "}
                 <span className="font-normal text-white/40">(optional)</span>
               </span>
               <input
                 type="url"
                 value={form.streamingLink}
                 onChange={(e) => update("streamingLink", e.target.value)}
-                placeholder="Spotify, Apple Music, etc."
+                placeholder="Public platform link if already released"
                 className={INPUT_CLASS}
               />
             </label>
@@ -412,45 +503,6 @@ export default function SubmitPage() {
             )}
           </div>
 
-          {/* Owns Rights */}
-          <div className="grid gap-3">
-            <span className="text-sm font-medium text-white">
-              Do you own or control the rights to this submission?{" "}
-              <span className="text-[#ff2da6]">*</span>
-            </span>
-            <div className="flex gap-3">
-              {(["yes", "no"] as const).map((val) => (
-                <button
-                  key={val}
-                  type="button"
-                  onClick={() => update("ownsRights", val)}
-                  className={`rounded-full border px-5 py-2 text-sm font-semibold capitalize transition ${
-                    form.ownsRights === val
-                      ? val === "yes"
-                        ? "border-[#00e5ff]/50 bg-[#00e5ff]/15 text-[#00e5ff]"
-                        : "border-[#ff2da6]/50 bg-[#ff2da6]/15 text-[#ff2da6]"
-                      : "border-white/10 bg-white/[0.04] text-white/60 hover:border-white/20 hover:text-white"
-                  }`}
-                >
-                  {val}
-                </button>
-              ))}
-            </div>
-            {form.ownsRights === "no" && (
-              <p className="text-xs text-[#ff2da6]">
-                You cannot submit music you do not own or control. Please review
-                the{" "}
-                <a
-                  href="/artist/rights"
-                  className="underline hover:opacity-80"
-                >
-                  rights checklist
-                </a>{" "}
-                before submitting.
-              </p>
-            )}
-          </div>
-
           {/* Notes */}
           <label className="grid gap-2">
             <span className="text-sm font-medium text-white/80">
@@ -474,7 +526,7 @@ export default function SubmitPage() {
           Required Confirmations
         </h2>
         <p className="mt-1 text-xs text-slate-400">
-          You must check all four before submitting.
+          Please review these carefully. They make the submission process clear without promising placement.
         </p>
         <ul className="mt-4 space-y-4">
           {REQUIRED_CHECKS.map((item) => (

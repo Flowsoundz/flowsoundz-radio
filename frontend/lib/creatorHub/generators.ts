@@ -55,6 +55,7 @@ export type ArtistPromoOutput = {
   suggestedVibe: string;
   promoBlurb: string;
   radioIntro: string;
+  socialCaptions: string[];
 };
 
 // ── Generators ────────────────────────────────────────────────────────────────
@@ -124,5 +125,10 @@ export function generateArtistPromoAssets(
         ? `Up next on FlowSoundz Radio — ${a} with "${s}". ${description.trim().slice(0, 90)}${description.trim().length > 90 ? "…" : ""}`
         : `Up next on FlowSoundz Radio — ${a} with "${s}". Pure ${g} energy, curated just for you.`,
     radioIntro: `This is FlowSoundz Radio. You are about to hear "${s}" by ${a}. Stay locked in.`,
+    socialCaptions: [
+      `${a} just landed on the FlowSoundz radar with "${s}" — ${v.toLowerCase()} energy and a clear point of view.`,
+      `Now in the FlowSoundz submission lane: "${s}" by ${a}. ${g} roots, curated discovery energy.`,
+      `If you're into independent records with intent, keep "${s}" by ${a} in your next listen rotation.`,
+    ],
   };
 }

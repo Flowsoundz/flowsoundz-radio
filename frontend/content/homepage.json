@@ -4,43 +4,38 @@
   "heroLogoSrc": "/brand/flowsoundz-radio-full-dark.png",
   "heroLogoAlt": "FlowSoundz Radio logo",
   "heroTitle": "FlowSoundz Radio",
-  "heroSubtitle": "Discover new music through a premium radio experience, unlock exclusives through membership, and give your release a real shot at FlowSoundz visibility.",
+  "heroSubtitle": "FlowSoundz Radio introduces independent, AI-assisted, and virtual artists through curated rotation, artist spotlights, and radio-style launch moments.",
   "ctaButtons": [
     {
-      "label": "Start listening",
+      "label": "Listen Live",
       "href": "/radio",
       "variant": "cyan"
     },
     {
-      "label": "Explore membership",
-      "href": "/membership",
-      "variant": "ghost"
-    },
-    {
-      "label": "Submit your release",
+      "label": "Submit Your Music",
       "href": "/promo",
       "variant": "fuchsia"
     }
   ],
   "valueCards": [
     {
-      "title": "Discover the next wave",
-      "text": "FlowSoundz Radio is built for listeners who want fresh records, curated energy, and artist discovery before the algorithm catches up."
+      "title": "Underground discovery",
+      "text": "FlowSoundz turns unknown songs into curated discovery moments, so listeners hear artists with context instead of getting lost in endless playlists."
     },
     {
-      "title": "Unlock member-only drops",
-      "text": "Membership opens the door to early access, exclusive releases, Behind the Mix notes, and premium-first late-night moments."
+      "title": "Why listeners use it",
+      "text": "Use FlowSoundz for curated rotation, artist spotlights, and radio-style launch moments that make discovery feel intentional."
     },
     {
-      "title": "Get your music reviewed",
-      "text": "Artists can submit releases for promo consideration, featured placement, and future sponsored visibility across the station."
+      "title": "Why artists submit",
+      "text": "Artists submit to be reviewed, introduced professionally, and considered for real station placement without fake playlist promises."
     }
   ],
-  "trustStripText": "FlowSoundz complements your existing music stack. Discover here, then keep supporting artists across the platforms you already use.",
+  "trustStripText": "No fake streams. No empty playlist promises. Transparent curation.",
   "trustPlatforms": [
     "Spotify",
     "Apple Music",
     "YouTube"
   ],
-  "footerTagline": "Discovery-led radio, member exclusives, and artist visibility in one premium lane."
+  "footerTagline": "Underground discovery, programmed like radio."
 }
