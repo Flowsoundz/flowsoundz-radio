@@ -4,12 +4,51 @@ import { getCuratedCatalog } from "./curatedCatalog";
 import type { AiOnboardProfile } from "./promoOnboarding";
 import { Song } from "./types";
 
-export const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE ||
-  (process.env.NODE_ENV === "development" ? "http://127.0.0.1:8000" : "");
-const LOCAL_APP_BASE =
-  process.env.NEXT_PUBLIC_APP_BASE ||
-  (process.env.NODE_ENV === "development" ? "http://127.0.0.1:3000" : "");
+function isLocalHostName(hostname: string | null | undefined) {
+  return hostname === "localhost" || hostname === "127.0.0.1";
+}
+
+function getRuntimeHostname() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return window.location.hostname;
+}
+
+function sanitizePublicBase(
+  configuredBase: string | undefined,
+  developmentFallback: string,
+) {
+  const candidate = configuredBase?.trim() || "";
+
+  if (!candidate) {
+    return process.env.NODE_ENV === "development" ? developmentFallback : "";
+  }
+
+  try {
+    const url = new URL(candidate);
+    const runtimeHostname = getRuntimeHostname();
+    const runtimeIsLocal = isLocalHostName(runtimeHostname);
+
+    if (isLocalHostName(url.hostname) && !runtimeIsLocal) {
+      return "";
+    }
+
+    return url.origin;
+  } catch {
+    return process.env.NODE_ENV === "development" ? developmentFallback : "";
+  }
+}
+
+export const API_BASE = sanitizePublicBase(
+  process.env.NEXT_PUBLIC_API_BASE,
+  "http://127.0.0.1:8000",
+);
+const LOCAL_APP_BASE = sanitizePublicBase(
+  process.env.NEXT_PUBLIC_APP_BASE,
+  "http://127.0.0.1:3000",
+);
 const DEFAULT_COVER_SRC = "/covers/default.webp";
 
 const LOCAL_COVER_BY_TITLE: Record<string, string> = coverMappings;
@@ -260,11 +299,11 @@ export function getStreamUrl(filename: string): string {
 }
 
 export function getLocalStreamUrl(filename: string): string {
-  return `${LOCAL_APP_BASE}/api/local-stream/${encodeURIComponent(filename)}`;
+  return `${LOCAL_APP_BASE || ""}/api/local-stream/${encodeURIComponent(filename)}`;
 }
 
 export function getLocalVisualUrl(filename: string): string {
-  return `${LOCAL_APP_BASE}/api/local-visual/${encodeURIComponent(filename)}`;
+  return `${LOCAL_APP_BASE || ""}/api/local-visual/${encodeURIComponent(filename)}`;
 }
 
 export function getHlsUrl(
