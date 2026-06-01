@@ -1,4 +1,5 @@
 export type UserTier = "listener" | "insider" | "vault";
+export type StationMode = "live" | "playable_archive" | "maintenance";
 
 export type Song = {
   id: string;
@@ -39,4 +40,74 @@ export type Song = {
 export type VibeOption = {
   label: string;
   value: string;
+};
+
+export type ArtistSocialLinks = {
+  instagram?: string | null;
+  tiktok?: string | null;
+  spotify?: string | null;
+  youtube?: string | null;
+};
+
+export type ArtistContentRecord = {
+  slug: string;
+  name: string;
+  statement: string;
+  bio: string;
+  rootsLabel: string;
+  heroImage: string | string[] | null;
+  artistVisualUrl: string | null;
+  socialLinks: ArtistSocialLinks;
+  supportUrl: string | null;
+  supportLabel: string;
+  isLiveInVisualizer: boolean;
+  liveSessionTitle: string | null;
+};
+
+export type ReleaseMilestone = {
+  goal: number;
+  current: number;
+  rewardLabel: string;
+};
+
+export type ReleaseRecord = {
+  id: string;
+  slug: string;
+  title: string;
+  artistName: string;
+  artistSlug: string;
+  song: Song;
+  coverUrl: string | string[] | null;
+  genres: string[];
+  vibes: string[];
+  isFeatured: boolean;
+  isPlayable: boolean;
+  isCuratedFallback: boolean;
+  story: string | null;
+  milestone: ReleaseMilestone;
+};
+
+export type ArtistProfileRecord = ArtistContentRecord & {
+  songs: Song[];
+  releases: ReleaseRecord[];
+  rotationEntries: {
+    song: Song;
+    milestone: ReleaseMilestone;
+  }[];
+  songCount: number;
+  genres: string[];
+  vibes: string[];
+  featuredRelease: ReleaseRecord | null;
+  latestRelease: ReleaseRecord | null;
+  featuredSong: Song | null;
+  latestSong: Song | null;
+  youtubeUrl: string | null;
+};
+
+export type CatalogSnapshot = {
+  stationMode: StationMode;
+  isFallbackCatalog: boolean;
+  songs: Song[];
+  releases: ReleaseRecord[];
+  artists: ArtistProfileRecord[];
 };

@@ -3,14 +3,15 @@ import { AppShell } from "@/components/AppShell";
 import { CoverArt } from "@/components/CoverArt";
 import { getSongs } from "@/lib/api";
 import { formatVibeLabel } from "@/lib/format";
-import { buildArtistProfiles } from "@/lib/artists";
+import { getCatalogSnapshot } from "@/lib/catalogSnapshot";
 
 export const dynamic = "force-dynamic";
 
 export default async function ArtistsPage() {
   const songs = await getSongs();
-  const artists = buildArtistProfiles(songs);
-  const isFallbackCatalog = songs.some((song) => song.curated_fallback);
+  const snapshot = getCatalogSnapshot(songs);
+  const artists = snapshot.artists;
+  const isFallbackCatalog = snapshot.isFallbackCatalog;
 
   return (
     <AppShell

@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { ArtistDiscoveryProfile } from "@/components/artists/ArtistDiscoveryProfile";
 import { getSongs } from "@/lib/api";
-import { getArtistProfileBySlug } from "@/lib/artists";
+import { getCatalogSnapshot } from "@/lib/catalogSnapshot";
 
 export const dynamic = "force-dynamic";
 
@@ -11,8 +11,9 @@ export default async function ArtistProfilePage(
 ) {
   const { slug } = await props.params;
   const songs = await getSongs();
-  const artist = getArtistProfileBySlug(songs, slug);
-  const isFallbackCatalog = songs.some((song) => song.curated_fallback);
+  const snapshot = getCatalogSnapshot(songs);
+  const artist = snapshot.artists.find((entry) => entry.slug === slug) ?? null;
+  const isFallbackCatalog = snapshot.isFallbackCatalog;
 
   if (!artist) {
     notFound();

@@ -5,7 +5,8 @@ import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { SongGrid } from "@/components/SongGrid";
 import { getSongs } from "@/lib/api";
-import type { Song } from "@/lib/types";
+import { getCatalogSnapshot } from "@/lib/catalogSnapshot";
+import type { CatalogSnapshot } from "@/lib/types";
 
 const VIBE_TABS = [
   { label: "All", value: "all" },
@@ -17,7 +18,7 @@ const VIBE_TABS = [
 ];
 
 export default function SongsPage() {
-  const [songs, setSongs] = useState<Song[]>([]);
+  const [snapshot, setSnapshot] = useState<CatalogSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -28,7 +29,7 @@ export default function SongsPage() {
       try {
         setLoading(true);
         setError(null);
-        setSongs(await getSongs());
+        setSnapshot(getCatalogSnapshot(await getSongs()));
       } catch (err) {
         setError(
           err instanceof Error
@@ -43,6 +44,7 @@ export default function SongsPage() {
   }, []);
 
   const filtered = useMemo(() => {
+    const songs = snapshot?.songs ?? [];
     const q = query.toLowerCase();
     return songs.filter((s) => {
       const matchesVibe =
@@ -59,8 +61,9 @@ export default function SongsPage() {
         (s.ai_platform ?? "").toLowerCase().includes(q);
       return matchesVibe && matchesQuery;
     });
-  }, [songs, query, vibeFilter]);
-  const isFallbackCatalog = songs.some((song) => song.curated_fallback);
+  }, [snapshot, query, vibeFilter]);
+  const songs = snapshot?.songs ?? [];
+  const isFallbackCatalog = snapshot?.isFallbackCatalog ?? false;
 
   return (
     <AppShell

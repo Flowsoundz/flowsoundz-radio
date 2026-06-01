@@ -1,0 +1,244 @@
+import { getArtistVisualUrl, getCoverUrl } from "@/lib/api";
+import type {
+  ArtistContentRecord,
+  ArtistProfileRecord,
+  ArtistSocialLinks,
+  CatalogSnapshot,
+  ReleaseMilestone,
+  ReleaseRecord,
+  Song,
+  StationMode,
+} from "@/lib/types";
+
+type ArtistEditorialOverride = {
+  statement?: string;
+  rootsLabel?: string;
+  socialLinks?: ArtistSocialLinks;
+  supportUrl?: string | null;
+  supportLabel?: string;
+  isLiveInVisualizer?: boolean;
+  liveSessionTitle?: string | null;
+};
+
+const ARTIST_EDITORIAL_OVERRIDES: Record<string, ArtistEditorialOverride> = {
+  "flowsoundz-select": {
+    statement:
+      "First person, far from neat. My story lives somewhere between late-night confession, memory, and motion. Every record I release is another version of me trying to make sense of what I survived and what I still want.",
+    rootsLabel: "Orlando, FL // Santo Domingo, DR",
+    socialLinks: {
+      instagram: "https://www.instagram.com/flowsoundzradio/",
+      tiktok: "https://www.tiktok.com/@flowsoundzradio",
+      spotify: "https://open.spotify.com/search/FlowSoundz%20Select",
+      youtube: "https://www.youtube.com/results?search_query=FlowSoundz+Select",
+    },
+    supportUrl: "/membership",
+    supportLabel: "Support Artist / Tipping",
+    isLiveInVisualizer: true,
+    liveSessionTitle: "Live listening room open",
+  },
+};
+
+function normalizeArtistName(name: string) {
+  return name.trim().replace(/\s+/g, " ");
+}
+
+export function slugifyArtistName(name: string) {
+  return normalizeArtistName(name)
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function slugifyReleaseTitle(title: string) {
+  return title
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function uniqueStrings(values: Array<string | null | undefined>) {
+  return Array.from(
+    new Set(
+      values
+        .map((value) => value?.trim())
+        .filter((value): value is string => Boolean(value)),
+    ),
+  );
+}
+
+function sortSongsForArtist(songs: Song[]) {
+  return [...songs].sort((left, right) => {
+    const leftFeatured = Number(Boolean(left.featured || left.is_featured));
+    const rightFeatured = Number(Boolean(right.featured || right.is_featured));
+    if (leftFeatured !== rightFeatured) {
+      return rightFeatured - leftFeatured;
+    }
+
+    const leftPublic = left.public_release_at ? Date.parse(left.public_release_at) : 0;
+    const rightPublic = right.public_release_at ? Date.parse(right.public_release_at) : 0;
+    if (leftPublic !== rightPublic) {
+      return rightPublic - leftPublic;
+    }
+
+    return left.title.localeCompare(right.title);
+  });
+}
+
+function buildArtistBio(name: string, songs: Song[], genres: string[], vibes: string[]) {
+  const genreLabel =
+    genres.length > 0 ? genres.slice(0, 2).join(" / ") : "independent radio";
+  const vibeLabel =
+    vibes.length > 0 ? vibes.slice(0, 3).join(", ") : "multiple station moods";
+
+  return `${name} is currently in FlowSoundz rotation with ${songs.length} track${
+    songs.length === 1 ? "" : "s"
+  } spanning ${genreLabel}. This profile is curated from the live catalog and highlights the artist's presence across ${vibeLabel}.`;
+}
+
+function buildDefaultStatement(name: string, vibes: string[]) {
+  const vibeLabel = vibes.length > 0 ? vibes.slice(0, 2).join(" and ") : "late-night";
+  return `${name} is building a ${vibeLabel} lane inside FlowSoundz — personal writing, high-contrast mood shifts, and records designed to connect fast with listeners who care about atmosphere as much as hooks.`;
+}
+
+function buildMilestone(song: Song, index: number): ReleaseMilestone {
+  const goal = index === 0 ? 500 : index === 1 ? 350 : 200;
+  const current = Math.max(24, goal - (index + 1) * 70 + (song.title.length % 33));
+  const rewardLabel =
+    index === 0
+      ? "Unlock exclusive content"
+      : index === 1
+        ? "Unlock visualizer session"
+        : "Unlock artist drop";
+
+  return { goal, current: Math.min(current, goal), rewardLabel };
+}
+
+function getStationMode(songs: Song[]): StationMode {
+  if (songs.length === 0) {
+    return "maintenance";
+  }
+
+  if (songs.some((song) => song.curated_fallback)) {
+    return songs.some((song) => song.is_playable) ? "playable_archive" : "maintenance";
+  }
+
+  return "live";
+}
+
+function buildReleaseRecord(song: Song, index: number): ReleaseRecord {
+  const artistName = normalizeArtistName(song.artist);
+  const artistSlug = slugifyArtistName(artistName);
+
+  return {
+    id: song.id,
+    slug: slugifyReleaseTitle(song.title),
+    title: song.title,
+    artistName,
+    artistSlug,
+    song,
+    coverUrl: getCoverUrl(song),
+    genres: uniqueStrings([song.genre]),
+    vibes: uniqueStrings([song.vibe]),
+    isFeatured: Boolean(song.featured || song.is_featured),
+    isPlayable: Boolean(song.is_playable),
+    isCuratedFallback: Boolean(song.curated_fallback),
+    story: song.behind_the_mix_text ?? null,
+    milestone: buildMilestone(song, index),
+  };
+}
+
+function buildArtistContentRecord(
+  slug: string,
+  name: string,
+  songs: Song[],
+): ArtistContentRecord {
+  const orderedSongs = sortSongsForArtist(songs);
+  const featuredSong =
+    orderedSongs.find((song) => song.featured || song.is_featured) ?? orderedSongs[0] ?? null;
+  const latestSong = orderedSongs[0] ?? null;
+  const genres = uniqueStrings(orderedSongs.map((song) => song.genre));
+  const vibes = uniqueStrings(orderedSongs.map((song) => song.vibe));
+  const editorial = ARTIST_EDITORIAL_OVERRIDES[slug] ?? {};
+
+  return {
+    slug,
+    name,
+    statement: editorial.statement ?? buildDefaultStatement(name, vibes),
+    bio: buildArtistBio(name, orderedSongs, genres, vibes),
+    rootsLabel: editorial.rootsLabel ?? "Independent // FlowSoundz Network",
+    heroImage: featuredSong ? getCoverUrl(featuredSong) : latestSong ? getCoverUrl(latestSong) : null,
+    artistVisualUrl:
+      (featuredSong && getArtistVisualUrl(featuredSong)) ||
+      (latestSong && getArtistVisualUrl(latestSong)) ||
+      null,
+    socialLinks:
+      editorial.socialLinks ?? {
+        spotify: `https://open.spotify.com/search/${encodeURIComponent(name)}`,
+        youtube: `https://www.youtube.com/results?search_query=${encodeURIComponent(name)}`,
+      },
+    supportUrl: editorial.supportUrl ?? "/membership",
+    supportLabel: editorial.supportLabel ?? "Support Artist",
+    isLiveInVisualizer: editorial.isLiveInVisualizer ?? false,
+    liveSessionTitle: editorial.liveSessionTitle ?? null,
+  };
+}
+
+export function getCatalogSnapshot(songs: Song[]): CatalogSnapshot {
+  const grouped = new Map<string, Song[]>();
+
+  for (const song of songs) {
+    const artistName = normalizeArtistName(song.artist);
+    if (!artistName) continue;
+
+    const slug = slugifyArtistName(artistName);
+    const existing = grouped.get(slug) ?? [];
+    existing.push(song);
+    grouped.set(slug, existing);
+  }
+
+  const artists: ArtistProfileRecord[] = Array.from(grouped.entries())
+    .map(([slug, artistSongs]) => {
+      const orderedSongs = sortSongsForArtist(artistSongs);
+      const name = normalizeArtistName(orderedSongs[0]?.artist ?? "");
+      const genres = uniqueStrings(orderedSongs.map((song) => song.genre));
+      const vibes = uniqueStrings(orderedSongs.map((song) => song.vibe));
+      const releases = orderedSongs.map((song, index) => buildReleaseRecord(song, index));
+      const content = buildArtistContentRecord(slug, name, orderedSongs);
+
+      return {
+        ...content,
+        songs: orderedSongs,
+        releases,
+        rotationEntries: releases.map((release) => ({
+          song: release.song,
+          milestone: release.milestone,
+        })),
+        songCount: orderedSongs.length,
+        genres,
+        vibes,
+        featuredRelease: releases.find((release) => release.isFeatured) ?? releases[0] ?? null,
+        latestRelease: releases[0] ?? null,
+        featuredSong: releases.find((release) => release.isFeatured)?.song ?? releases[0]?.song ?? null,
+        latestSong: releases[0]?.song ?? null,
+        youtubeUrl:
+          orderedSongs.find((song) => song.youtube_url)?.youtube_url ?? null,
+      } satisfies ArtistProfileRecord;
+    })
+    .sort((left, right) => left.name.localeCompare(right.name));
+
+  const releases = artists.flatMap((artist) => artist.releases);
+
+  return {
+    stationMode: getStationMode(songs),
+    isFallbackCatalog: songs.some((song) => song.curated_fallback),
+    songs,
+    releases,
+    artists,
+  };
+}
+
+export function getArtistProfileRecordBySlug(songs: Song[], slug: string) {
+  return getCatalogSnapshot(songs).artists.find((artist) => artist.slug === slug) ?? null;
+}
