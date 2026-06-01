@@ -13,11 +13,18 @@ import type {
 type ArtistEditorialOverride = {
   statement?: string;
   rootsLabel?: string;
+  heroImage?: string | string[] | null;
+  artistVisualUrl?: string | null;
   socialLinks?: ArtistSocialLinks;
   supportUrl?: string | null;
   supportLabel?: string;
   isLiveInVisualizer?: boolean;
   liveSessionTitle?: string | null;
+};
+
+type CatalogSnapshotOptions = {
+  artistOverrides?: Record<string, ArtistEditorialOverride>;
+  milestoneOverrides?: Record<string, ReleaseMilestone>;
 };
 
 const ARTIST_EDITORIAL_OVERRIDES: Record<string, ArtistEditorialOverride> = {
@@ -127,7 +134,11 @@ function getStationMode(songs: Song[]): StationMode {
   return "live";
 }
 
-function buildReleaseRecord(song: Song, index: number): ReleaseRecord {
+function buildReleaseRecord(
+  song: Song,
+  index: number,
+  milestoneOverride?: ReleaseMilestone,
+): ReleaseRecord {
   const artistName = normalizeArtistName(song.artist);
   const artistSlug = slugifyArtistName(artistName);
 
@@ -145,7 +156,7 @@ function buildReleaseRecord(song: Song, index: number): ReleaseRecord {
     isPlayable: Boolean(song.is_playable),
     isCuratedFallback: Boolean(song.curated_fallback),
     story: song.behind_the_mix_text ?? null,
-    milestone: buildMilestone(song, index),
+    milestone: milestoneOverride ?? buildMilestone(song, index),
   };
 }
 
@@ -153,6 +164,7 @@ function buildArtistContentRecord(
   slug: string,
   name: string,
   songs: Song[],
+  artistOverrides: Record<string, ArtistEditorialOverride>,
 ): ArtistContentRecord {
   const orderedSongs = sortSongsForArtist(songs);
   const featuredSong =
@@ -160,7 +172,7 @@ function buildArtistContentRecord(
   const latestSong = orderedSongs[0] ?? null;
   const genres = uniqueStrings(orderedSongs.map((song) => song.genre));
   const vibes = uniqueStrings(orderedSongs.map((song) => song.vibe));
-  const editorial = ARTIST_EDITORIAL_OVERRIDES[slug] ?? {};
+  const editorial = artistOverrides[slug] ?? ARTIST_EDITORIAL_OVERRIDES[slug] ?? {};
 
   return {
     slug,
@@ -168,11 +180,14 @@ function buildArtistContentRecord(
     statement: editorial.statement ?? buildDefaultStatement(name, vibes),
     bio: buildArtistBio(name, orderedSongs, genres, vibes),
     rootsLabel: editorial.rootsLabel ?? "Independent // FlowSoundz Network",
-    heroImage: featuredSong ? getCoverUrl(featuredSong) : latestSong ? getCoverUrl(latestSong) : null,
+    heroImage:
+      editorial.heroImage ??
+      (featuredSong ? getCoverUrl(featuredSong) : latestSong ? getCoverUrl(latestSong) : null),
     artistVisualUrl:
-      (featuredSong && getArtistVisualUrl(featuredSong)) ||
-      (latestSong && getArtistVisualUrl(latestSong)) ||
-      null,
+      editorial.artistVisualUrl ??
+      ((featuredSong && getArtistVisualUrl(featuredSong)) ||
+        (latestSong && getArtistVisualUrl(latestSong)) ||
+        null),
     socialLinks:
       editorial.socialLinks ?? {
         spotify: `https://open.spotify.com/search/${encodeURIComponent(name)}`,
@@ -185,7 +200,12 @@ function buildArtistContentRecord(
   };
 }
 
-export function getCatalogSnapshot(songs: Song[]): CatalogSnapshot {
+export function getCatalogSnapshot(
+  songs: Song[],
+  options: CatalogSnapshotOptions = {},
+): CatalogSnapshot {
+  const artistOverrides = options.artistOverrides ?? {};
+  const milestoneOverrides = options.milestoneOverrides ?? {};
   const grouped = new Map<string, Song[]>();
 
   for (const song of songs) {
@@ -204,8 +224,10 @@ export function getCatalogSnapshot(songs: Song[]): CatalogSnapshot {
       const name = normalizeArtistName(orderedSongs[0]?.artist ?? "");
       const genres = uniqueStrings(orderedSongs.map((song) => song.genre));
       const vibes = uniqueStrings(orderedSongs.map((song) => song.vibe));
-      const releases = orderedSongs.map((song, index) => buildReleaseRecord(song, index));
-      const content = buildArtistContentRecord(slug, name, orderedSongs);
+      const releases = orderedSongs.map((song, index) =>
+        buildReleaseRecord(song, index, milestoneOverrides[song.id]),
+      );
+      const content = buildArtistContentRecord(slug, name, orderedSongs, artistOverrides);
 
       return {
         ...content,

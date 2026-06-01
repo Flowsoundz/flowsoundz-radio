@@ -2,8 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { CreatorHubShell } from "@/components/creator-hub/CreatorHubShell";
 import { CreatorHubDashboardFlow } from "@/components/creator-hub/CreatorHubDashboardFlow";
-import { getCatalogSnapshot } from "@/lib/catalogSnapshot";
-import { getSongs } from "@/lib/api";
+import { readCatalogSnapshotFromStore } from "@/lib/catalogSnapshotStore";
 
 export const metadata: Metadata = {
   title: "Creator Hub — FlowSoundz Radio",
@@ -12,8 +11,7 @@ export const metadata: Metadata = {
 };
 
 export default async function ArtistDashboardPage() {
-  const songs = await getSongs();
-  const snapshot = getCatalogSnapshot(songs);
+  const snapshot = await readCatalogSnapshotFromStore();
   const featuredArtist = snapshot.artists[0] ?? null;
   const featuredRelease = featuredArtist?.featuredRelease ?? featuredArtist?.latestRelease ?? null;
   const stationModeCopy =

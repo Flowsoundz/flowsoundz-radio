@@ -36,6 +36,50 @@ enum AnalyticsEventName {
   ARTIST_SUBMISSION_COMPLETED
 }
 
+enum PackagingStatus {
+  PENDING
+  PROCESSING
+  READY
+  FAILED
+}
+
+enum SocialPlatform {
+  INSTAGRAM
+  TIKTOK
+  SPOTIFY
+  YOUTUBE
+  BANDCAMP
+  X
+  WEBSITE
+  OTHER
+}
+
+enum SupportPlatform {
+  MEMBERSHIP
+  PATREON
+  BANDCAMP
+  PAYPAL
+  CRYPTO
+  TIPJAR
+  OTHER
+}
+
+enum VisualizerSessionStatus {
+  OFFLINE
+  SCHEDULED
+  LIVE
+  ENDED
+}
+
+enum MilestoneGoalType {
+  FAVORITES
+  SAVES
+  SHARES
+  STREAMS
+  UNLOCKS
+  OTHER
+}
+
 model Artist {
   id          String   @id @default(cuid())
   name        String
@@ -47,7 +91,11 @@ model Artist {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  profile           ArtistProfile?
   songs             Song[]
+  socialLinks       ArtistSocialLink[]
+  supportLinks      ArtistSupportLink[]
+  visualizerSessions ArtistVisualizerSession[]
   analyticsEvents   AnalyticsEvent[]
 
   @@map("artists")
@@ -58,18 +106,41 @@ model Song {
   artistId     String
   title        String
   slug         String    @unique
+  album        String?
   genre        String
   vibe         SongVibe
   durationSec  Int?
   audioUrl     String
+  audioFile    String?
+  hlsUrl       String?
+  publicAudioUrl String?
+  packagingStatus PackagingStatus?
+  packagingError String?
   coverUrl     String?
+  coverFile    String?
+  artistVisualFile String?
+  artistVisualUrl String?
+  hlsExists    Boolean   @default(false)
+  coverExists  Boolean   @default(false)
+  artistVisualExists Boolean @default(false)
   isFeatured   Boolean   @default(false)
   isVault      Boolean   @default(false)
+  accessTier   String?
+  memberReleaseAt DateTime?
+  publicReleaseAt DateTime?
   releaseAt    DateTime?
+  behindTheMixText String?
+  youtubeUrl   String?
+  localStream  Boolean   @default(false)
+  isAiGenerated Boolean  @default(false)
+  aiPlatform   String?
+  curatedFallback Boolean @default(false)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
   artist            Artist            @relation(fields: [artistId], references: [id], onDelete: Restrict)
+  featuredInProfiles ArtistProfile[]  @relation("ArtistProfileFeaturedTrack")
+  milestones        SongMilestone[]
   analyticsEvents   AnalyticsEvent[]
   queuePreferences  QueuePreference?
   radioSessions     RadioSession[]
@@ -78,6 +149,103 @@ model Song {
   @@index([vibe])
   @@index([releaseAt])
   @@map("songs")
+}
+
+model ArtistProfile {
+  id                String   @id @default(cuid())
+  artistId          String   @unique
+  statement         String?
+  rootsLabel        String?
+  heroImageUrl      String?
+  heroVideoUrl      String?
+  heroVideoPosterUrl String?
+  primaryCity       String?
+  primaryRegion     String?
+  primaryCountry    String?
+  primaryMood       String?
+  secondaryMoods    String[]
+  supportLabel      String?
+  featuredTrackId   String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  artist            Artist   @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  featuredTrack     Song?    @relation("ArtistProfileFeaturedTrack", fields: [featuredTrackId], references: [id], onDelete: SetNull)
+
+  @@index([featuredTrackId])
+  @@map("artist_profiles")
+}
+
+model ArtistSocialLink {
+  id          String         @id @default(cuid())
+  artistId    String
+  platform    SocialPlatform
+  label       String?
+  url         String
+  isPrimary   Boolean        @default(false)
+  sortOrder   Int            @default(0)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  artist      Artist         @relation(fields: [artistId], references: [id], onDelete: Cascade)
+
+  @@index([artistId, sortOrder])
+  @@map("artist_social_links")
+}
+
+model ArtistSupportLink {
+  id          String          @id @default(cuid())
+  artistId    String
+  platform    SupportPlatform
+  label       String?
+  url         String
+  isPrimary   Boolean         @default(false)
+  sortOrder   Int             @default(0)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  artist      Artist          @relation(fields: [artistId], references: [id], onDelete: Cascade)
+
+  @@index([artistId, sortOrder])
+  @@map("artist_support_links")
+}
+
+model ArtistVisualizerSession {
+  id          String                  @id @default(cuid())
+  artistId    String
+  title       String
+  status      VisualizerSessionStatus @default(OFFLINE)
+  roomUrl     String?
+  teaserText  String?
+  startedAt   DateTime?
+  endedAt     DateTime?
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+
+  artist      Artist                  @relation(fields: [artistId], references: [id], onDelete: Cascade)
+
+  @@index([artistId, status])
+  @@map("artist_visualizer_sessions")
+}
+
+model SongMilestone {
+  id                String            @id @default(cuid())
+  songId            String
+  goalType          MilestoneGoalType @default(FAVORITES)
+  goalTarget        Int
+  currentCount      Int               @default(0)
+  rewardTitle       String
+  rewardDescription String?
+  rewardUrl         String?
+  isActive          Boolean           @default(true)
+  sortOrder         Int               @default(0)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  song              Song              @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  @@index([songId, isActive, sortOrder])
+  @@map("song_milestones")
 }
 
 model ArtistSubmission {

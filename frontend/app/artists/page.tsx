@@ -1,15 +1,13 @@
 import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 import { CoverArt } from "@/components/CoverArt";
-import { getSongs } from "@/lib/api";
 import { formatVibeLabel } from "@/lib/format";
-import { getCatalogSnapshot } from "@/lib/catalogSnapshot";
+import { readCatalogSnapshotFromStore } from "@/lib/catalogSnapshotStore";
 
 export const dynamic = "force-dynamic";
 
 export default async function ArtistsPage() {
-  const songs = await getSongs();
-  const snapshot = getCatalogSnapshot(songs);
+  const snapshot = await readCatalogSnapshotFromStore();
   const artists = snapshot.artists;
   const isFallbackCatalog = snapshot.isFallbackCatalog;
 
