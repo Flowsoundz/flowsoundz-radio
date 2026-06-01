@@ -2,6 +2,8 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { CreatorHubShell } from "@/components/creator-hub/CreatorHubShell";
 import { CreatorHubDashboardFlow } from "@/components/creator-hub/CreatorHubDashboardFlow";
+import { getCatalogSnapshot } from "@/lib/catalogSnapshot";
+import { getSongs } from "@/lib/api";
 
 export const metadata: Metadata = {
   title: "Creator Hub — FlowSoundz Radio",
@@ -9,12 +11,23 @@ export const metadata: Metadata = {
     "From song idea to radio rotation. Build your release, understand your rights, create promo assets, and submit to FlowSoundz Radio.",
 };
 
-export default function ArtistDashboardPage() {
+export default async function ArtistDashboardPage() {
+  const songs = await getSongs();
+  const snapshot = getCatalogSnapshot(songs);
+  const featuredArtist = snapshot.artists[0] ?? null;
+  const featuredRelease = featuredArtist?.featuredRelease ?? featuredArtist?.latestRelease ?? null;
+  const stationModeCopy =
+    snapshot.stationMode === "live"
+      ? "live rotation"
+      : snapshot.stationMode === "playable_archive"
+        ? "playable archive rotation"
+        : "radio rotation";
+
   return (
     <CreatorHubShell
       eyebrow="Creator Hub"
       title="FlowSoundz Creator Hub"
-      subtitle="From song idea to radio rotation."
+      subtitle={`From song idea to ${stationModeCopy}.`}
     >
       {/* ── Hero ── */}
       <div className="relative mb-10 overflow-hidden rounded-[2rem] border border-white/8 bg-[linear-gradient(135deg,#0c1328_0%,#07111f_55%,#050816_100%)] px-6 py-12 text-center">
@@ -34,6 +47,26 @@ export default function ArtistDashboardPage() {
               Start your release journey. Build your song, check your rights, create visuals,
               and submit for FlowSoundz Radio review.
             </p>
+            <div className="mt-5 flex flex-wrap justify-center gap-2">
+              <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-100">
+                {snapshot.stationMode === "live"
+                  ? "Live station context"
+                  : snapshot.stationMode === "playable_archive"
+                    ? "Playable archive context"
+                    : "Maintenance context"}
+              </span>
+              <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-medium text-slate-200">
+                {snapshot.artists.length} artist{snapshot.artists.length === 1 ? "" : "s"} in catalog
+              </span>
+              <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-medium text-slate-200">
+                {snapshot.releases.length} release{snapshot.releases.length === 1 ? "" : "s"} tracked
+              </span>
+              {featuredRelease ? (
+                <span className="rounded-full border border-fuchsia-400/18 bg-fuchsia-400/10 px-3 py-1 text-[11px] font-medium text-fuchsia-100">
+                  Spotlight: {featuredRelease.artistName} — {featuredRelease.title}
+                </span>
+              ) : null}
+            </div>
           </div>
           <div className="flex flex-wrap justify-center gap-3">
             <Link
@@ -58,7 +91,16 @@ export default function ArtistDashboardPage() {
         </div>
       </div>
 
-      <CreatorHubDashboardFlow />
+      <CreatorHubDashboardFlow
+        catalogSummary={{
+          stationMode: snapshot.stationMode,
+          isFallbackCatalog: snapshot.isFallbackCatalog,
+          artistCount: snapshot.artists.length,
+          releaseCount: snapshot.releases.length,
+          featuredArtistName: featuredArtist?.name ?? null,
+          featuredTrackTitle: featuredRelease?.title ?? null,
+        }}
+      />
 
       {/* ── Bottom CTA ── */}
       <div

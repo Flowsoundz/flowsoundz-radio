@@ -2,6 +2,16 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import type { StationMode } from "@/lib/types";
+
+type CreatorHubCatalogSummary = {
+  stationMode: StationMode;
+  isFallbackCatalog: boolean;
+  artistCount: number;
+  releaseCount: number;
+  featuredArtistName: string | null;
+  featuredTrackTitle: string | null;
+};
 
 type PersonaId = "independent" | "ai_assisted" | "virtual" | "producer";
 
@@ -228,7 +238,11 @@ function readPersistedState(): PersistedFlowState {
   }
 }
 
-export function CreatorHubDashboardFlow() {
+export function CreatorHubDashboardFlow({
+  catalogSummary,
+}: {
+  catalogSummary: CreatorHubCatalogSummary;
+}) {
   const initialState = useMemo(() => readPersistedState(), []);
   const [personaId, setPersonaId] = useState<PersonaId | null>(initialState.personaId);
   const [completedStepIds, setCompletedStepIds] = useState<StepId[]>(
@@ -250,6 +264,12 @@ export function CreatorHubDashboardFlow() {
 
   const persona = PERSONAS.find((item) => item.id === personaId) ?? null;
   const progressPercent = Math.round((completedStepIds.length / FLOW_STEPS.length) * 100);
+  const stationModeLabel =
+    catalogSummary.stationMode === "live"
+      ? "Live rotation"
+      : catalogSummary.stationMode === "playable_archive"
+        ? "Playable archive"
+        : "Maintenance";
 
   const personalizedSteps = useMemo(
     () =>
@@ -403,6 +423,25 @@ export function CreatorHubDashboardFlow() {
               {persona?.helper ??
                 "Select a creator lane to customize the checklist and surface the most relevant next actions."}
             </p>
+            <div className="mt-4 grid gap-2 text-xs text-slate-300 sm:grid-cols-2">
+              <div className="rounded-[1rem] border border-white/8 bg-white/[0.03] px-3 py-3">
+                <p className="font-semibold uppercase tracking-[0.18em] text-cyan-200/75">
+                  Station mode
+                </p>
+                <p className="mt-1 text-sm text-white">{stationModeLabel}</p>
+              </div>
+              <div className="rounded-[1rem] border border-white/8 bg-white/[0.03] px-3 py-3">
+                <p className="font-semibold uppercase tracking-[0.18em] text-cyan-200/75">
+                  Featured right now
+                </p>
+                <p className="mt-1 text-sm text-white">
+                  {catalogSummary.featuredArtistName ?? "FlowSoundz roster"}
+                </p>
+                <p className="mt-1 text-[11px] text-slate-300">
+                  {catalogSummary.featuredTrackTitle ?? "Curated discovery moment"}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -554,7 +593,9 @@ export function CreatorHubDashboardFlow() {
                 Streaming growth snapshot
               </p>
               <h3 className="mt-2 text-lg font-semibold text-white">
-                Analytics will start here after your first release
+                {catalogSummary.releaseCount > 0
+                  ? `${catalogSummary.releaseCount} release${catalogSummary.releaseCount === 1 ? "" : "s"} currently feeding the station model`
+                  : "Analytics will start here after your first release"}
               </h3>
             </div>
             <span className="rounded-full border border-cyan-300/18 bg-cyan-300/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-100">
@@ -608,7 +649,9 @@ export function CreatorHubDashboardFlow() {
               <circle cx="480" cy="82" r="7" fill="#ff2da6" opacity="0.7" />
             </svg>
             <p className="mt-3 text-sm leading-6 text-slate-300">
-              Your streaming data will appear here after your first release enters rotation or receives creator-side reporting.
+              {catalogSummary.isFallbackCatalog
+                ? "The Hub is currently reading from the curated archive snapshot. Once your release enters rotation, creator-side analytics will begin filling this space."
+                : "Your streaming data will appear here after your first release enters rotation or receives creator-side reporting."}
             </p>
           </div>
         </div>
@@ -622,7 +665,7 @@ export function CreatorHubDashboardFlow() {
               Step 5 is your current competitive edge
             </h3>
             <p className="mt-2 text-sm leading-6 text-slate-300">
-              Open the Visualizer Studio directly from the flow and turn album art plus audio into a promo-ready loop without leaving the Hub.
+              Open the Visualizer Studio directly from the flow and turn album art plus audio into a promo-ready loop without leaving the Hub. The current catalog snapshot includes {catalogSummary.artistCount} artist{catalogSummary.artistCount === 1 ? "" : "s"} and {catalogSummary.releaseCount} tracked release{catalogSummary.releaseCount === 1 ? "" : "s"}.
             </p>
             <Link
               href="/visualizer"

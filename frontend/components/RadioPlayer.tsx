@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { usePathname } from "next/navigation";
 import { track } from "@/lib/analytics";
 import {
@@ -22,6 +22,7 @@ import {
   isTrackInMembersEarlyWindow,
 } from "@/lib/access";
 import { slugifyArtistName } from "@/lib/artists";
+import { getCatalogSnapshot } from "@/lib/catalogSnapshot";
 import { CoverArt } from "@/components/CoverArt";
 import {
   canUseNativeHls,
@@ -477,6 +478,8 @@ export default function RadioPlayer() {
   const defaultCoverUrl = getDefaultCoverUrl();
   const currentSong = queue[currentIndex] ?? null;
   const hasPlayableQueue = queue.some((song) => song.is_playable);
+  const queueSnapshot = useMemo(() => getCatalogSnapshot(queue), [queue]);
+  const stationMode = queueSnapshot.stationMode;
   const currentCoverUrl = currentSong ? getCoverUrl(currentSong) : null;
   const ambientCoverActive =
     Boolean(currentSong) &&
@@ -508,9 +511,11 @@ export default function RadioPlayer() {
   const progressPercent =
     duration > 0 ? Math.min((currentTime / duration) * 100, 100) : 0;
   const currentBed = preparedEvent?.plannedBed ?? null;
-  const usingLocalCatalog = queue.some((song) => song.local_stream);
-  const archiveStandbyMode = queue.length > 0 && !hasPlayableQueue;
-  const maintenanceMode = archiveStandbyMode || (Boolean(error) && queue.length === 0);
+  const usingFallbackCatalog = queueSnapshot.isFallbackCatalog;
+  const archivePlaybackMode = stationMode === "playable_archive";
+  const archiveStandbyMode = archivePlaybackMode && !hasPlayableQueue;
+  const maintenanceMode =
+    stationMode === "maintenance" || (Boolean(error) && queue.length === 0);
 
   useEffect(() => {
     debugLog("[RadioPlayer] runtime config", {
@@ -741,8 +746,13 @@ export default function RadioPlayer() {
         );
         const tunedQueue = reorderQueueByLocalSignals(reorderedQueue);
         const playableQueueAvailable = tunedQueue.some((song) => song.is_playable);
+        const nextSnapshot = getCatalogSnapshot(tunedQueue);
         const nextQueueMode: PersistedRadioPlayerState["queueMode"] =
-          tunedQueue.length === 0 ? "empty" : playableQueueAvailable ? "live" : "archive";
+          tunedQueue.length === 0
+            ? "empty"
+            : nextSnapshot.stationMode === "live"
+              ? "live"
+              : "archive";
         const rawPersistedState = pendingRestoreStateRef.current;
         const persistedState =
           rawPersistedState?.queueMode && rawPersistedState.queueMode !== nextQueueMode
@@ -771,9 +781,9 @@ export default function RadioPlayer() {
         setError(
           nextQueue.length === 0
             ? "No songs are available in this vibe queue yet."
-            : playableQueueAvailable
-              ? ""
-              : ARCHIVE_STANDBY_MESSAGE,
+            : nextSnapshot.stationMode === "maintenance"
+              ? ARCHIVE_STANDBY_MESSAGE
+              : "",
         );
         setIsDropPlaying(false);
         setActiveDropLabel("");
@@ -2113,10 +2123,10 @@ export default function RadioPlayer() {
                   </p>
                 </div>
 
-                {usingLocalCatalog ? (
+                {usingFallbackCatalog ? (
                   <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-[#00E5FF]/18 bg-[#00E5FF]/10 px-3 py-1.5 text-[11px] font-medium text-[#A5F3FC]">
                     <span className="h-2 w-2 rounded-full bg-[#00E5FF] shadow-[0_0_10px_rgba(0,229,255,0.8)]" />
-                    Local catalog fallback active
+                    Curated archive fallback active
                   </div>
                 ) : null}
 
@@ -2330,7 +2340,7 @@ export default function RadioPlayer() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.26em] text-[#CBD5E1]/55">
-                    {archiveStandbyMode ? "Archive Preview" : "Now Playing"}
+                    {archivePlaybackMode ? "Archive Session" : archiveStandbyMode ? "Archive Preview" : "Now Playing"}
                   </p>
                   <h2
                     className={`mt-3 text-3xl font-semibold leading-tight text-[#F8FAFC] sm:text-4xl ${
@@ -2365,8 +2375,10 @@ export default function RadioPlayer() {
                     )}
                   </p>
                   <p className="mt-2 text-sm text-[#CBD5E1]/75">
-                    {archiveStandbyMode
-                      ? "Archive preview · browse featured artists and tracks while live audio reconnects"
+                    {archivePlaybackMode
+                      ? "Playable archive session · featured tracks stay active while the live station reconnects"
+                      : archiveStandbyMode
+                        ? "Archive preview · browse featured artists and tracks while live audio reconnects"
                       : maintenanceMode
                         ? "Maintenance mode · curated discovery resumes with the next broadcast window"
                         : isDropPlaying
@@ -2387,9 +2399,9 @@ export default function RadioPlayer() {
                         : "border border-white/8 bg-white/5 text-[#CBD5E1]"
                   }`}
                 >
-                  {archiveStandbyMode
-                    ? "Archive"
-                    : maintenanceMode
+                    {archivePlaybackMode || archiveStandbyMode
+                      ? "Archive"
+                      : maintenanceMode
                       ? "Maintenance"
                       : isDropPlaying
                         ? "Drop"
@@ -2403,7 +2415,7 @@ export default function RadioPlayer() {
                 <span className="state-fade rounded-full border border-[#8B5CF6]/18 bg-[#8B5CF6]/12 px-3 py-1 text-xs font-semibold text-[#F8FAFC]">
                   {formatVibeLabel(selectedVibe)}
                 </span>
-                {archiveStandbyMode ? (
+                {archivePlaybackMode || archiveStandbyMode ? (
                   <span className="state-fade rounded-full border border-cyan-300/18 bg-cyan-300/10 px-3 py-1 text-xs font-medium text-cyan-100">
                     Featured archive
                   </span>
@@ -2412,9 +2424,9 @@ export default function RadioPlayer() {
                     Archive standby
                   </span>
                 ) : null}
-                {usingLocalCatalog ? (
+                {usingFallbackCatalog ? (
                   <span className="state-fade rounded-full border border-[#00E5FF]/18 bg-[#00E5FF]/10 px-3 py-1 text-xs font-medium text-[#F8FAFC]">
-                    Local catalog
+                    Curated archive
                   </span>
                 ) : null}
                 {currentSongAccessLabel ? (
@@ -2428,7 +2440,9 @@ export default function RadioPlayer() {
                   </span>
                 ) : null}
                 <span className="state-fade rounded-full border border-white/8 bg-white/5 px-3 py-1 text-xs font-medium text-[#CBD5E1]">
-                  {archiveStandbyMode
+                  {archivePlaybackMode
+                    ? "Archive session"
+                    : archiveStandbyMode
                     ? "Artist discovery"
                     : maintenanceMode
                       ? "Curated archive"
@@ -2445,8 +2459,14 @@ export default function RadioPlayer() {
                   </Link>
                 ) : null}
                 <span className="state-fade rounded-full border border-white/8 bg-white/5 px-3 py-1 text-xs font-medium text-[#CBD5E1]">
-                  {archiveStandbyMode
-                    ? "Preview mode"
+                  {archivePlaybackMode
+                    ? currentSong?.duration_sec
+                      ? `${Math.floor(currentSong.duration_sec / 60)}:${String(
+                          currentSong.duration_sec % 60,
+                        ).padStart(2, "0")}`
+                      : "Archive session"
+                    : archiveStandbyMode
+                      ? "Preview mode"
                     : maintenanceMode
                       ? `Returns ${nextBroadcastTime}`
                       : currentSong?.duration_sec
@@ -2474,24 +2494,42 @@ export default function RadioPlayer() {
                   </div>
                 </div>
                 <div className="mt-2 flex items-center justify-between text-sm text-[#CBD5E1]">
-                  <span>{archiveStandbyMode ? "Archive" : maintenanceMode ? "Standby" : formatClock(currentTime)}</span>
-                  <span>{archiveStandbyMode ? "Preview mode" : maintenanceMode ? nextBroadcastTime : formatClock(duration)}</span>
+                  <span>
+                    {archivePlaybackMode
+                      ? formatClock(currentTime)
+                      : archiveStandbyMode
+                        ? "Archive"
+                        : maintenanceMode
+                          ? "Standby"
+                          : formatClock(currentTime)}
+                  </span>
+                  <span>
+                    {archivePlaybackMode
+                      ? formatClock(duration)
+                      : archiveStandbyMode
+                        ? "Preview mode"
+                        : maintenanceMode
+                          ? nextBroadcastTime
+                          : formatClock(duration)}
+                  </span>
                 </div>
               </div>
 
-              {maintenanceMode ? (
+              {maintenanceMode || archivePlaybackMode ? (
                 <div
                   className={`rounded-[1.15rem] px-4 py-3 ${
-                    archiveStandbyMode
+                    archivePlaybackMode || archiveStandbyMode
                       ? "border border-cyan-300/14 bg-cyan-300/[0.06]"
                       : "border border-amber-300/16 bg-amber-200/[0.06]"
                   }`}
                 >
                   <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-200/75">
-                    {archiveStandbyMode ? "Archive mode" : "Off-air note"}
+                    {archivePlaybackMode || archiveStandbyMode ? "Archive mode" : "Off-air note"}
                   </p>
                   <p className="mt-1 text-sm leading-6 text-slate-200">
-                    {archiveStandbyMode
+                    {archivePlaybackMode
+                      ? "You are hearing the playable archive fallback. Featured artists remain discoverable and tracks stay playable while the live station reconnects."
+                      : archiveStandbyMode
                       ? "Live audio is paused for now. Use this archive preview to discover featured artists, browse the catalog, or jump into the visualizer while the next broadcast window comes online."
                       : "The live queue is reconnecting. Browse the featured archive below, open artist profiles, or use the visualizer while the next broadcast window comes online."}
                   </p>
@@ -2502,19 +2540,18 @@ export default function RadioPlayer() {
                 <button
                   type="button"
                   onClick={() => {
-                    if (archiveStandbyMode && currentSong) {
-                      const artistProfileUrl = `/artists/${slugifyArtistName(currentSong.artist)}`;
-                      window.location.href = artistProfileUrl;
-                      return;
-                    }
                     togglePlayback();
                     track("start_listening_click", { action: isPlaying ? "pause" : "play" });
                   }}
                   disabled={(!currentSong && !isDropPlaying) || !!error}
                   className="play-pulse relative flex min-h-16 flex-1 items-center justify-center rounded-full bg-[linear-gradient(135deg,#00e5ff_0%,#7c4dff_100%)] px-6 text-lg font-semibold text-white shadow-[0_10px_30px_rgba(0,229,255,0.22),0_0_28px_rgba(124,77,255,0.2)] transition duration-200 hover:scale-[1.01] active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-white/30 disabled:text-slate-500"
                 >
-                  {archiveStandbyMode
-                    ? "Open Artist Profile"
+                  {archivePlaybackMode
+                    ? isPlaying
+                      ? "Pause"
+                      : "Play Archive"
+                    : archiveStandbyMode
+                      ? "Open Artist Profile"
                     : maintenanceMode
                       ? "Broadcast offline"
                       : isPlaying
@@ -2524,7 +2561,7 @@ export default function RadioPlayer() {
                 <button
                   type="button"
                   onClick={() => {
-                    if (archiveStandbyMode) {
+                    if (archivePlaybackMode || archiveStandbyMode) {
                       window.location.href = "/songs";
                       return;
                     }
@@ -2533,7 +2570,7 @@ export default function RadioPlayer() {
                   disabled={queue.length === 0 || !!error || isDropPlaying}
                   className="min-h-16 rounded-full border border-white/8 bg-[#111827] px-6 text-base font-semibold text-[#F8FAFC] transition hover:border-white/12 hover:bg-[#111827]/90 disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  {archiveStandbyMode ? "Browse Catalog" : "Next Track"}
+                  {archivePlaybackMode || archiveStandbyMode ? "Browse Catalog" : "Next Track"}
                 </button>
                 <button
                   type="button"
