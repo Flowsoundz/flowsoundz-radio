@@ -5,9 +5,11 @@ import type { AiOnboardProfile } from "./promoOnboarding";
 import { Song } from "./types";
 
 export const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE || "http://127.0.0.1:8000";
+  process.env.NEXT_PUBLIC_API_BASE ||
+  (process.env.NODE_ENV === "development" ? "http://127.0.0.1:8000" : "");
 const LOCAL_APP_BASE =
-  process.env.NEXT_PUBLIC_APP_BASE || "http://127.0.0.1:3000";
+  process.env.NEXT_PUBLIC_APP_BASE ||
+  (process.env.NODE_ENV === "development" ? "http://127.0.0.1:3000" : "");
 const DEFAULT_COVER_SRC = "/covers/default.webp";
 
 const LOCAL_COVER_BY_TITLE: Record<string, string> = coverMappings;
@@ -37,6 +39,10 @@ function getLocalCoverSrc(
 }
 
 export async function getSongs(): Promise<Song[]> {
+  if (!API_BASE) {
+    return getCuratedCatalog();
+  }
+
   try {
     const res = await fetch(`${API_BASE}/songs`, { cache: "no-store" });
     if (!res.ok) {
@@ -60,6 +66,10 @@ export async function getSongs(): Promise<Song[]> {
 }
 
 export async function getQueue(vibe?: string): Promise<Song[]> {
+  if (!API_BASE) {
+    return getCuratedCatalog(vibe);
+  }
+
   const url = vibe
     ? `${API_BASE}/queue?vibe=${encodeURIComponent(vibe)}`
     : `${API_BASE}/queue`;
@@ -282,9 +292,13 @@ export function canUseNativeHls(audio?: HTMLAudioElement | null): boolean {
 }
 
 export function getPreferredPlaybackUrl(
-  song: Pick<Song, "audio_file" | "hls_url" | "hls_exists" | "local_stream">,
+  song: Pick<Song, "audio_file" | "hls_url" | "hls_exists" | "local_stream" | "public_audio_url">,
   audio?: HTMLAudioElement | null,
 ): string {
+  if (song.public_audio_url) {
+    return song.public_audio_url;
+  }
+
   if (song.local_stream) {
     return getLocalStreamUrl(song.audio_file);
   }

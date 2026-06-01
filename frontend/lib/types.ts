@@ -10,6 +10,7 @@ export type Song = {
   duration_sec?: number;
   audio_file: string;
   hls_url?: string;
+  public_audio_url?: string | null;
   packaging_status?: "pending" | "processing" | "ready" | "failed";
   packaging_error?: string | null;
   is_playable?: boolean;
