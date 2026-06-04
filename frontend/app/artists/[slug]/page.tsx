@@ -21,11 +21,7 @@ export default async function ArtistProfilePage(
     <AppShell
       eyebrow="Artist Profile"
       title={artist.name}
-      subtitle={
-        isFallbackCatalog
-          ? `${artist.bio} This page is currently powered by the curated archive while the live station reconnects.`
-          : artist.bio
-      }
+      subtitle={artist.bio}
     >
       <ArtistDiscoveryProfile artist={artist} isFallbackCatalog={isFallbackCatalog} />
     </AppShell>

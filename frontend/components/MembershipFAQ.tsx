@@ -15,6 +15,10 @@ const FAQS = [
     q: "How do I submit my release for promo?",
     a: "Head to the For Artists page and fill out the submission form. Artist Pro members get priority review, featured placement consideration, and sponsored visibility across the station.",
   },
+  {
+    q: "When do Insider and Vault memberships launch?",
+    a: "Paid tiers are in active development. Join the waitlist on this page to be first in line — you'll get early access before public slots open and a heads-up on launch pricing.",
+  },
 ];
 
 export function MembershipFAQ() {

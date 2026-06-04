@@ -1,3 +1,5 @@
+"use client";
+
 import {
   DEFAULT_USER_TIER,
   canUserTierAccessTrack,
@@ -10,6 +12,7 @@ import { CoverArt } from "@/components/CoverArt";
 import { getCoverUrl } from "@/lib/api";
 import { slugifyArtistName } from "@/lib/artists";
 import { formatDuration, formatVibeLabel } from "@/lib/format";
+import { useGlobalAudioState } from "@/components/GlobalAudioProvider";
 import type { Song } from "@/lib/types";
 
 type SongGridProps = {
@@ -20,6 +23,7 @@ type SongGridProps = {
 
 export function SongGrid({ songs, isLoading, error }: SongGridProps) {
   const currentUserTier = DEFAULT_USER_TIER;
+  const { currentTrack, isPlaying } = useGlobalAudioState();
 
   if (error) {
     return (
@@ -67,8 +71,7 @@ export function SongGrid({ songs, isLoading, error }: SongGridProps) {
             Catalog waiting room
           </span>
         </div>
-        No songs are available yet. Add entries to `backend/app/data/catalog.json`
-        and drop the matching MP3 and cover files into the backend media folders.
+        No tracks match your search. Try a different vibe filter or clear the search to browse the full catalog.
       </div>
     );
   }
@@ -81,12 +84,13 @@ export function SongGrid({ songs, isLoading, error }: SongGridProps) {
         const isVaultTrack = Boolean(song.is_vault);
         const isDayOneAccess = isTrackInMembersEarlyWindow(song);
         const isFeaturedTrack = isTrackFeatured(song);
+        const isNowPlaying = currentTrack?.id === song.id;
         return (
           <article
             key={song.id}
             className={`group glass-card overflow-hidden rounded-[1.8rem] transition-transform duration-200 ${
               canAccess && isReady ? "hover:-translate-y-1" : "opacity-80"
-            }`}
+            } ${isNowPlaying ? "ring-1 ring-[#00e5ff]/40 shadow-[0_0_28px_rgba(0,229,255,0.12)]" : ""}`}
           >
             <div className="relative aspect-[1.15/1] bg-gradient-to-br from-cyan-400/20 to-fuchsia-500/20">
               <CoverArt
@@ -95,8 +99,23 @@ export function SongGrid({ songs, isLoading, error }: SongGridProps) {
                 sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
                 className={`object-cover ${canAccess ? "" : "opacity-45 saturate-50"}`}
               />
+              {/* Now Playing overlay */}
+              {isNowPlaying ? (
+                <div className="absolute inset-0 flex items-end justify-start bg-[linear-gradient(180deg,transparent_40%,rgba(0,229,255,0.18)_100%)]">
+                  <div className="m-3 flex items-center gap-1.5 rounded-full border border-[#00e5ff]/40 bg-[#00e5ff]/15 px-3 py-1.5 backdrop-blur-sm">
+                    <span className="flex gap-[3px] items-end h-3">
+                      <span className="w-[3px] rounded-sm bg-[#00e5ff] animate-[eq_0.8s_ease-in-out_infinite]" style={{ height: isPlaying ? "100%" : "40%" }} />
+                      <span className="w-[3px] rounded-sm bg-[#00e5ff] animate-[eq_0.8s_ease-in-out_0.15s_infinite]" style={{ height: isPlaying ? "60%" : "40%" }} />
+                      <span className="w-[3px] rounded-sm bg-[#00e5ff] animate-[eq_0.8s_ease-in-out_0.3s_infinite]" style={{ height: isPlaying ? "80%" : "40%" }} />
+                    </span>
+                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#00e5ff]">
+                      {isPlaying ? "Now Playing" : "Paused"}
+                    </span>
+                  </div>
+                </div>
+              ) : null}
               {/* Play button overlay — accessible + ready tracks only */}
-              {canAccess && isReady ? (
+              {canAccess && isReady && !isNowPlaying ? (
                 <Link
                   href={`/radio?song=${song.id}`}
                   className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity duration-200 group-hover:opacity-100"

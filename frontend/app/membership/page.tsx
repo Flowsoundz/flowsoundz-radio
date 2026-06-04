@@ -33,7 +33,7 @@ const tiers = [
       "border-cyan-300/25 bg-[linear-gradient(180deg,rgba(34,211,238,0.14)_0%,rgba(255,255,255,0.04)_100%)]",
     glow: "0 0 20px rgba(0,230,255,0.4), 0 0 40px rgba(0,230,255,0.15)",
     position: "The discovery sweet spot.",
-    cta: { label: "Join Insider", href: "/radio" },
+    cta: { label: "Get notified when Insider opens", href: "#early-access" },
     ctaStyle: "gradient" as "outlined" | "gradient" | "fuchsia",
     perks: [
       "Day One Access — hear new records before Public Friday opens.",
@@ -52,8 +52,8 @@ const tiers = [
       "border-fuchsia-400/30 bg-[linear-gradient(180deg,rgba(217,70,239,0.18)_0%,rgba(139,92,246,0.10)_100%)]",
     glow: null,
     position: "For listeners who want everything.",
-    cta: { label: "Join the Vault", href: "/radio" },
-    ctaStyle: "gradient" as "outlined" | "gradient" | "fuchsia",
+    cta: { label: "Get notified when Vault opens", href: "#early-access" },
+    ctaStyle: "fuchsia" as "outlined" | "gradient" | "fuchsia",
     perks: [
       "Full Vault access: exclusive records never in the public lane.",
       "Earliest entry into every Day One Access window.",
@@ -192,13 +192,16 @@ export default function MembershipPage() {
       <MembershipFAQ />
 
       {/* Early access capture */}
-      <div className="mt-10 rounded-[1.8rem] border border-white/8 bg-white/[0.02] px-8 py-10 text-center">
+      <div id="early-access" className="mt-10 scroll-mt-8 rounded-[1.8rem] border border-cyan-300/18 bg-[linear-gradient(135deg,rgba(0,229,255,0.06),rgba(124,77,255,0.05))] px-8 py-10 text-center">
         <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-cyan-300/70">Early Access</p>
-        <h3 className="mt-2 text-lg font-semibold text-white">Get notified about exclusive drops first.</h3>
-        <p className="mt-1.5 text-sm text-slate-400">Members hear new records before the public window opens.</p>
+        <h3 className="mt-2 text-xl font-semibold text-white">Be first when Insider and Vault open.</h3>
+        <p className="mt-2 text-sm leading-6 text-slate-400">
+          Paid tiers are launching soon. Drop your email and you&apos;ll hear before anyone else — early access slots, launch pricing, and first entry into Midnight Drops.
+        </p>
         <div className="mt-6 flex justify-center">
           <WaitlistForm />
         </div>
+        <p className="mt-4 text-xs text-white/25">No spam. Unsubscribe any time.</p>
       </div>
     </AppShell>
   );

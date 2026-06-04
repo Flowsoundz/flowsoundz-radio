@@ -283,52 +283,52 @@ export default async function HomePage() {
               </Link>
             </div>
 
-            {/* Member — highlighted */}
+            {/* Insider — highlighted */}
             <div className="relative flex flex-col rounded-2xl border border-[#00e5ff]/30 bg-[linear-gradient(145deg,rgba(0,229,255,0.06),rgba(124,77,255,0.06))] p-8 shadow-[0_0_40px_rgba(0,229,255,0.08)]">
               <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                 <span className="rounded-full bg-[linear-gradient(135deg,#00e5ff,#7c4dff)] px-4 py-1 text-[10px] font-bold uppercase tracking-widest text-white">
                   Most Popular
                 </span>
               </div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-400">Member</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-400">Insider</p>
               <div className="mt-3 flex items-end gap-1">
-                <span className="font-headline text-5xl text-white">$9.99</span>
+                <span className="font-headline text-5xl text-white">$7.99</span>
                 <span className="mb-1 text-sm text-white/35">/mo</span>
               </div>
-              <p className="mt-2 text-sm text-white/40">For real music heads.</p>
+              <p className="mt-2 text-sm text-white/40">The discovery sweet spot.</p>
               <ul className="mt-6 flex flex-col gap-3">
                 <PricingFeature text="Everything in Free" highlighted />
-                <PricingFeature text="Vault — exclusive member-only drops" highlighted />
-                <PricingFeature text="Behind the Mix — artist commentary" highlighted />
-                <PricingFeature text="Early access to Midnight Drops" highlighted />
+                <PricingFeature text="Day One Access — before Public Friday" highlighted />
+                <PricingFeature text="Behind the Mix — creator context" highlighted />
+                <PricingFeature text="Priority Midnight Drop access" highlighted />
               </ul>
               <Link
-                href="/membership"
+                href="/membership#early-access"
                 className="mt-8 inline-flex w-full items-center justify-center rounded-full bg-[linear-gradient(135deg,#00e5ff,#7c4dff)] py-3 text-sm font-bold text-white shadow-[0_0_20px_rgba(0,229,255,0.4)] transition hover:shadow-[0_0_28px_rgba(0,229,255,0.6)]"
               >
-                Join as Member
+                Get Notified
               </Link>
             </div>
 
-            {/* Artist Pro */}
+            {/* Vault */}
             <div className="flex flex-col rounded-2xl border border-fuchsia-400/20 bg-fuchsia-400/[0.03] p-8">
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-fuchsia-400">Artist Pro</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-fuchsia-400">Vault</p>
               <div className="mt-3 flex items-end gap-1">
-                <span className="font-headline text-5xl text-white">$24.99</span>
+                <span className="font-headline text-5xl text-white">$14.99</span>
                 <span className="mb-1 text-sm text-white/35">/mo</span>
               </div>
-              <p className="mt-2 text-sm text-white/40">For artists who want visibility.</p>
+              <p className="mt-2 text-sm text-white/40">For listeners who want everything.</p>
               <ul className="mt-6 flex flex-col gap-3">
-                <PricingFeature text="Everything in Member" />
-                <PricingFeature text="Submit releases for promo review" />
-                <PricingFeature text="Featured artist placement" />
-                <PricingFeature text="Sponsored visibility across the station" />
+                <PricingFeature text="Everything in Insider" />
+                <PricingFeature text="Full Vault — exclusive records" />
+                <PricingFeature text="Earliest Midnight Drop entry" />
+                <PricingFeature text="Founder Circle status" />
               </ul>
               <Link
-                href="/promo"
+                href="/membership#early-access"
                 className="mt-8 inline-flex w-full items-center justify-center rounded-full border border-fuchsia-400/35 py-3 text-sm font-semibold text-fuchsia-200 transition hover:border-fuchsia-400/55 hover:bg-fuchsia-400/[0.08]"
               >
-                Get Artist Pro
+                Get Notified
               </Link>
             </div>
           </div>
