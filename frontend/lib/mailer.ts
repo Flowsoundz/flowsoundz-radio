@@ -18,7 +18,7 @@ function getNotifyEmail() {
 function getSiteUrl() {
   return (
     process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
-    "http://localhost:3000"
+    "http://localhost:3001"
   ).replace(/\/$/, "");
 }
 
@@ -238,6 +238,118 @@ export async function sendArtistSubmissionNotification(data: {
             <a href="mailto:${data.email}" style="display:inline-block;background:linear-gradient(135deg,#00e5ff,#7c4dff);color:#fff;font-weight:700;font-size:13px;padding:10px 20px;border-radius:999px;text-decoration:none">Reply to Artist</a>
             <a href="${siteUrl}/admin" style="display:inline-block;background:#f1f5f9;color:#1e293b;font-weight:600;font-size:13px;padding:10px 20px;border-radius:999px;text-decoration:none">Open Admin</a>
           </div>
+        </div>
+      </div>
+    `,
+  });
+}
+
+export async function sendArtistSubmissionConfirmation(data: {
+  artistName: string;
+  contactName: string;
+  email: string;
+  songTitle: string;
+  genre: string;
+  vibe: string;
+  bio: string;
+  promoBlurb: string;
+  radioIntro: string;
+  suggestedVibe: string;
+  submissionId?: string | null;
+}) {
+  const transporter = getTransporter();
+  if (!transporter) return;
+
+  const from = getNotifyEmail();
+
+  await transporter.sendMail({
+    from: `"FlowSoundz Radio" <${from}>`,
+    to: data.email,
+    replyTo: from,
+    subject: `Your FlowSoundz submission: "${data.songTitle}"`,
+    text: [
+      `Hi ${data.contactName},`,
+      ``,
+      `Your submission has been received by FlowSoundz Radio.`,
+      ``,
+      `Track: "${data.songTitle}" by ${data.artistName}`,
+      `Genre: ${data.genre}  •  Vibe: ${data.vibe}`,
+      data.submissionId ? `Reference: ${data.submissionId}` : "",
+      ``,
+      `── What happens next ──`,
+      ``,
+      `Our curation team will review your track manually. This process is not automatic — every submission gets a real listen.`,
+      ``,
+      `Approval is not guaranteed. If your track is accepted for rotation, you will be contacted at this email address.`,
+      ``,
+      `── Your AI-Assisted Promo Preview ──`,
+      ``,
+      `These are starter assets generated from your submission. Review and edit them in your confirmation page before use.`,
+      ``,
+      `Artist Bio:`,
+      data.bio,
+      ``,
+      `Suggested Vibe: ${data.suggestedVibe}`,
+      ``,
+      `Station Promo Blurb:`,
+      data.promoBlurb,
+      ``,
+      `Radio Intro:`,
+      data.radioIntro,
+      ``,
+      `──`,
+      `Questions? Reply to this email or visit our contact page.`,
+      ``,
+      `FlowSoundz Radio — Discovery-first curation for independent music.`,
+    ]
+      .filter((line) => line !== null && line !== undefined)
+      .join("\n"),
+    html: `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#1e293b">
+        <div style="background:#07111f;padding:24px 28px;border-radius:12px 12px 0 0">
+          <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:#00e5ff">FlowSoundz Radio</p>
+          <h1 style="margin:8px 0 4px;font-size:20px;color:#fff">Submission Received</h1>
+          <p style="margin:0;font-size:14px;color:#94a3b8">${data.artistName} — &ldquo;${data.songTitle}&rdquo;</p>
+        </div>
+        <div style="background:#f8fafc;padding:24px 28px;border-radius:0 0 12px 12px;border:1px solid #e2e8f0;border-top:none">
+
+          <p style="font-size:14px;line-height:1.7;margin:0 0 16px">Hi ${data.contactName},</p>
+          <p style="font-size:14px;line-height:1.7;margin:0 0 16px">Your submission has been received by FlowSoundz Radio.</p>
+
+          <div style="background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:14px 18px;margin-bottom:20px">
+            <table style="width:100%;border-collapse:collapse">
+              <tr><td style="padding:4px 0;font-size:13px;color:#64748b;width:80px">Track</td><td style="padding:4px 0;font-size:13px;font-weight:600">&ldquo;${data.songTitle}&rdquo;</td></tr>
+              <tr><td style="padding:4px 0;font-size:13px;color:#64748b">Artist</td><td style="padding:4px 0;font-size:13px">${data.artistName}</td></tr>
+              <tr><td style="padding:4px 0;font-size:13px;color:#64748b">Genre</td><td style="padding:4px 0;font-size:13px">${data.genre}</td></tr>
+              <tr><td style="padding:4px 0;font-size:13px;color:#64748b">Vibe</td><td style="padding:4px 0;font-size:13px">${data.vibe}</td></tr>
+              ${data.submissionId ? `<tr><td style="padding:4px 0;font-size:13px;color:#64748b">Ref</td><td style="padding:4px 0;font-size:12px;font-family:monospace;color:#94a3b8">${data.submissionId}</td></tr>` : ""}
+            </table>
+          </div>
+
+          <div style="background:#ecfdf5;border:1px solid #6ee7b7;border-radius:8px;padding:14px 18px;margin-bottom:20px">
+            <p style="margin:0 0 6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.12em;color:#065f46">What happens next</p>
+            <p style="margin:0;font-size:13px;line-height:1.7;color:#064e3b">
+              Our curation team will review your track manually — every submission gets a real listen.
+              <strong>Approval is not automatic or guaranteed.</strong>
+              If your track is accepted for rotation, we will contact you at this email address.
+            </p>
+          </div>
+
+          <div style="background:#07111f;border-radius:10px;padding:18px 22px;margin-bottom:20px">
+            <p style="margin:0 0 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;color:#00e5ff">Your AI-Assisted Promo Preview</p>
+            <p style="margin:0 0 10px;font-size:12px;line-height:1.6;color:#94a3b8">These are starter assets generated from your submission. You can review and edit them on your confirmation page — they are suggestions, not final copy.</p>
+            <p style="margin:0 0 4px;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.1em">Artist Bio</p>
+            <p style="margin:0 0 14px;font-size:13px;line-height:1.7;color:#e2e8f0">${data.bio}</p>
+            <p style="margin:0 0 4px;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.1em">Suggested Vibe</p>
+            <p style="margin:0 0 14px;font-size:13px;font-weight:700;color:#7c4dff">${data.suggestedVibe}</p>
+            <p style="margin:0 0 4px;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.1em">Station Promo Blurb</p>
+            <p style="margin:0 0 14px;font-size:13px;line-height:1.7;color:#e2e8f0">${data.promoBlurb}</p>
+            <p style="margin:0 0 4px;font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.1em">Radio Intro</p>
+            <p style="margin:0;font-size:13px;line-height:1.7;color:#e2e8f0">${data.radioIntro}</p>
+          </div>
+
+          <p style="font-size:13px;color:#64748b;margin:0">Questions? Reply to this email or visit our contact page.</p>
+          <p style="font-size:12px;color:#94a3b8;margin:8px 0 0">FlowSoundz Radio — Discovery-first curation for independent music.</p>
         </div>
       </div>
     `,

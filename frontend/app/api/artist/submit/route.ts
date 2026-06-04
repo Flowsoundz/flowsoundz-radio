@@ -1,7 +1,10 @@
 import type { NextRequest } from "next/server";
 import type { ArtistPromoOutput } from "@/lib/creatorHub/generators";
 import { createArtistSubmission } from "@/lib/artistSubmissionStore";
-import { sendArtistSubmissionNotification } from "@/lib/mailer";
+import {
+  sendArtistSubmissionNotification,
+  sendArtistSubmissionConfirmation,
+} from "@/lib/mailer";
 
 export const runtime = "nodejs";
 
@@ -261,7 +264,7 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Fire-and-forget — don't fail the submission if email fails
+  // Fire-and-forget — don't fail the submission if emails fail
   void sendArtistSubmissionNotification({
     artistName,
     contactName,
@@ -317,6 +320,20 @@ export async function POST(request: NextRequest) {
       notes: notes || null,
       promo,
     });
+
+    void sendArtistSubmissionConfirmation({
+      artistName,
+      contactName,
+      email,
+      songTitle,
+      genre,
+      vibe,
+      bio: promo.bio,
+      promoBlurb: promo.promoBlurb,
+      radioIntro: promo.radioIntro,
+      suggestedVibe: promo.suggestedVibe,
+      submissionId: submission.submission_id,
+    }).catch(() => undefined);
 
     return Response.json({ ...promo, submission_id: submission.submission_id });
   } catch (error) {

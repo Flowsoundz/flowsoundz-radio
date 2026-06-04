@@ -117,8 +117,8 @@ export function PromoCheckoutPage() {
   return (
     <AppShell
       eyebrow="For Artists"
-      title="Get Heard Before The Algorithm"
-      subtitle="FlowSoundz is a curated radio station — not open uploads. Every track is reviewed and sequenced by hand. Getting on means getting heard by listeners who are actively looking for what's next."
+      title="Your Song Deserves More Than a Link."
+      subtitle="SoundCloud hosts the underground. FlowSoundz introduces it. Every track is reviewed and hand-sequenced — getting on means getting heard by listeners who are actively looking for what's next."
     >
       <section className="relative isolate">
         <div className="pointer-events-none absolute -left-10 top-8 h-44 w-44 rounded-full bg-[#00E5FF]/10 blur-3xl" />
@@ -130,9 +130,9 @@ export function PromoCheckoutPage() {
           {/* Value prop strip */}
           <div className="grid gap-3 sm:grid-cols-3">
             {[
-              { accent: "#00e5ff", step: "01", title: "Free Submission", body: "Submit your track for review. No payment required to apply — we review every request." },
-              { accent: "#7c4dff", step: "02", title: "Priority Review", body: "Skip the queue. Priority submissions get reviewed within 48 hours and receive direct feedback." },
-              { accent: "#ff2da6", step: "03", title: "Featured Placement", body: "Boosted rotation, artist card on the station, and early-window exposure to listeners and members." },
+              { accent: "#00e5ff", step: "01", title: "Free Submission", body: "Submit your track for review at /artist/submit — no payment required to apply. Every submission gets a manual listen." },
+              { accent: "#7c4dff", step: "02", title: "Priority Review", body: "Paid lanes get reviewed first, with direct feedback within 48–72 hours. Approval is not automatic — quality standards still apply." },
+              { accent: "#ff2da6", step: "03", title: "Featured Consideration", body: "Higher tiers open the door for boosted rotation and artist card placement. Featured placement is subject to final review." },
             ].map((item) => (
               <div key={item.step} className="glass-card rounded-[1.6rem] p-5">
                 <span className="text-[2rem] font-bold leading-none" style={{ color: item.accent, opacity: 0.22 }}>{item.step}</span>

@@ -7,7 +7,7 @@ import { readCatalogSnapshotFromStore } from "@/lib/catalogSnapshotStore";
 export const metadata: Metadata = {
   title: "Creator Hub — FlowSoundz Radio",
   description:
-    "From song idea to radio rotation. Build your release, understand your rights, create promo assets, and submit to FlowSoundz Radio.",
+    "FlowSoundz turns unknown songs into curated discovery moments. Build your release, confirm your rights, create AI promo assets, and submit for radio curation review.",
 };
 
 export default async function ArtistDashboardPage() {
@@ -39,11 +39,11 @@ export default async function ArtistDashboardPage() {
           </span>
           <div>
             <h2 className="text-[clamp(1.4rem,3.5vw,2.2rem)] font-semibold text-white">
-              Create it. Clear it. Release it. Get heard.
+              FlowSoundz turns unknown songs into curated discovery moments.
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-slate-300">
-              Start your release journey. Build your song, check your rights, create visuals,
-              and submit for FlowSoundz Radio review.
+              Build your release, confirm your rights, generate promo assets with AI, and submit
+              your track for FlowSoundz Radio curation review.
             </p>
             <div className="mt-5 flex flex-wrap justify-center gap-2">
               <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-100">

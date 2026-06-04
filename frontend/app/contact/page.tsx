@@ -37,10 +37,10 @@ export default function ContactPage() {
           </div>
 
           <Link
-            href="/promo"
+            href="/for-artists"
             className="inline-flex items-center gap-2 text-sm font-medium text-cyan-400 transition hover:text-cyan-300"
           >
-            Submit music via Promo page
+            Submit your music
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M5 12h14M12 5l7 7-7 7" />
             </svg>

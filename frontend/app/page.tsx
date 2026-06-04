@@ -24,7 +24,7 @@ const NAV_LINKS = [
   { label: "Artists", href: "/artists" },
   { label: "Visualizer", href: "/visualizer" },
   { label: "Membership", href: "/membership" },
-  { label: "For Artists", href: "/promo" },
+  { label: "For Artists", href: "/for-artists" },
   { label: "About", href: "/about" },
   { label: "Contact", href: "/contact" },
 ];

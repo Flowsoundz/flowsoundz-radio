@@ -242,13 +242,35 @@ export default function SubmitPage() {
           Submit Your Track for Review
         </h2>
         <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300">
-          Submit your track for curation. If approved, your song may be added to FlowSoundz Radio
-          rotation and promoted through artist discovery content. Submissions are reviewed
-          manually — approval is not guaranteed.
+          Your song deserves more than a link. Submit here and FlowSoundz Radio will
+          review your track for curated rotation — the kind of discovery moment that
+          reaches listeners who are actively looking for what&apos;s next.
         </p>
-        <p className="mt-3 text-sm font-medium text-cyan-100/80">
-          FlowSoundz Radio is curated. Not every submission will be approved.
-        </p>
+
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          <div className="rounded-[1.2rem] border border-emerald-400/20 bg-emerald-400/[0.06] px-4 py-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-300/80">What you get</p>
+            <ul className="mt-3 space-y-2 text-sm text-slate-300">
+              <li className="flex items-start gap-2"><span className="mt-0.5 text-emerald-400">✓</span> Manual review by the FlowSoundz curation team</li>
+              <li className="flex items-start gap-2"><span className="mt-0.5 text-emerald-400">✓</span> AI-generated bio, vibe tag, promo blurb, and radio intro (all editable)</li>
+              <li className="flex items-start gap-2"><span className="mt-0.5 text-emerald-400">✓</span> If approved: rotation on FlowSoundz Radio + artist discovery listing</li>
+              <li className="flex items-start gap-2"><span className="mt-0.5 text-emerald-400">✓</span> Email notification if your track is accepted</li>
+            </ul>
+          </div>
+          <div className="rounded-[1.2rem] border border-white/8 bg-white/[0.025] px-4 py-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/50">What&apos;s not guaranteed</p>
+            <ul className="mt-3 space-y-2 text-sm text-slate-400">
+              <li className="flex items-start gap-2"><span className="mt-0.5 text-white/30">—</span> Approval is not automatic — every track is reviewed</li>
+              <li className="flex items-start gap-2"><span className="mt-0.5 text-white/30">—</span> No specific play count, stream guarantee, or chart placement</li>
+              <li className="flex items-start gap-2"><span className="mt-0.5 text-white/30">—</span> AI assets are a starting point — review and edit before use</li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="mt-4 flex items-center gap-2 rounded-[0.9rem] border border-[#7c4dff]/20 bg-[#7c4dff]/[0.07] px-4 py-2.5">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#a78bfa]">AI Disclosure</span>
+          <span className="text-xs text-slate-400">After submission, AI-assisted promo assets are generated for your track. These are suggestions only — you review and edit them before they go anywhere.</span>
+        </div>
       </div>
 
       {/* ── Form ── */}

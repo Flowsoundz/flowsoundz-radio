@@ -97,7 +97,7 @@ export default function SponsoredPage() {
           </p>
         </div>
         <Link
-          href="/promo"
+          href="/for-artists"
           className="inline-flex shrink-0 min-h-11 items-center justify-center rounded-full border border-fuchsia-400/25 bg-fuchsia-400/10 px-5 py-2.5 text-sm font-semibold text-fuchsia-50 transition hover:border-fuchsia-400/40 hover:bg-fuchsia-400/16"
         >
           Submit your release
