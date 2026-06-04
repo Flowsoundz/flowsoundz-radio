@@ -67,40 +67,46 @@ export async function playTrack(
       await audioContextRef.current.resume();
     }
 
-    console.log("[RadioPlayer] attempting play", {
-      trackId: track.id,
-      src: track.src,
-      currentSrc: audio.currentSrc,
-      paused: audio.paused,
-      readyState: audio.readyState,
-      networkState: audio.networkState,
-      volume: audio.volume,
-      muted: audio.muted,
-      audioContextState: audioContextRef?.current?.state ?? null,
-    });
+    if (process.env.NODE_ENV === "development") {
+      console.log("[RadioPlayer] attempting play", {
+        trackId: track.id,
+        src: track.src,
+        currentSrc: audio.currentSrc,
+        paused: audio.paused,
+        readyState: audio.readyState,
+        networkState: audio.networkState,
+        volume: audio.volume,
+        muted: audio.muted,
+        audioContextState: audioContextRef?.current?.state ?? null,
+      });
+    }
     await audio.play();
-    console.log("[RadioPlayer] play success", {
-      trackId: track.id,
-      paused: audio.paused,
-      currentSrc: audio.currentSrc,
-      currentTime: audio.currentTime,
-      readyState: audio.readyState,
-      networkState: audio.networkState,
-      volume: audio.volume,
-      muted: audio.muted,
-    });
+    if (process.env.NODE_ENV === "development") {
+      console.log("[RadioPlayer] play success", {
+        trackId: track.id,
+        paused: audio.paused,
+        currentSrc: audio.currentSrc,
+        currentTime: audio.currentTime,
+        readyState: audio.readyState,
+        networkState: audio.networkState,
+        volume: audio.volume,
+        muted: audio.muted,
+      });
+    }
     return { ok: true };
   } catch (error) {
-    console.error("[RadioPlayer] play failed", {
-      trackId: track.id,
-      src: track.src,
-      currentSrc: audio.currentSrc,
-      readyState: audio.readyState,
-      networkState: audio.networkState,
-      volume: audio.volume,
-      muted: audio.muted,
-      error,
-    });
+    if (process.env.NODE_ENV === "development") {
+      console.error("[RadioPlayer] play failed", {
+        trackId: track.id,
+        src: track.src,
+        currentSrc: audio.currentSrc,
+        readyState: audio.readyState,
+        networkState: audio.networkState,
+        volume: audio.volume,
+        muted: audio.muted,
+        error,
+      });
+    }
     return { ok: false, error, reason: "play-failed" };
   } finally {
     window.setTimeout(() => {

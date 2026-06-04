@@ -1320,12 +1320,17 @@ export default function RadioPlayer() {
     };
 
     audio.onerror = () => {
+      // MEDIA_ERR_ABORTED (1) fires whenever audio.src changes mid-load (new track,
+      // queue reset, vibe switch). It is not a playback failure — ignore it to
+      // prevent the recovery handler from skipping to the next track unnecessarily.
+      if (audio.error?.code === 1) return;
       setIsPlaying(false);
       isPlayingRef.current = false;
       recoverFromPlaybackFailure("audio_error", {
         currentSrc: audio.currentSrc || audio.src || null,
         readyState: audio.readyState,
         networkState: audio.networkState,
+        errorCode: audio.error?.code ?? null,
       });
     };
 
@@ -1784,7 +1789,9 @@ export default function RadioPlayer() {
         volume: audioRef.current?.volume ?? null,
       });
       requestedTrackStartIdRef.current = currentSong.id;
-      currentTrackIdRef.current = null;
+      // Set early so the useEffect's startResolvedTrack guard returns without
+      // calling playTrack a second time while this direct call is in-flight.
+      currentTrackIdRef.current = currentSong.id;
       setError("");
       setShouldPlay(true);
       void playTrack(
@@ -1796,11 +1803,12 @@ export default function RadioPlayer() {
         audioContextRef,
       ).then((result) => {
         if (!result.ok) {
+          // Reset so the useEffect can retry on next shouldPlay toggle.
+          currentTrackIdRef.current = null;
           setError(PLAYBACK_START_ERROR);
           return;
         }
 
-        currentTrackIdRef.current = currentSong.id;
         requestedTrackStartIdRef.current = null;
       });
     }
