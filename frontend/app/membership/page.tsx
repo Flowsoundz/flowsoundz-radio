@@ -194,9 +194,9 @@ export default function MembershipPage() {
       {/* Early access capture */}
       <div id="early-access" className="mt-10 scroll-mt-8 rounded-[1.8rem] border border-cyan-300/18 bg-[linear-gradient(135deg,rgba(0,229,255,0.06),rgba(124,77,255,0.05))] px-8 py-10 text-center">
         <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-cyan-300/70">Early Access</p>
-        <h3 className="mt-2 text-xl font-semibold text-white">Be first when Insider and Vault open.</h3>
+        <h3 className="mt-2 text-xl font-semibold text-white">The first 100 members bypass the queue.</h3>
         <p className="mt-2 text-sm leading-6 text-slate-400">
-          Paid tiers are launching soon. Drop your email and you&apos;ll hear before anyone else — early access slots, launch pricing, and first entry into Midnight Drops.
+          Paid tiers are launching soon. Founding members get priority curation access, launch pricing, and first entry into every Midnight Drop — before public slots open.
         </p>
         <div className="mt-6 flex justify-center">
           <WaitlistForm />

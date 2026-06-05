@@ -114,9 +114,9 @@ const LIVE_LISTENER_UPDATE_MS = 30_000;
 const TRACKS_TODAY_STORAGE_KEY = "flowsoundz-tracks-today";
 const RADIO_PLAYER_STATE_STORAGE_KEY = "flowsoundz-radio-player-state";
 const RADIO_BACKEND_ERROR =
-  "The live broadcast is temporarily off-air. FlowSoundz will return as soon as the station stack reconnects.";
+  "FlowSoundz is in Continuous Mix Mode. Curated selection is on air while the live rotation syncs.";
 const ARCHIVE_STANDBY_MESSAGE =
-  "Live audio is temporarily unavailable. You can still browse the archive, check artist profiles, or open the visualizer while the station reconnects.";
+  "FlowSoundz Continuous Mix Mode is active. Browse the curated catalog and artist profiles while the live rotation comes online.";
 const PLAYBACK_START_ERROR =
   "Playback could not start. Tap again or check the audio source.";
 const RADIO_DEBUG =
@@ -2299,7 +2299,7 @@ export default function RadioPlayer() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.26em] text-[#CBD5E1]/55">
-                    {archivePlaybackMode ? "Archive Session" : archiveStandbyMode ? "Archive Preview" : "Now Playing"}
+                    {archivePlaybackMode ? "Continuous Mix" : archiveStandbyMode ? "FlowSoundz Select" : "Now Playing"}
                   </p>
                   <h2
                     className={`mt-3 text-3xl font-semibold leading-tight text-[#F8FAFC] sm:text-4xl ${
@@ -2335,13 +2335,13 @@ export default function RadioPlayer() {
                   </p>
                   <p className="mt-2 text-sm text-[#CBD5E1]/75">
                     {archivePlaybackMode
-                      ? "Playable archive session · featured tracks stay active while the live station reconnects"
+                      ? "FlowSoundz Continuous Mix — curated selection on air"
                       : archiveStandbyMode
-                        ? "Archive preview · browse featured artists and tracks while live audio reconnects"
+                        ? "FlowSoundz Select — curated discovery while live rotation loads"
                       : maintenanceMode
-                        ? "Maintenance mode · curated discovery resumes with the next broadcast window"
+                        ? "FlowSoundz Continuous Mix — live rotation coming up"
                         : isDropPlaying
-                          ? "Live drop before the next record"
+                          ? "Station ident before the next record"
                           : currentSong?.album ?? "FlowSoundz station rotation"}
                   </p>
                 </div>
@@ -2359,9 +2359,9 @@ export default function RadioPlayer() {
                   }`}
                 >
                     {archivePlaybackMode || archiveStandbyMode
-                      ? "Archive"
+                      ? "Mix"
                       : maintenanceMode
-                      ? "Maintenance"
+                      ? "Mix"
                       : isDropPlaying
                         ? "Drop"
                         : isPlaying
@@ -2374,18 +2374,9 @@ export default function RadioPlayer() {
                 <span className="state-fade rounded-full border border-[#8B5CF6]/18 bg-[#8B5CF6]/12 px-3 py-1 text-xs font-semibold text-[#F8FAFC]">
                   {formatVibeLabel(selectedVibe)}
                 </span>
-                {archivePlaybackMode || archiveStandbyMode ? (
+                {archivePlaybackMode || archiveStandbyMode || maintenanceMode ? (
                   <span className="state-fade rounded-full border border-cyan-300/18 bg-cyan-300/10 px-3 py-1 text-xs font-medium text-cyan-100">
-                    Featured archive
-                  </span>
-                ) : maintenanceMode ? (
-                  <span className="state-fade rounded-full border border-amber-300/18 bg-amber-200/10 px-3 py-1 text-xs font-medium text-amber-100">
-                    Archive standby
-                  </span>
-                ) : null}
-                {usingFallbackCatalog ? (
-                  <span className="state-fade rounded-full border border-[#00E5FF]/18 bg-[#00E5FF]/10 px-3 py-1 text-xs font-medium text-[#F8FAFC]">
-                    Curated archive
+                    Continuous Mix
                   </span>
                 ) : null}
                 {currentSongAccessLabel ? (
@@ -2400,11 +2391,11 @@ export default function RadioPlayer() {
                 ) : null}
                 <span className="state-fade rounded-full border border-white/8 bg-white/5 px-3 py-1 text-xs font-medium text-[#CBD5E1]">
                   {archivePlaybackMode
-                    ? "Archive session"
+                    ? "Continuous mix"
                     : archiveStandbyMode
-                    ? "Artist discovery"
+                    ? "Curated select"
                     : maintenanceMode
-                      ? "Curated archive"
+                      ? "Continuous mix"
                       : isDropPlaying
                         ? `${songsUntilDrop} songs to next drop`
                         : currentSong?.genre ?? "After-hours mix"}
@@ -2454,22 +2445,10 @@ export default function RadioPlayer() {
                 </div>
                 <div className="mt-2 flex items-center justify-between text-sm text-[#CBD5E1]">
                   <span>
-                    {archivePlaybackMode
-                      ? formatClock(currentTime)
-                      : archiveStandbyMode
-                        ? "Archive"
-                        : maintenanceMode
-                          ? "Standby"
-                          : formatClock(currentTime)}
+                    {archiveStandbyMode ? "Continuous Mix" : maintenanceMode ? "Mix" : formatClock(currentTime)}
                   </span>
                   <span>
-                    {archivePlaybackMode
-                      ? formatClock(duration)
-                      : archiveStandbyMode
-                        ? "Preview mode"
-                        : maintenanceMode
-                          ? nextBroadcastTime
-                          : formatClock(duration)}
+                    {archiveStandbyMode ? "Live rotation loading" : maintenanceMode ? nextBroadcastTime : formatClock(duration)}
                   </span>
                 </div>
               </div>
@@ -2483,14 +2462,14 @@ export default function RadioPlayer() {
                   }`}
                 >
                   <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-200/75">
-                    {archivePlaybackMode || archiveStandbyMode ? "Archive mode" : "Off-air note"}
+                    FlowSoundz Continuous Mix
                   </p>
                   <p className="mt-1 text-sm leading-6 text-slate-200">
                     {archivePlaybackMode
-                      ? "You are hearing the playable archive fallback. Featured artists remain discoverable and tracks stay playable while the live station reconnects."
+                      ? "Curated selection is on air. Featured artists and tracks stay playable — the live rotation picks back up automatically."
                       : archiveStandbyMode
-                      ? "Live audio is paused for now. Use this archive preview to discover featured artists, browse the catalog, or jump into the visualizer while the next broadcast window comes online."
-                      : "The live queue is reconnecting. Browse the featured archive below, open artist profiles, or use the visualizer while the next broadcast window comes online."}
+                      ? "Explore the curated catalog and artist profiles. The live rotation is coming up next."
+                      : "The live rotation is syncing. Browse artist profiles or the catalog while Continuous Mix keeps the station on air."}
                   </p>
                 </div>
               ) : null}
@@ -2596,16 +2575,16 @@ export default function RadioPlayer() {
                 <div className="h-20 animate-pulse rounded-[1.4rem] bg-white/6" />
               </>
             ) : error ? (
-              <div className="rounded-[1.3rem] border border-amber-300/18 bg-amber-200/10 px-4 py-4 text-sm text-[#F8FAFC]">
-                <p className="font-semibold text-amber-100">Station Maintenance Mode</p>
+              <div className="rounded-[1.3rem] border border-cyan-300/18 bg-cyan-300/[0.06] px-4 py-4 text-sm text-[#F8FAFC]">
+                <p className="font-semibold text-cyan-100">FlowSoundz Continuous Mix</p>
                 <p className="mt-2 leading-6 text-slate-200">{error}</p>
                 <div className="mt-3 rounded-[1rem] border border-white/8 bg-black/20 px-3 py-3">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-200/75">
-                    Next broadcast window
+                    Live rotation
                   </p>
-                  <p className="mt-1 text-sm text-white">Returning around {nextBroadcastTime}</p>
+                  <p className="mt-1 text-sm text-white">Back online around {nextBroadcastTime}</p>
                   <p className="mt-1 text-xs leading-5 text-slate-300">
-                    Browse the catalog, check artist profiles, or open the visualizer while the live rotation reconnects.
+                    Browse the catalog and artist profiles while the live rotation syncs up.
                   </p>
                 </div>
                 {standbyArchiveSongs.length > 0 ? (

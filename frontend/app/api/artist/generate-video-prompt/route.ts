@@ -1,5 +1,5 @@
 import type { NextRequest } from "next/server";
-import { runAI, extractTag } from "@/lib/creatorHub/aiEngine";
+import { runAI, extractTag, sanitizeInput } from "@/lib/creatorHub/aiEngine";
 import type { VideoPromptOutput } from "@/lib/creatorHub/generators";
 
 export const runtime = "nodejs";
@@ -45,14 +45,14 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "Invalid request body." }, { status: 400 });
   }
 
-  const artistName = str(body.artistName);
-  const songTitle = str(body.songTitle);
-  const genre = str(body.genre) || "independent";
+  const artistName = sanitizeInput(str(body.artistName));
+  const songTitle = sanitizeInput(str(body.songTitle));
+  const genre = sanitizeInput(str(body.genre)) || "independent";
   const vibe = str(body.vibe) || "Chill";
   const visualStyle = str(body.visualStyle) || "Cinematic";
   const videoType = str(body.videoType) || "Music video";
-  const lyricSnippet = str(body.lyricSnippet);
-  const coreThemes = str(body.coreThemes);
+  const lyricSnippet = sanitizeInput(str(body.lyricSnippet));
+  const coreThemes = sanitizeInput(str(body.coreThemes));
 
   if (!artistName || !songTitle) {
     return Response.json(

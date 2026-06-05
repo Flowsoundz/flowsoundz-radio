@@ -1,5 +1,5 @@
 import type { NextRequest } from "next/server";
-import { runAI, extractList } from "@/lib/creatorHub/aiEngine";
+import { runAI, extractList, sanitizeInput } from "@/lib/creatorHub/aiEngine";
 import type { LyricIdeasOutput } from "@/lib/creatorHub/generators";
 
 export const runtime = "nodejs";
@@ -50,14 +50,14 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "Invalid request body." }, { status: 400 });
   }
 
-  const songIdea = str(body.songIdea);
-  const genre = str(body.genre);
-  const mood = str(body.mood);
+  const songIdea = sanitizeInput(str(body.songIdea));
+  const genre = sanitizeInput(str(body.genre));
+  const mood = sanitizeInput(str(body.mood));
   const language = str(body.language) || "English";
   const explicit = str(body.explicit) || "Radio-Friendly";
   const goal = str(body.goal) || "Hook ideas";
-  const artistName = str(body.artistName);
-  const coreThemes = str(body.coreThemes);
+  const artistName = sanitizeInput(str(body.artistName));
+  const coreThemes = sanitizeInput(str(body.coreThemes));
 
   if (!songIdea || !genre || !mood) {
     return Response.json(
