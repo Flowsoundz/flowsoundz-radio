@@ -215,7 +215,7 @@ export default function AboutPage() {
           {[
             { title: "1888", genre: "Latin Urban", vibe: "Late Night", cover: "/covers/some1888.webp" },
             { title: "Body Language", genre: "R&B", vibe: "Chill", cover: "/covers/bodylanguage.webp" },
-            { title: "Quiere Mas", genre: "Reggaeton", vibe: "Hype", cover: "/covers/QuiereMas.webp" },
+            { title: "Quiere Mas", genre: "Urban Latino", vibe: "Hype", cover: "/covers/flowsoundz-artist.png" },
             { title: "Still Got Love", genre: "Alternative", vibe: "Emotional", cover: "/covers/still-got-love.webp" },
             { title: "Doctora", genre: "Latin Pop", vibe: "Hype", cover: "/covers/doctora.webp" },
             { title: "Essential", genre: "Electronic", vibe: "Late Night", cover: "/covers/essential.webp" },

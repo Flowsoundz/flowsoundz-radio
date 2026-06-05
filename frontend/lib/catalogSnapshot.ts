@@ -32,6 +32,8 @@ const ARTIST_EDITORIAL_OVERRIDES: Record<string, ArtistEditorialOverride> = {
     statement:
       "First person, far from neat. My story lives somewhere between late-night confession, memory, and motion. Every record I release is another version of me trying to make sense of what I survived and what I still want.",
     rootsLabel: "Orlando, FL // Santo Domingo, DR",
+    heroImage: "/covers/flowsoundz-artist.png",
+    artistVisualUrl: "/covers/flowsoundz-artist.png",
     socialLinks: {
       instagram: "https://www.instagram.com/flowsoundzradio/",
       tiktok: "https://www.tiktok.com/@flowsoundzradio",
@@ -42,6 +44,23 @@ const ARTIST_EDITORIAL_OVERRIDES: Record<string, ArtistEditorialOverride> = {
     supportLabel: "Support Artist / Tipping",
     isLiveInVisualizer: true,
     liveSessionTitle: "Live listening room open",
+  },
+  flowsoundz: {
+    statement:
+      "Underground discovery, programmed like radio. FlowSoundz is the station and the sound — curating independent music before the algorithm catches up.",
+    rootsLabel: "Orlando, FL // FlowSoundz Radio",
+    heroImage: "/covers/flowsoundz-artist.png",
+    artistVisualUrl: "/covers/flowsoundz-artist.png",
+    socialLinks: {
+      instagram: "https://www.instagram.com/flowsoundzradio/",
+      tiktok: "https://www.tiktok.com/@flowsoundzradio",
+      spotify: "https://open.spotify.com/search/FlowSoundz",
+      youtube: "https://www.youtube.com/@flowsoundzradio",
+    },
+    supportUrl: "/membership",
+    supportLabel: "Join the FlowSoundz circle",
+    isLiveInVisualizer: true,
+    liveSessionTitle: "FlowSoundz Radio — live now",
   },
 };
 
