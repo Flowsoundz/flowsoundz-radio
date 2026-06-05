@@ -1,6 +1,6 @@
 import coverMappings from "./coverMappings.json";
 import { getAdminCoverSrc, normalizeCoverKey } from "./coverKeys";
-import { getCuratedCatalog } from "./curatedCatalog";
+import { getStaticCatalog } from "./staticCatalog";
 import { Song } from "./types";
 
 function isLocalHostName(hostname: string | null | undefined) {
@@ -78,7 +78,7 @@ function getLocalCoverSrc(
 
 export async function getSongs(): Promise<Song[]> {
   if (!API_BASE) {
-    return getCuratedCatalog();
+    return getStaticCatalog();
   }
 
   try {
@@ -98,14 +98,14 @@ export async function getSongs(): Promise<Song[]> {
       }
       return res.json();
     } catch {
-      return getCuratedCatalog();
+      return getStaticCatalog();
     }
   }
 }
 
 export async function getQueue(vibe?: string): Promise<Song[]> {
   if (!API_BASE) {
-    return getCuratedCatalog(vibe);
+    return getStaticCatalog(vibe);
   }
 
   const url = vibe

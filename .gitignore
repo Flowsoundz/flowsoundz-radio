@@ -6,6 +6,9 @@ node_modules
 *.wav
 *.zip
 *.mp4
+# Allow the production audio catalog in public/
+!frontend/public/audio/*.mp3
+!frontend/public/archive/*.mp3
 .next
 .next-runtime
 .DS_Store
