@@ -220,7 +220,8 @@ export async function readArtistSubmissions(): Promise<ArtistSubmissionRecord[]>
     return submissions.map(mapPrismaSubmission);
   }
 
-  assertArtistSubmissionStoreConfigured();
+  // In production without DATABASE_URL, return empty — submissions arrive via email.
+  if (!CAN_USE_FILE_FALLBACK) return [];
 
   await ensureStoreFile();
 
