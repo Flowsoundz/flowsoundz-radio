@@ -45,6 +45,23 @@ const ARTIST_EDITORIAL_OVERRIDES: Record<string, ArtistEditorialOverride> = {
     isLiveInVisualizer: true,
     liveSessionTitle: "Live listening room open",
   },
+  adonyz: {
+    statement:
+      "Latin urban producer and artist from Orlando, FL with roots in Santo Domingo, DR. I built FlowSoundz from the inside out — as an artist who needed the platform and a founder who could create it. Every record I put out is a version of me making sense of what I survived and what I still want.",
+    rootsLabel: "Orlando, FL // Santo Domingo, DR",
+    heroImage: "/covers/flowsoundz-artist.png",
+    artistVisualUrl: "/covers/flowsoundz-artist.png",
+    socialLinks: {
+      instagram: "https://www.instagram.com/flowsoundzradio/",
+      tiktok: "https://www.tiktok.com/@flowsoundzradio",
+      spotify: "https://open.spotify.com/search/Adonyz",
+      youtube: "https://www.youtube.com/@flowsoundzradio",
+    },
+    supportUrl: "/membership",
+    supportLabel: "Support Adonyz",
+    isLiveInVisualizer: true,
+    liveSessionTitle: "Adonyz — live in rotation",
+  },
   flowsoundz: {
     statement:
       "Underground discovery, programmed like radio. FlowSoundz is the station and the sound — curating independent music before the algorithm catches up.",

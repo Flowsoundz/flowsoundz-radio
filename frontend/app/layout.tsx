@@ -28,7 +28,7 @@ const bebasNeue = Bebas_Neue({
 
 const siteUrl =
   process.env.NEXT_PUBLIC_SITE_URL ||
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://127.0.0.1:3000");
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://127.0.0.1:3001");
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -53,14 +53,14 @@ export const metadata: Metadata = {
   openGraph: {
     title: "FlowSoundz Radio",
     description: "Dark neon after-hours radio with live vibe-based playback.",
-    images: [{ url: "/brand/flowsoundz-radio-full-dark.png", width: 1200, height: 630 }],
+    images: [{ url: "/covers/flowsoundz-artist.png", width: 1080, height: 1080 }],
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
     title: "FlowSoundz Radio",
     description: "Dark neon after-hours radio with live vibe-based playback.",
-    images: ["/brand/flowsoundz-radio-full-dark.png"],
+    images: ["/covers/flowsoundz-artist.png"],
   },
 };
 

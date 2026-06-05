@@ -1,7 +1,7 @@
 export function HomepageSocialProof() {
   return (
     <div className="flex flex-wrap items-center justify-center gap-6 md:gap-12">
-      <StatItem icon={<UsersIcon />} label="Artists in Rotation" />
+      <StatItem icon={<UsersIcon />} count="57" label="Tracks in Rotation" />
       <span className="hidden h-4 w-px bg-white/[0.12] md:block" />
       <StatItem
         icon={<HeadphonesIcon />}
@@ -17,10 +17,12 @@ export function HomepageSocialProof() {
 function StatItem({
   icon,
   label,
+  count,
   live = false,
 }: {
   icon: React.ReactNode;
   label: string;
+  count?: string;
   live?: boolean;
 }) {
   return (
@@ -32,6 +34,9 @@ function StatItem({
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_8px_rgba(110,231,183,0.8)]" />
             Live
           </span>
+        ) : null}
+        {count ? (
+          <span className="text-sm font-bold text-white/80">{count}</span>
         ) : null}
         <span className="text-sm font-medium text-white/50">{label}</span>
       </div>
