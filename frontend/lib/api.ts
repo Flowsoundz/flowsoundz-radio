@@ -1,7 +1,6 @@
 import coverMappings from "./coverMappings.json";
 import { getAdminCoverSrc, normalizeCoverKey } from "./coverKeys";
 import { getCuratedCatalog } from "./curatedCatalog";
-import type { AiOnboardProfile } from "./promoOnboarding";
 import { Song } from "./types";
 
 function isLocalHostName(hostname: string | null | undefined) {
@@ -164,98 +163,6 @@ export async function getQueue(vibe?: string): Promise<Song[]> {
   }
 }
 
-type PromoSubmissionPayload = {
-  package_tier: "basic" | "featured" | "sponsored";
-  stripe_session_id: string;
-  artist_name: string;
-  song_title: string;
-  email: string;
-  vibe: string;
-  message: string;
-};
-
-type PromoSubmissionResponse = {
-  message: string;
-  submission: {
-    submission_id: string;
-    status: string;
-    created_at: string;
-    payment_status?: string;
-  };
-};
-
-type AiOnboardPayload = {
-  trackTitle: string;
-  artistName: string;
-  genre: string;
-  description: string;
-};
-
-export async function submitPromoSubmission(
-  payload: PromoSubmissionPayload,
-): Promise<PromoSubmissionResponse> {
-  const res = await fetch(`${API_BASE}/promo/submit`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
-
-  const data = await res.json().catch(() => null);
-
-  if (!res.ok) {
-    throw new Error(data?.detail || "Failed to submit promo request");
-  }
-
-  return data;
-}
-
-export async function generateAiOnboarding(
-  payload: AiOnboardPayload,
-): Promise<AiOnboardProfile> {
-  const res = await fetch("/api/ai/onboard", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
-
-  const data = await res.json().catch(() => null);
-
-  if (!res.ok) {
-    throw new Error(data?.error || "Failed to generate onboarding copy.");
-  }
-
-  return data as AiOnboardProfile;
-}
-
-type ReleaseSubmissionResponse = {
-  message: string;
-  submission: {
-    submission_id: string;
-    status: string;
-    created_at: string;
-  };
-};
-
-export async function submitReleaseSubmission(
-  payload: FormData,
-): Promise<ReleaseSubmissionResponse> {
-  const res = await fetch(`${API_BASE}/submissions/releases`, {
-    method: "POST",
-    body: payload,
-  });
-
-  const data = await res.json().catch(() => null);
-
-  if (!res.ok) {
-    throw new Error(data?.detail || data?.error || "Failed to submit release");
-  }
-
-  return data;
-}
 
 type PromoNetworkLeadPayload = {
   artist_name: string;
