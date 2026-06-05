@@ -2131,51 +2131,6 @@ export default function RadioPlayer() {
                   </p>
                 </div>
 
-                {usingFallbackCatalog ? (
-                  <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-[#00E5FF]/18 bg-[#00E5FF]/10 px-3 py-1.5 text-[11px] font-medium text-[#A5F3FC]">
-                    <span className="h-2 w-2 rounded-full bg-[#00E5FF] shadow-[0_0_10px_rgba(0,229,255,0.8)]" />
-                    Curated archive fallback active
-                  </div>
-                ) : null}
-
-                {activeDropLabel ? (
-                  <p className="mt-3 text-xs font-medium uppercase tracking-[0.2em] text-[#00E5FF]/80">
-                    DJ Drop: {activeDropLabel}
-                  </p>
-                ) : null}
-
-                {currentBed ? (
-                  <div className="mt-3 space-y-1">
-                    <p className="text-xs font-medium uppercase tracking-[0.2em] text-[#A5F3FC]/80">
-                      Now Playing Bed: {currentBed.id}
-                    </p>
-                    <p className="text-xs text-[#CBD5E1]/75">
-                      🎧 Background Vibe: {formatVibeLabel(currentBed.vibe)}
-                    </p>
-                  </div>
-                ) : null}
-
-                {currentTransitionPlan ? (
-                  <div className="mt-3 rounded-[1rem] border border-white/8 bg-white/5 px-3 py-2 text-[11px] text-[#CBD5E1]/85">
-                    <p className="uppercase tracking-[0.18em] text-[#CBD5E1]/55">
-                      Transition brain
-                    </p>
-                    <p className="mt-1 font-medium text-[#F8FAFC]">
-                      {currentTransitionPlan.transitionType}
-                    </p>
-                    <p className="mt-1 text-[#CBD5E1]">
-                      {currentTransitionPlan.djLine}
-                    </p>
-                    <p className="mt-1 text-[#CBD5E1]/75">
-                      {currentTransitionPlan.voice} · {currentTransitionPlan.fxLevel}
-                    </p>
-                    <p className="mt-1 text-[#CBD5E1]/60">
-                      {currentTransitionPlan.useDrop ? "drop" : "direct"} ·{" "}
-                      {currentTransitionPlan.dropReason}
-                    </p>
-                  </div>
-                ) : null}
-
                 {preparedEvent ? (
                   <div className="mt-3 rounded-[1rem] border border-[#00E5FF]/12 bg-[#00E5FF]/8 px-3 py-2 text-[11px] text-[#CBD5E1]/85">
                     <p className="uppercase tracking-[0.18em] text-[#CBD5E1]/55">
@@ -2186,10 +2141,6 @@ export default function RadioPlayer() {
                     </p>
                     <p className="mt-1 text-[#CBD5E1]">
                       {preparedEvent.nextSong.artist}
-                    </p>
-                    <p className="mt-1 text-[#CBD5E1]/75">
-                      {preparedEvent.plan.transitionType} ·{" "}
-                      {preparedEvent.plannedDrop.drop ? "drop coming" : "direct mix"}
                     </p>
                   </div>
                 ) : null}
