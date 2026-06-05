@@ -16,7 +16,7 @@ const SHELL_LINKS = [
   { href: "/songs", label: "Songs" },
   { href: "/artists", label: "Artists" },
   { href: "/artist/dashboard", label: "Creator Hub" },
-  { href: "/visualizer", label: "Visualizer" },
+  { href: "/for-artists", label: "For Artists" },
 ] as const;
 
 export function AppShell({

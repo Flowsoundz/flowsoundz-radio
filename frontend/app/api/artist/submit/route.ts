@@ -232,6 +232,25 @@ export async function POST(request: NextRequest) {
     submittedAt: new Date().toISOString(),
   }).catch(() => undefined);
 
+  // Artist confirmation fires before DB write so it always sends regardless of
+  // database configuration. Admin email already fires above for the same reason.
+  void sendArtistSubmissionConfirmation({
+    artistName,
+    contactName,
+    email,
+    songTitle,
+    genre,
+    vibe,
+    bio: promo.bio,
+    promoBlurb: promo.promoBlurb,
+    radioIntro: promo.radioIntro,
+    suggestedVibe: promo.suggestedVibe,
+    submissionId: null,
+  }).catch(() => undefined);
+
+  // DB write is best-effort. If DATABASE_URL is not configured (e.g. early-stage
+  // Vercel deployments), the submission is captured via email and the response
+  // still returns the AI promo assets so the confirmation page works.
   try {
     const submission = await createArtistSubmission({
       artist_name: artistName,
@@ -258,30 +277,10 @@ export async function POST(request: NextRequest) {
       promo,
     });
 
-    void sendArtistSubmissionConfirmation({
-      artistName,
-      contactName,
-      email,
-      songTitle,
-      genre,
-      vibe,
-      bio: promo.bio,
-      promoBlurb: promo.promoBlurb,
-      radioIntro: promo.radioIntro,
-      suggestedVibe: promo.suggestedVibe,
-      submissionId: submission.submission_id,
-    }).catch(() => undefined);
-
     return Response.json({ ...promo, submission_id: submission.submission_id });
-  } catch (error) {
-    return Response.json(
-      {
-        error:
-          error instanceof Error
-            ? error.message
-            : "Failed to store artist submission.",
-      },
-      { status: 500 },
-    );
+  } catch {
+    // DB unavailable — return promo assets without a submission_id.
+    // Both admin and artist emails were already sent above.
+    return Response.json({ ...promo, submission_id: null });
   }
 }
