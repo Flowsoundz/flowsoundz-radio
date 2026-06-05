@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { CreatorHubShell } from "@/components/creator-hub/CreatorHubShell";
 
+
 type CheckItem = {
   id: string;
   label: string;
@@ -95,6 +96,23 @@ export default function RightsPage() {
 
   return (
     <CreatorHubShell eyebrow="Creator Hub" title="Rights & Licensing">
+      {/* ── Intro ── */}
+      <div className="mb-8 glass-card rounded-[1.8rem] p-6 sm:p-8">
+        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200/75">
+          Step 3 of 5
+        </p>
+        <h2 className="mt-3 text-xl font-semibold text-white sm:text-2xl">
+          Confirm You Own What You&apos;re Submitting
+        </h2>
+        <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300">
+          Before submitting to FlowSoundz Radio or any platform, you need to be clear on who owns
+          the song. Work through the checklists below — then you&apos;re ready to move on to visuals and submission.
+        </p>
+        <p className="mt-3 text-sm font-medium text-cyan-100/80">
+          Goal: confirm ownership and rights before your track goes anywhere.
+        </p>
+      </div>
+
       {/* ── Disclaimer ── */}
       <div className="mb-8 rounded-[1.6rem] border border-[#7c4dff]/25 bg-[#7c4dff]/8 p-5 sm:p-6">
         <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#7c4dff]/90">
@@ -110,7 +128,7 @@ export default function RightsPage() {
       {/* ── Ownership Checklist ── */}
       <div className="mb-10">
         <p className="mb-5 text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200/75">
-          Step 3 — Who Owns the Song?
+          Ownership Checklist
         </p>
         <div className="glass-card rounded-[1.8rem] p-6 sm:p-8">
           <h2 className="text-xl font-semibold text-white">Ownership Checklist</h2>

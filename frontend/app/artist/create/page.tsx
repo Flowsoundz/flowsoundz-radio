@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { CreatorHubShell } from "@/components/creator-hub/CreatorHubShell";
 import { ToolCard } from "@/components/creator-hub/ToolCard";
 import {
@@ -123,15 +124,18 @@ export default function CreatePage() {
       {/* ── Intro ── */}
       <div className="mb-10 glass-card rounded-[1.8rem] p-6 sm:p-8">
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200/75">
-          Step 1
+          Step 1 of 5
         </p>
         <h2 className="mt-3 text-xl font-semibold text-white sm:text-2xl">
           Create or Refine Your Music
         </h2>
         <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300">
-          Use your preferred DAW, AI tool, or production workflow to create your song.
-          FlowSoundz does not replace your creative process — it helps you prepare the release
-          for discovery. Choose a tool below, or use what you already know.
+          Start with your creative process — DAW, AI tool, or whatever workflow you already use.
+          This step is about getting the song right before anything else. FlowSoundz doesn&apos;t
+          touch your creative process. We help you take it from finished track to radio-ready submission.
+        </p>
+        <p className="mt-3 text-sm font-medium text-cyan-100/80">
+          Goal: a finished, export-ready audio file before you move to distribution.
         </p>
       </div>
 
@@ -322,6 +326,21 @@ export default function CreatePage() {
           ))}
         </div>
       ) : null}
+      {/* ── Continue ── */}
+      <div className="flex flex-wrap gap-3">
+        <Link
+          href="/artist/distribution"
+          className="inline-flex min-h-11 items-center justify-center rounded-full bg-[linear-gradient(135deg,#00e5ff_0%,#7c4dff_100%)] px-6 py-2.5 text-sm font-bold text-white shadow-[0_0_22px_rgba(0,229,255,0.24)] transition hover:shadow-[0_0_32px_rgba(0,229,255,0.4)]"
+        >
+          Continue: Distribution Options →
+        </Link>
+        <Link
+          href="/artist/submit"
+          className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/10 px-6 py-2.5 text-sm font-medium text-slate-300 transition hover:border-white/20 hover:text-white"
+        >
+          Skip to Submission
+        </Link>
+      </div>
     </CreatorHubShell>
   );
 }

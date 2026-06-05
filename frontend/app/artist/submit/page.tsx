@@ -236,7 +236,7 @@ export default function SubmitPage() {
       {/* ── Intro ── */}
       <div className="mb-8 glass-card rounded-[1.8rem] p-6 sm:p-8">
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200/75">
-          Step 5
+          Step 5 of 5
         </p>
         <h2 className="mt-3 text-xl font-semibold text-white sm:text-2xl">
           Submit Your Track for Review

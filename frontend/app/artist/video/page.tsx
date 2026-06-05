@@ -159,15 +159,18 @@ export default function VideoPage() {
       {/* ── Intro ── */}
       <div className="mb-10 glass-card rounded-[1.8rem] p-6 sm:p-8">
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200/75">
-          Step 4
+          Step 4 of 5
         </p>
         <h2 className="mt-3 text-xl font-semibold text-white sm:text-2xl">
           Turn Your Song Into Content
         </h2>
         <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300">
-          Turn your song into visual content for Instagram, TikTok, YouTube Shorts, and
-          FlowSoundz artist spotlights. Use the tools below to generate videos, cover animations,
-          and lyric visuals.
+          Your track needs visuals — for Instagram, TikTok, YouTube Shorts, and your FlowSoundz
+          artist spotlight. Use the tools below to generate a music video, cover animation, or
+          lyric visual. Then copy the AI prompt straight into your video tool of choice.
+        </p>
+        <p className="mt-3 text-sm font-medium text-cyan-100/80">
+          Goal: at least one piece of visual content ready before you submit.
         </p>
       </div>
 

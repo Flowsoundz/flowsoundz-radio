@@ -84,19 +84,18 @@ export default function DistributionPage() {
       {/* ── Intro ── */}
       <div className="mb-10 glass-card rounded-[1.8rem] p-6 sm:p-8">
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200/75">
-          Step 2
+          Step 2 of 5
         </p>
         <h2 className="mt-3 text-xl font-semibold text-white sm:text-2xl">
           Where Should Your Music Live?
         </h2>
         <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300">
-          FlowSoundz Radio helps with discovery and promotion. To release your music on Spotify,
-          Apple Music, Tidal, and other major platforms, you will also need a music distributor.
-          Below are the most popular options — compare and choose what fits your release strategy.
+          FlowSoundz Radio handles discovery and promotion. To also get your music on Spotify,
+          Apple Music, Tidal, and other platforms, you need a distributor.
+          Pick one that fits your release strategy — they handle the stores, we handle the radio lane.
         </p>
-        <p className="mt-3 text-xs text-slate-400">
-          FlowSoundz does not replace DistroKid, TuneCore, CD Baby, or any other distribution
-          service. We point you to them and help you get radio-ready before you submit.
+        <p className="mt-3 text-sm font-medium text-cyan-100/80">
+          Goal: choose a distributor and prepare your release files before you submit to FlowSoundz.
         </p>
       </div>
 
