@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
 import { AppShell } from "@/components/AppShell";
 import { ConnectedVisualizerStudio } from "@/components/visualizer/ConnectedVisualizerStudio";
+
+export const metadata: Metadata = {
+  title: "Visualizer Studio — FlowSoundz Radio",
+  description:
+    "Preview your track through the FlowSoundz Radio visualizer. Upload locally, choose a visual mode, and export a promo loop for TikTok, Reels, or Shorts.",
+};
 
 export default async function VisualizerStudioPage(
   props: PageProps<"/visualizer">,
@@ -16,9 +23,9 @@ export default async function VisualizerStudioPage(
 
   return (
     <AppShell
-      eyebrow="FlowSoundz Visualizer Studio"
-      title="Connected visualizer studio for radio mode previews"
-      subtitle="Upload a local track, set the artist name, and preview the same Aurora Field or Liquid Mercury visualizer modes used by the radio modal. Everything runs in the browser with no backend, auth, or external services."
+      eyebrow="Visualizer Studio"
+      title="See your track the way listeners do."
+      subtitle="Preview your song through the FlowSoundz Radio visual engine. Upload locally, pick a mode, and export a promo loop — no account, no backend, runs entirely in your browser."
     >
       <ConnectedVisualizerStudio
         initialArtistName={initialArtistName}

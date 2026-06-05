@@ -10,7 +10,7 @@ import {
   type LyricIdeasOutput,
 } from "@/lib/creatorHub/generators";
 
-async function fetchLyricIdeas(input: LyricIdeasInput): Promise<LyricIdeasOutput> {
+async function fetchLyricIdeas(input: ExtendedLyricForm): Promise<LyricIdeasOutput> {
   const res = await fetch("/api/artist/generate-lyrics", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -82,23 +82,30 @@ const GOAL_OPTIONS = [
   "Create promo captions",
 ] as const;
 
-const INITIAL_FORM: LyricIdeasInput = {
+type ExtendedLyricForm = LyricIdeasInput & {
+  artistName: string;
+  coreThemes: string;
+};
+
+const INITIAL_FORM: ExtendedLyricForm = {
+  artistName: "",
   songIdea: "",
   genre: "",
   mood: "",
   language: "English",
   explicit: "Radio-Friendly",
   goal: "Hook ideas",
+  coreThemes: "",
 };
 
 export default function CreatePage() {
-  const [form, setForm] = useState<LyricIdeasInput>(INITIAL_FORM);
+  const [form, setForm] = useState<ExtendedLyricForm>(INITIAL_FORM);
   const [output, setOutput] = useState<LyricIdeasOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  function update<K extends keyof LyricIdeasInput>(
+  function update<K extends keyof ExtendedLyricForm>(
     key: K,
-    value: LyricIdeasInput[K],
+    value: ExtendedLyricForm[K],
   ) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
@@ -172,6 +179,32 @@ export default function CreatePage() {
           </p>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            <label className="grid gap-2">
+              <span className="text-sm font-medium text-white">
+                Artist name <span className="font-normal text-white/40">(optional)</span>
+              </span>
+              <input
+                type="text"
+                value={form.artistName}
+                onChange={(e) => update("artistName", e.target.value)}
+                placeholder="Your artist or project name"
+                className="min-h-12 rounded-[1rem] border border-white/8 bg-[#111827] px-4 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-[#00E5FF]/35"
+              />
+            </label>
+
+            <label className="grid gap-2">
+              <span className="text-sm font-medium text-white">
+                Core themes <span className="font-normal text-white/40">(optional)</span>
+              </span>
+              <input
+                type="text"
+                value={form.coreThemes}
+                onChange={(e) => update("coreThemes", e.target.value)}
+                placeholder="Instruments, story elements, emotions to highlight"
+                className="min-h-12 rounded-[1rem] border border-white/8 bg-[#111827] px-4 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-[#00E5FF]/35"
+              />
+            </label>
+
             <label className="grid gap-2 sm:col-span-2">
               <span className="text-sm font-medium text-white">Song idea or concept</span>
               <input

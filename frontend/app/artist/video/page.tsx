@@ -10,7 +10,7 @@ import {
 } from "@/lib/creatorHub/generators";
 import Link from "next/link";
 
-async function fetchVideoPrompt(input: VideoPromptInput): Promise<VideoPromptOutput> {
+async function fetchVideoPrompt(input: ExtendedVideoForm): Promise<VideoPromptOutput> {
   const res = await fetch("/api/artist/generate-video-prompt", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -99,13 +99,20 @@ const VIDEO_TYPES = [
   "Cover art animation",
 ] as const;
 
-const INITIAL_FORM: VideoPromptInput = {
+type ExtendedVideoForm = VideoPromptInput & {
+  lyricSnippet: string;
+  coreThemes: string;
+};
+
+const INITIAL_FORM: ExtendedVideoForm = {
   artistName: "",
   songTitle: "",
   genre: "",
   vibe: "",
   visualStyle: "Neon",
   videoType: "Music video",
+  lyricSnippet: "",
+  coreThemes: "",
 };
 
 function CopyButton({ text }: { text: string }) {
@@ -127,13 +134,13 @@ function CopyButton({ text }: { text: string }) {
 }
 
 export default function VideoPage() {
-  const [form, setForm] = useState<VideoPromptInput>(INITIAL_FORM);
+  const [form, setForm] = useState<ExtendedVideoForm>(INITIAL_FORM);
   const [output, setOutput] = useState<VideoPromptOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  function update<K extends keyof VideoPromptInput>(
+  function update<K extends keyof ExtendedVideoForm>(
     key: K,
-    value: VideoPromptInput[K],
+    value: ExtendedVideoForm[K],
   ) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
@@ -247,6 +254,32 @@ export default function VideoPage() {
                 value={form.vibe}
                 onChange={(e) => update("vibe", e.target.value)}
                 placeholder="Chill, Hype, Late Night, Emotional…"
+                className="min-h-12 rounded-[1rem] border border-white/8 bg-[#111827] px-4 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-[#00E5FF]/35"
+              />
+            </label>
+
+            <label className="grid gap-2">
+              <span className="text-sm font-medium text-white">
+                Lyric snippet <span className="font-normal text-white/40">(optional)</span>
+              </span>
+              <input
+                type="text"
+                value={form.lyricSnippet}
+                onChange={(e) => update("lyricSnippet", e.target.value)}
+                placeholder="A hook line or key lyric to anchor the visuals"
+                className="min-h-12 rounded-[1rem] border border-white/8 bg-[#111827] px-4 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-[#00E5FF]/35"
+              />
+            </label>
+
+            <label className="grid gap-2">
+              <span className="text-sm font-medium text-white">
+                Core themes <span className="font-normal text-white/40">(optional)</span>
+              </span>
+              <input
+                type="text"
+                value={form.coreThemes}
+                onChange={(e) => update("coreThemes", e.target.value)}
+                placeholder="Story elements, settings, emotions to visualize"
                 className="min-h-12 rounded-[1rem] border border-white/8 bg-[#111827] px-4 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-[#00E5FF]/35"
               />
             </label>

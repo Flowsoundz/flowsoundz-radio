@@ -173,7 +173,7 @@ const FLOW_STEPS: FlowStep[] = [
     title: "Create visuals or promo video",
     description:
       "Turn the release into a short-form promo asset without leaving the ecosystem.",
-    href: "/visualizer",
+    href: "/artist/video",
     accent: "#7c4dff",
     icon: "🎬",
     cta: "Open visualizer studio",
@@ -301,26 +301,8 @@ export function CreatorHubDashboardFlow({
     });
   }
 
-  function getStepHref(
-    step: FlowStep,
-    exportTarget: (typeof VISUAL_EXPORT_TARGETS)[number]["id"] = "tiktok",
-  ) {
-    if (step.id !== "visuals") {
-      return step.href;
-    }
-
-    const baseTrackTitle = persona
-      ? `${persona.title.replace(" / ", " ").replace(/\s+/g, " ").trim()} Promo Cut`
-      : "FlowSoundz Promo Cut";
-
-    const params = new URLSearchParams({
-      artist: persona ? `${persona.title} Release` : "FlowSoundz Creator",
-      track: baseTrackTitle,
-      persona: persona ? PERSONA_LABELS[persona.id] : "General release",
-      target: exportTarget,
-    });
-
-    return `${step.href}?${params.toString()}`;
+  function getStepHref(step: FlowStep) {
+    return step.href;
   }
 
   return (
@@ -508,28 +490,7 @@ export function CreatorHubDashboardFlow({
                           </div>
                         ) : null}
                         <div className="flex flex-wrap gap-3">
-                          {step.id === "visuals" ? (
-                            VISUAL_EXPORT_TARGETS.map((target, targetIndex) => (
-                              <Link
-                                key={target.id}
-                                href={getStepHref(step, target.id)}
-                                className={`inline-flex min-h-11 items-center justify-center rounded-full px-5 py-2.5 text-sm font-semibold text-white transition ${
-                                  targetIndex === 0
-                                    ? "shadow-[0_0_18px_rgba(0,229,255,0.18)] hover:shadow-[0_0_28px_rgba(0,229,255,0.28)]"
-                                    : "border border-white/12 bg-white/[0.04] hover:border-white/20 hover:bg-white/[0.08]"
-                                }`}
-                                style={
-                                  targetIndex === 0
-                                    ? {
-                                        background: `linear-gradient(135deg, ${step.accent} 0%, rgba(124,77,255,0.92) 100%)`,
-                                      }
-                                    : undefined
-                                }
-                              >
-                                {target.label}
-                              </Link>
-                            ))
-                          ) : (
+                          {(
                             <Link
                               href={getStepHref(step)}
                               className="inline-flex min-h-11 items-center justify-center rounded-full px-5 py-2.5 text-sm font-semibold text-white shadow-[0_0_18px_rgba(0,229,255,0.18)] transition hover:shadow-[0_0_28px_rgba(0,229,255,0.28)]"
@@ -556,25 +517,13 @@ export function CreatorHubDashboardFlow({
                         </p>
                         <p className="mt-2 text-sm leading-6 text-slate-200">
                           {step.id === "visuals"
-                            ? "Use the visualizer to generate the first promo-ready loop for this release. This is currently the most productized creator power feature in the Hub."
+                            ? "Generate an AI video prompt and social captions for TikTok, Reels, and Shorts. Takes 60 seconds and gives you ready-to-paste copy for every platform."
                             : step.id === "rights" && personaId === "ai_assisted"
                               ? "Run your AI-assisted release through a quick provenance review before submission so the record is easier to clear later."
                               : step.id === "create"
                                 ? "Treat this like the master working lane. Pick the version you want radio programmers to hear first."
                                 : "Complete this step cleanly before moving forward. The Hub will open the next stage automatically."}
                         </p>
-                        {step.id === "visuals" ? (
-                          <div className="mt-4 flex flex-wrap gap-2">
-                            {["TikTok", "Reels", "Shorts"].map((target) => (
-                              <span
-                                key={target}
-                                className="rounded-full border border-fuchsia-400/18 bg-fuchsia-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-fuchsia-100"
-                              >
-                                {target} · 9:16
-                              </span>
-                            ))}
-                          </div>
-                        ) : null}
                       </div>
                     </div>
                   </div>
