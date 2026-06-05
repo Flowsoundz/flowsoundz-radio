@@ -1,6 +1,13 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
+
+export const metadata: Metadata = {
+  title: "About — FlowSoundz Radio",
+  description:
+    "FlowSoundz Radio is a discovery-first platform built to give independent artists real visibility and listeners early access to music that hasn't been filtered through a corporate algorithm yet.",
+};
 
 const STATS = [
   { value: "Curated", label: "Discovery-first rotation" },

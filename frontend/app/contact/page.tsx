@@ -1,6 +1,13 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 import { ContactForm } from "@/components/ContactForm";
+
+export const metadata: Metadata = {
+  title: "Contact — FlowSoundz Radio",
+  description:
+    "Reach the FlowSoundz Radio team — general inquiries, artist submissions, partnership and sponsorship opportunities.",
+};
 
 export default function ContactPage() {
   return (

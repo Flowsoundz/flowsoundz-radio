@@ -49,9 +49,8 @@ function WaveformBar({ index }: { index: number }) {
   );
 }
 
-export function ArtistDiscoveryProfile({ artist, isFallbackCatalog }: Props) {
+export function ArtistDiscoveryProfile({ artist }: Props) {
   const [selectedMood, setSelectedMood] = useState<string>("all");
-  const [featuredPlaying, setFeaturedPlaying] = useState(false);
   const socialLinks = useMemo(() => buildSocialLinks(artist), [artist]);
 
   const filteredEntries = useMemo(() => {
@@ -90,24 +89,13 @@ export function ArtistDiscoveryProfile({ artist, isFallbackCatalog }: Props) {
                   />
                 )}
                 <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(5,8,22,0.04),rgba(5,8,22,0.46)_66%,rgba(5,8,22,0.88))]" />
-                <div className="absolute left-4 right-4 top-4 flex items-center justify-between">
-                  <span className="rounded-full border border-white/12 bg-black/25 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-cyan-100">
-                    9:16 story frame
-                  </span>
-                  {artist.isLiveInVisualizer ? (
+                {artist.isLiveInVisualizer ? (
+                  <div className="absolute left-4 right-4 top-4 flex justify-end">
                     <span className="rounded-full border border-emerald-300/25 bg-emerald-400/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-100 shadow-[0_0_18px_rgba(52,211,153,0.22)]">
                       Live now
                     </span>
-                  ) : null}
-                </div>
-                <div className="absolute bottom-4 left-4 right-4 rounded-[1rem] border border-white/10 bg-black/35 px-4 py-3 backdrop-blur-sm">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-cyan-200/80">
-                    A day in the life
-                  </p>
-                  <p className="mt-2 text-sm text-white/80">
-                    Artist greeting loops, session snippets, and short-form moments belong here.
-                  </p>
-                </div>
+                  </div>
+                ) : null}
               </div>
             </div>
 
@@ -196,43 +184,28 @@ export function ArtistDiscoveryProfile({ artist, isFallbackCatalog }: Props) {
         </section>
 
         <section className="glass-card rounded-[1.85rem] p-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-200/75">
-                Featured Track
-              </p>
-              <h3 className="mt-2 text-2xl font-semibold text-white">
-                {artist.featuredSong?.title ?? "Current spotlight"}
-              </h3>
-            </div>
-            <button
-              type="button"
-              onClick={() => setFeaturedPlaying((value) => !value)}
-              className="inline-flex min-h-12 items-center justify-center rounded-full bg-[linear-gradient(135deg,#00e5ff_0%,#7c4dff_52%,#ff2da6_100%)] px-6 py-3 text-sm font-semibold text-white shadow-[0_0_28px_rgba(0,229,255,0.22)] transition hover:shadow-[0_0_38px_rgba(0,229,255,0.34)]"
+          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-200/75">
+            Featured Track
+          </p>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-4">
+            <h3 className="text-2xl font-semibold text-white">
+              {artist.featuredSong?.title ?? "Current spotlight"}
+            </h3>
+            <Link
+              href={artist.featuredSong ? `/radio?song=${artist.featuredSong.id}` : "/radio"}
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#00e5ff_0%,#7c4dff_100%)] px-6 py-2.5 text-sm font-semibold text-white shadow-[0_0_22px_rgba(0,229,255,0.22)] transition hover:shadow-[0_0_34px_rgba(0,229,255,0.38)]"
             >
-              {featuredPlaying ? "Pause Featured Track" : "Play Featured Track"}
-            </button>
+              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor">
+                <polygon points="5,3 19,12 5,21" />
+              </svg>
+              Play on Radio
+            </Link>
           </div>
 
-          <div className="mt-4 rounded-[1.4rem] border border-white/8 bg-black/20 px-4 py-4">
-            <div className="flex items-center gap-1 overflow-hidden">
-              {Array.from({ length: 84 }).map((_, index) => (
-                <WaveformBar key={index} index={index} />
-              ))}
-            </div>
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm text-slate-300">
-                {featuredPlaying
-                  ? "Waveform active. Open Radio for full playback and queue context."
-                  : "Inline waveform preview for artist discovery and featured track context."}
-              </p>
-              <Link
-                href={artist.featuredSong ? `/radio?song=${artist.featuredSong.id}` : "/radio"}
-                className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-white transition hover:border-cyan-300/30 hover:bg-cyan-300/[0.08]"
-              >
-                Open on radio
-              </Link>
-            </div>
+          <div className="mt-4 flex items-center gap-1 overflow-hidden rounded-[1rem] border border-white/8 bg-black/20 px-4 py-3">
+            {Array.from({ length: 84 }).map((_, index) => (
+              <WaveformBar key={index} index={index} />
+            ))}
           </div>
 
           <div className="mt-4 rounded-[1.4rem] border border-fuchsia-400/14 bg-fuchsia-500/[0.04] px-5 py-5">
@@ -260,56 +233,33 @@ export function ArtistDiscoveryProfile({ artist, isFallbackCatalog }: Props) {
           </div>
 
           <div className="mt-5 space-y-3">
-            {filteredEntries.map(({ song, milestone }) => {
-              const progress = Math.max(
-                8,
-                Math.min(100, Math.round((milestone.current / milestone.goal) * 100)),
-              );
-
-              return (
-                <article
-                  key={song.id}
-                  className="rounded-[1.45rem] border border-white/8 bg-white/[0.03] p-4"
+            {filteredEntries.map(({ song }) => (
+              <article
+                key={song.id}
+                className="flex items-center gap-4 rounded-[1.45rem] border border-white/8 bg-white/[0.03] p-4"
+              >
+                <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-[0.9rem] bg-gradient-to-br from-cyan-400/20 to-fuchsia-500/20">
+                  <CoverArt
+                    src={getCoverUrl(song)}
+                    alt={`${song.title} cover`}
+                    sizes="56px"
+                    className="object-cover"
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h4 className="truncate text-sm font-semibold text-white">{song.title}</h4>
+                  <p className="mt-0.5 text-xs text-slate-400">
+                    {song.genre ?? "Independent"} · {formatDuration(song.duration_sec ?? 0)}
+                  </p>
+                </div>
+                <Link
+                  href={`/radio?song=${song.id}`}
+                  className="shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-white transition hover:border-cyan-300/30 hover:bg-cyan-300/[0.08]"
                 >
-                  <div className="flex items-start gap-4">
-                    <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-[1rem] bg-gradient-to-br from-cyan-400/20 to-fuchsia-500/20">
-                      <CoverArt
-                        src={getCoverUrl(song)}
-                        alt={`${song.title} cover`}
-                        sizes="64px"
-                        className="object-cover"
-                      />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div>
-                          <h4 className="truncate text-lg font-semibold text-white">{song.title}</h4>
-                          <p className="mt-1 text-sm text-slate-300">
-                            {song.genre ?? "Independent"} · {formatDuration(song.duration_sec ?? 0)}
-                          </p>
-                        </div>
-                        <Link
-                          href={`/radio?song=${song.id}`}
-                          className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-white transition hover:border-cyan-300/30 hover:bg-cyan-300/[0.08]"
-                        >
-                          Quick play
-                        </Link>
-                      </div>
-
-                      <p className="mt-3 text-sm text-slate-300">
-                        Help reach {milestone.goal} favorites to {milestone.rewardLabel.toLowerCase()}.
-                      </p>
-                      <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/[0.08]">
-                        <div
-                          className="h-full rounded-full bg-[linear-gradient(90deg,#7c4dff_0%,#00e5ff_100%)]"
-                          style={{ width: `${progress}%` }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </article>
-              );
-            })}
+                  Play
+                </Link>
+              </article>
+            ))}
           </div>
         </section>
       </div>
@@ -413,17 +363,6 @@ export function ArtistDiscoveryProfile({ artist, isFallbackCatalog }: Props) {
           </div>
         </section>
 
-        {isFallbackCatalog ? (
-          <section className="glass-card rounded-[1.8rem] border border-fuchsia-400/14 bg-fuchsia-500/[0.04] p-5">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-fuchsia-200/75">
-              Archive Mode
-            </p>
-            <p className="mt-2 text-sm leading-6 text-slate-200">
-              This profile is currently powered by the FlowSoundz curated archive while the live
-              station reconnects, so discovery never drops to zero.
-            </p>
-          </section>
-        ) : null}
       </aside>
     </div>
   );

@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
+
+export const metadata: Metadata = {
+  title: "Sponsored Placement — FlowSoundz Radio",
+  description:
+    "Get your music in front of FlowSoundz listeners during curated rotation, Midnight Drops, and member moments. Station mentions, featured rotation, and sponsored placement by application.",
+};
 
 const placements = [
   {

@@ -1,8 +1,15 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 import { CoverArt } from "@/components/CoverArt";
 import { formatVibeLabel } from "@/lib/format";
 import { readCatalogSnapshotFromStore } from "@/lib/catalogSnapshotStore";
+
+export const metadata: Metadata = {
+  title: "Artists — FlowSoundz Radio",
+  description:
+    "Discover independent artists in the FlowSoundz Radio rotation. Every profile is a live snapshot — tracks, vibes, and rotation status straight from the station.",
+};
 
 export const dynamic = "force-dynamic";
 
