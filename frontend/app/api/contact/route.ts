@@ -2,20 +2,8 @@ import { NextResponse } from "next/server";
 import { sendContactNotification } from "@/lib/mailer";
 
 export const runtime = "nodejs";
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE || "http://127.0.0.1:8000";
 
 const VALID_TOPICS = new Set(["artist", "partnership", "general"]);
-
-type ContactMessage = {
-  id: string;
-  topic: string;
-  name: string;
-  email: string;
-  message: string;
-  received_at: string;
-  status: "unread" | "read";
-};
 
 export async function POST(request: Request) {
   let topic: string, name: string, email: string, message: string;
@@ -54,33 +42,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid topic." }, { status: 422 });
   }
 
-  const response = await fetch(`${API_BASE}/contact`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    cache: "no-store",
-    body: JSON.stringify({ topic, name, email, message }),
-  });
-
-  const payload = (await response.json().catch(() => ({}))) as {
-    detail?: string;
-    error?: string;
-    message?: string;
-    entry?: ContactMessage;
+  const entry = {
+    id: `msg_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
+    topic,
+    name,
+    email,
+    message,
+    received_at: new Date().toISOString(),
+    status: "unread" as const,
   };
 
-  if (!response.ok) {
-    return NextResponse.json(
-      { error: payload.detail || payload.error || "Unable to send message." },
-      { status: response.status },
-    );
-  }
+  void sendContactNotification(entry).catch(() => undefined);
 
-  if (payload.entry) {
-    void sendContactNotification(payload.entry).catch(() => undefined);
-  }
-
-  return NextResponse.json(
-    { message: payload.message || "Message received. We'll get back to you soon." },
-    { status: response.status },
-  );
+  return NextResponse.json({
+    message: "Message received. We'll get back to you soon.",
+    entry,
+  });
 }
