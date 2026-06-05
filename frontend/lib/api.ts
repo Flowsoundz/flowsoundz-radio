@@ -47,7 +47,7 @@ export const API_BASE = sanitizePublicBase(
 );
 const LOCAL_APP_BASE = sanitizePublicBase(
   process.env.NEXT_PUBLIC_APP_BASE,
-  "http://127.0.0.1:3000",
+  "http://127.0.0.1:3001",
 );
 const DEFAULT_COVER_SRC = "/covers/default.webp";
 
@@ -277,7 +277,7 @@ type PromoNetworkLeadResponse = {
 export async function submitPromoNetworkLead(
   payload: PromoNetworkLeadPayload,
 ): Promise<PromoNetworkLeadResponse> {
-  const res = await fetch(`${API_BASE}/promo/network-leads`, {
+  const res = await fetch(`/api/promo/lead`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -288,7 +288,7 @@ export async function submitPromoNetworkLead(
   const data = await res.json().catch(() => null);
 
   if (!res.ok) {
-    throw new Error(data?.detail || "Failed to submit promo request");
+    throw new Error((data as { error?: string })?.error || "Failed to submit promo request");
   }
 
   return data;

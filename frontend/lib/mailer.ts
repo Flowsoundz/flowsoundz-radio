@@ -244,6 +244,54 @@ export async function sendArtistSubmissionNotification(data: {
   });
 }
 
+export async function sendPromoLeadNotification(data: {
+  artistName: string;
+  trackLink: string;
+  budgetRange: string;
+  email: string;
+  submittedAt: string;
+}) {
+  const transporter = getTransporter();
+  if (!transporter) return;
+
+  const to = getNotifyEmail();
+
+  await transporter.sendMail({
+    from: `"FlowSoundz Promo" <${to}>`,
+    to,
+    replyTo: data.email,
+    subject: `[Promo Lead] ${data.artistName}`,
+    text: [
+      `New promo lead on FlowSoundz.`,
+      ``,
+      `Artist: ${data.artistName}`,
+      `Email: ${data.email}`,
+      data.trackLink ? `Track: ${data.trackLink}` : "",
+      data.budgetRange ? `Budget: ${data.budgetRange}` : "",
+      `Submitted: ${data.submittedAt}`,
+    ]
+      .filter(Boolean)
+      .join("\n"),
+    html: `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#1e293b">
+        <div style="background:#07111f;padding:24px 28px;border-radius:12px 12px 0 0">
+          <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:#00e5ff">FlowSoundz Radio</p>
+          <h1 style="margin:8px 0 0;font-size:20px;color:#fff">New Promo Lead</h1>
+        </div>
+        <div style="background:#f8fafc;padding:24px 28px;border-radius:0 0 12px 12px;border:1px solid #e2e8f0;border-top:none">
+          <table style="width:100%;border-collapse:collapse">
+            <tr><td style="padding:5px 0;font-size:13px;color:#64748b;width:80px">Artist</td><td style="padding:5px 0;font-size:13px;font-weight:600">${data.artistName}</td></tr>
+            <tr><td style="padding:5px 0;font-size:13px;color:#64748b">Email</td><td style="padding:5px 0;font-size:13px"><a href="mailto:${data.email}">${data.email}</a></td></tr>
+            ${data.trackLink ? `<tr><td style="padding:5px 0;font-size:13px;color:#64748b">Track</td><td style="padding:5px 0;font-size:13px"><a href="${data.trackLink}">${data.trackLink}</a></td></tr>` : ""}
+            ${data.budgetRange ? `<tr><td style="padding:5px 0;font-size:13px;color:#64748b">Budget</td><td style="padding:5px 0;font-size:13px">${data.budgetRange}</td></tr>` : ""}
+          </table>
+          <a href="mailto:${data.email}" style="display:inline-block;margin-top:16px;background:linear-gradient(135deg,#00e5ff,#7c4dff);color:#fff;font-weight:700;font-size:13px;padding:10px 20px;border-radius:999px;text-decoration:none">Reply to Artist</a>
+        </div>
+      </div>
+    `,
+  });
+}
+
 export async function sendArtistSubmissionConfirmation(data: {
   artistName: string;
   contactName: string;

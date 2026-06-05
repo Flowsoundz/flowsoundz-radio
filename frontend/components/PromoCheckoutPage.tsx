@@ -2,16 +2,10 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { BrandLogo } from "@/components/BrandLogo";
-import { PromoPackageCard } from "@/components/PromoPackageCard";
 import { getCoverUrl, getSongs, submitPromoNetworkLead } from "@/lib/api";
 import { isTrackFeatured } from "@/lib/access";
-import {
-  createPromoCheckoutSession,
-  type PromoTier,
-} from "@/lib/stripe";
 import type { Song } from "@/lib/types";
 
 const INITIAL_LEAD_FORM = {
@@ -23,17 +17,12 @@ const INITIAL_LEAD_FORM = {
 };
 
 export function PromoCheckoutPage() {
-  const searchParams = useSearchParams();
-  const [selectedTier, setSelectedTier] = useState<PromoTier>("basic");
-  const [isStartingCheckout, setIsStartingCheckout] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
   const [featuredTracks, setFeaturedTracks] = useState<Song[]>([]);
   const [isLoadingTracks, setIsLoadingTracks] = useState(true);
   const [leadForm, setLeadForm] = useState(INITIAL_LEAD_FORM);
   const [leadErrorMessage, setLeadErrorMessage] = useState("");
   const [leadSuccessMessage, setLeadSuccessMessage] = useState("");
   const [isSubmittingLead, setIsSubmittingLead] = useState(false);
-  const isCancelled = searchParams.get("cancelled") === "true";
 
   useEffect(() => {
     let isActive = true;
@@ -63,25 +52,6 @@ export function PromoCheckoutPage() {
       isActive = false;
     };
   }, []);
-
-  async function handleStartCheckout(packageTier: PromoTier) {
-    setSelectedTier(packageTier);
-    setIsStartingCheckout(true);
-    setErrorMessage("");
-
-    try {
-      const checkoutUrl = await createPromoCheckoutSession(packageTier);
-      window.location.href = checkoutUrl;
-    } catch (error) {
-      setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Unable to start checkout right now. Try again.",
-      );
-    } finally {
-      setIsStartingCheckout(false);
-    }
-  }
 
   function updateLeadField(
     field: keyof typeof INITIAL_LEAD_FORM,
@@ -141,51 +111,6 @@ export function PromoCheckoutPage() {
               </div>
             ))}
           </div>
-
-          <section className="glass-card overflow-hidden rounded-[2rem] border border-white/8 bg-[#0B1020]/86 p-6 shadow-[0_22px_80px_rgba(0,0,0,0.34)] md:p-8">
-            <div className="rounded-[1.7rem] border border-white/8 bg-[radial-gradient(circle_at_top_left,rgba(0,229,255,0.14),transparent_34%),radial-gradient(circle_at_top_right,rgba(255,45,166,0.14),transparent_30%),linear-gradient(135deg,#111827_0%,#0B1020_62%,#050816_100%)] p-6">
-              <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-                <div className="max-w-2xl">
-                  <div className="inline-flex items-center gap-2 rounded-full border border-[#FF2DA6]/20 bg-[#FF2DA6]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-[#F8FAFC]">
-                    <BrandLogo variant="icon" className="h-3.5 w-3.5 opacity-80" />
-                    <span>Payment Before Submission</span>
-                  </div>
-                  <h2 className="mt-4 font-display text-3xl font-semibold text-[#F8FAFC] md:text-4xl">
-                    Reserve your FlowSoundz promo lane first.
-                  </h2>
-                  <p className="mt-3 max-w-xl text-sm leading-7 text-[#CBD5E1] md:text-base">
-                    Pick a package, complete secure checkout with Stripe, then
-                    return with your submission form unlocked and your tier locked
-                    in.
-                  </p>
-                </div>
-                <div className="rounded-[1.4rem] border border-white/8 bg-white/5 px-5 py-4 text-sm text-[#CBD5E1]">
-                  <div className="mb-3 flex items-center gap-2">
-                    <BrandLogo variant="icon" className="h-4 w-4 opacity-60" />
-                    <span className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#CBD5E1]/72">
-                      FlowSoundz
-                    </span>
-                  </div>
-                  <p>
-                    Payments processed securely by Stripe. FlowSoundz never stores
-                    card details.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {isCancelled ? (
-            <div className="rounded-[1.3rem] border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-100">
-              Checkout was canceled. Choose a package whenever you’re ready.
-            </div>
-          ) : null}
-
-          {errorMessage ? (
-            <div className="rounded-[1.2rem] border border-[#FF2DA6]/18 bg-[#FF2DA6]/10 px-4 py-3 text-sm text-[#F8FAFC]">
-              {errorMessage}
-            </div>
-          ) : null}
 
           <section className="glass-card rounded-[2rem] border border-white/8 bg-[#0B1020]/86 p-6 md:p-8">
             <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
@@ -263,112 +188,54 @@ export function PromoCheckoutPage() {
           </section>
 
           <section className="grid gap-4 xl:grid-cols-3">
-            <PromoPackageCard
-              name="Basic Submission"
-              description="Get your song into the review queue with artist details, vibe notes, and a manual listen from the FlowSoundz team."
-              price="$15"
-              ctaLabel={
-                isStartingCheckout && selectedTier === "basic"
-                  ? "Starting..."
-                  : "Start Submission — $15"
-              }
-              accent="border-[#00E5FF]/20 bg-[#00E5FF]/10 text-[#F8FAFC]"
-              note="Secure checkout via Stripe"
-              isSelected={selectedTier === "basic"}
-              onSelect={() => void handleStartCheckout("basic")}
-            />
-            <PromoPackageCard
-              name="Featured Consideration"
-              description="Priority review for standout records that may fit featured placement, homepage visibility, or curated station moments."
-              price="$45"
-              ctaLabel={
-                isStartingCheckout && selectedTier === "featured"
-                  ? "Starting..."
-                  : "Start Submission — $45"
-              }
-              accent="border-[#8B5CF6]/20 bg-[#8B5CF6]/12 text-[#F8FAFC]"
-              note="Secure checkout via Stripe"
-              isSelected={selectedTier === "featured"}
-              onSelect={() => void handleStartCheckout("featured")}
-            />
-            <PromoPackageCard
-              name="Sponsored Rotation"
-              description="High-visibility promo lane for premium station presence, sponsored support, and elevated release visibility."
-              price="$95"
-              ctaLabel={
-                isStartingCheckout && selectedTier === "sponsored"
-                  ? "Starting..."
-                  : "Start Submission — $95"
-              }
-              accent="border-[#FF2DA6]/20 bg-[#FF2DA6]/10 text-[#F8FAFC]"
-              note="Secure checkout via Stripe"
-              isSelected={selectedTier === "sponsored"}
-              onSelect={() => void handleStartCheckout("sponsored")}
-            />
-          </section>
-
-          <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-            <div className="glass-card rounded-[2rem] border border-white/8 bg-[#0B1020]/86 p-6 md:p-8">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.26em] text-[#CBD5E1]/60">
-                    Checkout-first flow
-                  </p>
-                  <h2 className="mt-3 text-2xl font-semibold text-[#F8FAFC] md:text-3xl">
-                    Pay first, then complete your submission.
-                  </h2>
+            {[
+              {
+                name: "Basic Submission",
+                description: "Your track into the review queue with artist details, vibe notes, and a manual listen from the FlowSoundz team.",
+                price: "$15",
+                accent: "border-[#00E5FF]/20 bg-[#00E5FF]/10",
+                labelColor: "text-cyan-300",
+              },
+              {
+                name: "Featured Consideration",
+                description: "Priority review for standout records that may fit featured placement, homepage visibility, or curated station moments.",
+                price: "$45",
+                accent: "border-[#8B5CF6]/20 bg-[#8B5CF6]/12",
+                labelColor: "text-violet-300",
+              },
+              {
+                name: "Sponsored Rotation",
+                description: "High-visibility promo lane for premium station presence, sponsored support, and elevated release visibility.",
+                price: "$95",
+                accent: "border-[#FF2DA6]/20 bg-[#FF2DA6]/10",
+                labelColor: "text-fuchsia-300",
+              },
+            ].map((pkg) => (
+              <div
+                key={pkg.name}
+                className={`glass-card flex flex-col rounded-[1.8rem] border p-6 ${pkg.accent}`}
+              >
+                <p className={`text-[11px] font-semibold uppercase tracking-[0.2em] ${pkg.labelColor}`}>
+                  {pkg.name}
+                </p>
+                <div className="mt-3 flex items-end gap-1">
+                  <span className="font-headline text-4xl leading-none text-[#F8FAFC]">{pkg.price}</span>
+                  <span className="mb-0.5 text-sm text-[#CBD5E1]/60">/submission</span>
                 </div>
-                <span className="rounded-full border border-white/8 bg-white/5 px-3 py-1 text-xs font-medium text-[#CBD5E1]">
-                  Secure by Stripe
-                </span>
+                <p className="mt-3 flex-1 text-sm leading-6 text-[#CBD5E1]">{pkg.description}</p>
+                <div className="mt-5 rounded-[1.1rem] border border-white/8 bg-white/[0.04] px-4 py-3 text-center text-xs font-semibold text-[#CBD5E1]/60">
+                  Launching soon — join the waitlist below
+                </div>
               </div>
-
-              <div className="mt-6 space-y-3">
-                {[
-                  "Choose the promo lane that fits your release goals.",
-                  "Complete secure checkout on Stripe.",
-                  "Return with the submission form unlocked and your tier fixed.",
-                ].map((item, index) => (
-                  <div
-                    key={item}
-                    className="rounded-[1.3rem] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-[#CBD5E1]"
-                  >
-                    <span className="mr-3 inline-flex h-6 w-6 items-center justify-center rounded-full border border-white/8 bg-white/6 text-xs font-semibold text-[#F8FAFC]">
-                      {index + 1}
-                    </span>
-                    {item}
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-6 rounded-[1.5rem] border border-[#00E5FF]/16 bg-[#00E5FF]/10 p-4 text-sm leading-6 text-[#F8FAFC]">
-                Your card is charged only once. Submissions are reviewed within 72 hours.
-              </div>
-            </div>
-
-            <aside className="glass-card rounded-[2rem] border border-white/8 bg-[#0B1020]/86 p-6 md:p-8">
-              <p className="text-xs font-semibold uppercase tracking-[0.26em] text-[#CBD5E1]/60">
-                Before you pay
-              </p>
-              <h2 className="mt-3 text-2xl font-semibold text-[#F8FAFC]">
-                Clean queue, no unpaid clutter
-              </h2>
-              <div className="mt-6 space-y-3 text-sm leading-6 text-[#CBD5E1]">
-                <p>
-                  No promo submission is written to the admin queue until payment
-                  is confirmed and you finish the unlocked form.
-                </p>
-                <p>
-                  Failed or canceled payments stay on Stripe’s checkout page and
-                  never create admin noise.
-                </p>
-                <p>
-                  After payment, your package tier is locked so the review lane is
-                  clear from the start.
-                </p>
-              </div>
-            </aside>
+            ))}
           </section>
+
+          <div className="rounded-[1.6rem] border border-cyan-300/18 bg-[linear-gradient(135deg,rgba(0,229,255,0.07),rgba(124,77,255,0.06))] px-6 py-5">
+            <p className="text-sm font-semibold text-white">Paid promo lanes are coming soon.</p>
+            <p className="mt-1 text-sm text-slate-400">
+              Use the form below to send your track now — the team reviews every request and will confirm availability and pricing directly.
+            </p>
+          </div>
 
           <section className="glass-card rounded-[2rem] border border-white/8 bg-[#0B1020]/86 p-6 md:p-8">
             <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
