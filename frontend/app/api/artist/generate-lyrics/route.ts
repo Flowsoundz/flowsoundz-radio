@@ -1,4 +1,5 @@
 import type { NextRequest } from "next/server";
+import { runAI, extractList } from "@/lib/creatorHub/aiEngine";
 import type { LyricIdeasOutput } from "@/lib/creatorHub/generators";
 
 export const runtime = "nodejs";
@@ -10,18 +11,12 @@ type LyricsRequest = {
   language?: unknown;
   explicit?: unknown;
   goal?: unknown;
+  artistName?: unknown;
+  coreThemes?: unknown;
 };
 
 function str(v: unknown): string {
   return typeof v === "string" ? v.trim() : "";
-}
-
-function stripCodeFence(raw: string): string {
-  let text = raw.trim();
-  if (text.startsWith("```")) {
-    text = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
-  }
-  return text;
 }
 
 function fallback(songIdea: string, genre: string, mood: string): LyricIdeasOutput {
@@ -47,55 +42,6 @@ function fallback(songIdea: string, genre: string, mood: string): LyricIdeasOutp
   };
 }
 
-async function callOpenAI(apiKey: string, prompt: string): Promise<string> {
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: process.env.OPENAI_MODEL_DJ ?? "gpt-4o",
-      max_tokens: 700,
-      response_format: { type: "json_object" },
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are a creative lyric assistant for FlowSoundz Radio. Always respond with valid JSON only.",
-        },
-        { role: "user", content: prompt },
-      ],
-    }),
-  });
-  if (!res.ok) throw new Error(`OpenAI ${res.status}`);
-  const data = (await res.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-  };
-  return data.choices?.[0]?.message?.content ?? "";
-}
-
-async function callAnthropic(apiKey: string, prompt: string): Promise<string> {
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 700,
-      messages: [{ role: "user", content: prompt }],
-    }),
-  });
-  if (!res.ok) throw new Error(`Anthropic ${res.status}`);
-  const data = (await res.json()) as {
-    content?: Array<{ type: string; text?: string }>;
-  };
-  return data.content?.find((b) => b.type === "text")?.text ?? "";
-}
-
 export async function POST(request: NextRequest) {
   let body: LyricsRequest;
   try {
@@ -110,6 +56,8 @@ export async function POST(request: NextRequest) {
   const language = str(body.language) || "English";
   const explicit = str(body.explicit) || "Radio-Friendly";
   const goal = str(body.goal) || "Hook ideas";
+  const artistName = str(body.artistName);
+  const coreThemes = str(body.coreThemes);
 
   if (!songIdea || !genre || !mood) {
     return Response.json(
@@ -118,78 +66,61 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const openAiKey = process.env.OPENAI_API_KEY?.trim();
-  const anthropicKey = process.env.ANTHROPIC_API_KEY?.trim();
-
-  if (!openAiKey && !anthropicKey) {
-    return Response.json(fallback(songIdea, genre, mood));
-  }
-
-  const prompt = [
-    "You are a creative lyric assistant for FlowSoundz Radio — an underground discovery-first artist station.",
+  const userPrompt = [
+    "Generate lyric concepts for a FlowSoundz Radio artist.",
     "",
-    "An artist needs help with their song. Generate lyric ideas based on the details below.",
-    "",
-    `Song concept: ${songIdea}`,
+    "── TRACK DETAILS ──",
+    artistName ? `Artist: ${artistName}` : "",
+    `Song concept / lyric idea: ${songIdea}`,
     `Genre: ${genre}`,
-    `Mood/Feeling: ${mood}`,
+    `Vibe / mood: ${mood}`,
     `Language: ${language}`,
     `Version: ${explicit}`,
     `Goal: ${goal}`,
+    coreThemes ? `Core themes, instruments, or story: ${coreThemes}` : "",
     "",
-    "Return ONLY a valid JSON object with exactly these keys (no markdown, no extra text):",
-    "{",
-    '  "hookIdeas": ["3 hook line options — catchy, authentic, genre-appropriate. Each is a complete lyric fragment in quotes."],',
-    '  "titleIdeas": ["3 track title options — short, memorable, fits the mood and genre."],',
-    '  "captionIdeas": ["3 social media captions — one each for TikTok, Instagram, and general announcement. Brief, punchy, no hashtag spam."]',
-    "}",
+    "── OUTPUT FORMAT ──",
+    "Return ONLY the four tagged blocks below. Nothing else.",
     "",
-    "Tone: underground, real, not corporate. Write like a producer-artist hybrid, not a marketing bot.",
-  ].join("\n");
+    "<lyric_concepts>",
+    "<hooks>",
+    "Three hook line options. Each is a complete lyric fragment — catchy, specific, genre-authentic.",
+    "No generic rhymes. No filler. Write like someone who actually lives this sound.",
+    "1. [hook 1]",
+    "2. [hook 2]",
+    "3. [hook 3]",
+    "</hooks>",
+    "<titles>",
+    "Three track title options. Short, evocative, fits the mood and genre perfectly.",
+    "1. [title 1]",
+    "2. [title 2]",
+    "3. [title 3]",
+    "</titles>",
+    "<captions>",
+    "Three social media captions — one each for TikTok, Instagram, YouTube.",
+    "Brief, punchy. No hashtag spam. No exclamation marks unless earned.",
+    "1. [TikTok caption]",
+    "2. [Instagram caption]",
+    "3. [YouTube caption]",
+    "</captions>",
+    "</lyric_concepts>",
+  ].filter(Boolean).join("\n");
 
-  let raw = "";
-  try {
-    raw = openAiKey
-      ? await callOpenAI(openAiKey, prompt)
-      : await callAnthropic(anthropicKey!, prompt);
-  } catch {
-    if (openAiKey && anthropicKey) {
-      try {
-        raw = await callAnthropic(anthropicKey, prompt);
-      } catch {
-        return Response.json(fallback(songIdea, genre, mood));
-      }
-    } else {
-      return Response.json(fallback(songIdea, genre, mood));
-    }
-  }
+  const raw = await runAI(userPrompt, 1200);
 
-  let parsed: Record<string, unknown>;
-  try {
-    parsed = JSON.parse(stripCodeFence(raw)) as Record<string, unknown>;
-  } catch {
+  if (!raw) {
     return Response.json(fallback(songIdea, genre, mood));
   }
 
-  function toStringArray(v: unknown): string[] {
-    if (!Array.isArray(v)) return [];
-    return v.filter((item): item is string => typeof item === "string");
-  }
+  const hookIdeas = extractList(raw, "hooks");
+  const titleIdeas = extractList(raw, "titles");
+  const captionIdeas = extractList(raw, "captions");
 
-  const output: LyricIdeasOutput = {
-    hookIdeas:
-      toStringArray(parsed.hookIdeas).length > 0
-        ? toStringArray(parsed.hookIdeas)
-        : fallback(songIdea, genre, mood).hookIdeas,
-    titleIdeas:
-      toStringArray(parsed.titleIdeas).length > 0
-        ? toStringArray(parsed.titleIdeas)
-        : fallback(songIdea, genre, mood).titleIdeas,
-    captionIdeas:
-      toStringArray(parsed.captionIdeas).length > 0
-        ? toStringArray(parsed.captionIdeas)
-        : fallback(songIdea, genre, mood).captionIdeas,
-  };
+  const fb = fallback(songIdea, genre, mood);
 
-  return Response.json(output);
+  return Response.json({
+    hookIdeas: hookIdeas.length >= 2 ? hookIdeas : fb.hookIdeas,
+    titleIdeas: titleIdeas.length >= 2 ? titleIdeas : fb.titleIdeas,
+    captionIdeas: captionIdeas.length >= 2 ? captionIdeas : fb.captionIdeas,
+  } satisfies LyricIdeasOutput);
 }

@@ -5,6 +5,7 @@ import {
   sendArtistSubmissionNotification,
   sendArtistSubmissionConfirmation,
 } from "@/lib/mailer";
+import { runAI, extractTag, extractList } from "@/lib/creatorHub/aiEngine";
 
 export const runtime = "nodejs";
 
@@ -44,13 +45,6 @@ function sanitizeVibe(v: unknown): Vibe {
   return (VALID_VIBES as readonly string[]).includes(s) ? (s as Vibe) : "Chill";
 }
 
-function stripCodeFence(raw: string): string {
-  let text = raw.trim();
-  if (text.startsWith("```")) {
-    text = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
-  }
-  return text;
-}
 
 function fallbackPromo(
   artistName: string,
@@ -81,54 +75,6 @@ function fallbackPromo(
   };
 }
 
-async function callOpenAI(apiKey: string, prompt: string): Promise<string> {
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: process.env.OPENAI_MODEL_DJ ?? "gpt-4o",
-      max_tokens: 600,
-      response_format: { type: "json_object" },
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are a music marketing assistant for FlowSoundz Radio. Always respond with valid JSON only.",
-        },
-        { role: "user", content: prompt },
-      ],
-    }),
-  });
-  if (!res.ok) throw new Error(`OpenAI ${res.status}`);
-  const data = (await res.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-  };
-  return data.choices?.[0]?.message?.content ?? "";
-}
-
-async function callAnthropic(apiKey: string, prompt: string): Promise<string> {
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 600,
-      messages: [{ role: "user", content: prompt }],
-    }),
-  });
-  if (!res.ok) throw new Error(`Anthropic ${res.status}`);
-  const data = (await res.json()) as {
-    content?: Array<{ type: string; text?: string }>;
-  };
-  return data.content?.find((b) => b.type === "text")?.text ?? "";
-}
 
 export async function POST(request: NextRequest) {
   let body: SubmitRequest;
@@ -182,86 +128,77 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const openAiKey = process.env.OPENAI_API_KEY?.trim();
-  const anthropicKey = process.env.ANTHROPIC_API_KEY?.trim();
-
   const aiLine = aiUsed && aiTool
     ? `AI tools used: ${aiTool}.`
     : aiUsed
       ? "Artist used AI tools in the creation process."
       : "No AI tools disclosed.";
 
-  const prompt = [
-    "You are a real music curator introducing an independent artist. Keep it polished, specific, and human. Do not sound corporate or generic.",
-    "Avoid fake claims or inflated language. Do not call anyone the next big thing, revolutionary, or game-changing unless the description clearly supports it.",
+  const userPrompt = [
+    "Generate promotional assets for a FlowSoundz Radio artist submission.",
     "",
-    "Generate five promotional items for this artist submission. Return ONLY valid JSON (no markdown, no extra text).",
-    "",
+    "── TRACK DETAILS ──",
     `Artist: ${artistName}`,
     `Track: "${songTitle}"`,
     `Genre: ${genre}`,
     `Vibe: ${vibe}`,
     `Artist type: ${artistType}`,
     `Version: ${versionType}`,
-    `Producer credit: ${producerCredit || "Not provided"}`,
-    `Description: ${description || "Not provided"}`,
+    producerCredit ? `Producer credit: ${producerCredit}` : "",
+    description ? `Artist description: ${description}` : "",
     aiLine,
     "",
-    "Return ONLY this JSON object:",
-    "{",
-    '  "bio": "3-sentence artist bio in third person. Capture genre, sound, and what makes this release worth discovering.",',
-    '  "suggestedVibe": "Exactly one of: Chill, Hype, Late Night, Emotional — the best fit.",',
-    '  "promoBlurb": "1–2 sentences the station uses to introduce this track. Punchy, underground, radio-ready.",',
-    '  "radioIntro": "One sentence the DJ reads right before the track plays. Short, confident, no fluff.",',
-    '  "socialCaptions": ["caption 1", "caption 2", "caption 3"]',
-    "}",
+    "── OUTPUT FORMAT ──",
+    "Return ONLY the two tagged blocks below. Nothing else.",
     "",
-    "Tone: confident, human, music-industry-aware, and not robotic.",
-  ].join("\n");
+    "<artist_assets>",
+    "<bio>",
+    "3-sentence artist bio in third person. Specific, human, genre-authentic. Not corporate.",
+    "</bio>",
+    "<vibe>",
+    "Exactly one of: Chill, Hype, Late Night, Emotional",
+    "</vibe>",
+    "<promo_blurb>",
+    "1-2 sentences the station reads to introduce this track. Radio-ready, underground energy.",
+    "</promo_blurb>",
+    "<radio_intro>",
+    "One sentence. The DJ line read right before the track drops. Short, confident, no fluff.",
+    "</radio_intro>",
+    "</artist_assets>",
+    "",
+    "<social_captions>",
+    "<caption_1>Caption for discovery post — 1-2 sentences, punchy.</caption_1>",
+    "<caption_2>Caption for artist spotlight — highlights the sound or story.</caption_2>",
+    "<caption_3>Caption for general announcement — broad appeal, clear CTA.</caption_3>",
+    "</social_captions>",
+  ].filter(Boolean).join("\n");
 
   let promo: ArtistPromoOutput;
 
-  if (!openAiKey && !anthropicKey) {
+  const raw = await runAI(userPrompt, 1400);
+
+  if (!raw) {
     promo = fallbackPromo(artistName, songTitle, genre, vibe, artistType, description);
   } else {
-    let raw = "";
-    try {
-      raw = openAiKey
-        ? await callOpenAI(openAiKey, prompt)
-        : await callAnthropic(anthropicKey!, prompt);
-    } catch {
-      if (openAiKey && anthropicKey) {
-        try {
-          raw = await callAnthropic(anthropicKey, prompt);
-        } catch {
-          raw = "";
-        }
-      }
-    }
+    const fb = fallbackPromo(artistName, songTitle, genre, vibe, artistType, description);
 
-    if (!raw) {
-      promo = fallbackPromo(artistName, songTitle, genre, vibe, artistType, description);
-    } else {
-      try {
-        const parsed = JSON.parse(stripCodeFence(raw)) as Record<string, unknown>;
-        const fb = fallbackPromo(artistName, songTitle, genre, vibe, artistType, description);
-        promo = {
-          bio: str(parsed.bio) || fb.bio,
-          suggestedVibe: sanitizeVibe(parsed.suggestedVibe),
-          promoBlurb: str(parsed.promoBlurb) || fb.promoBlurb,
-          radioIntro: str(parsed.radioIntro) || fb.radioIntro,
-          socialCaptions:
-            Array.isArray(parsed.socialCaptions) &&
-            parsed.socialCaptions.filter((caption): caption is string => typeof caption === "string" && caption.trim().length > 0).length > 0
-              ? parsed.socialCaptions
-                  .filter((caption): caption is string => typeof caption === "string" && caption.trim().length > 0)
-                  .slice(0, 3)
-              : fb.socialCaptions,
-        };
-      } catch {
-        promo = fallbackPromo(artistName, songTitle, genre, vibe, artistType, description);
-      }
-    }
+    const bio = extractTag(raw, "bio") || fb.bio;
+    const vibeTag = sanitizeVibe(extractTag(raw, "vibe"));
+    const promoBlurb = extractTag(raw, "promo_blurb") || fb.promoBlurb;
+    const radioIntro = extractTag(raw, "radio_intro") || fb.radioIntro;
+    const captions = [
+      extractTag(raw, "caption_1"),
+      extractTag(raw, "caption_2"),
+      extractTag(raw, "caption_3"),
+    ].filter(Boolean);
+
+    promo = {
+      bio,
+      suggestedVibe: vibeTag || fb.suggestedVibe,
+      promoBlurb,
+      radioIntro,
+      socialCaptions: captions.length >= 2 ? captions : fb.socialCaptions,
+    };
   }
 
   // Fire-and-forget — don't fail the submission if emails fail

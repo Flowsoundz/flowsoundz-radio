@@ -1,4 +1,5 @@
 import type { NextRequest } from "next/server";
+import { runAI, extractTag } from "@/lib/creatorHub/aiEngine";
 import type { VideoPromptOutput } from "@/lib/creatorHub/generators";
 
 export const runtime = "nodejs";
@@ -10,18 +11,12 @@ type VideoPromptRequest = {
   vibe?: unknown;
   visualStyle?: unknown;
   videoType?: unknown;
+  lyricSnippet?: unknown;
+  coreThemes?: unknown;
 };
 
 function str(v: unknown): string {
   return typeof v === "string" ? v.trim() : "";
-}
-
-function stripCodeFence(raw: string): string {
-  let text = raw.trim();
-  if (text.startsWith("```")) {
-    text = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
-  }
-  return text;
 }
 
 function fallback(
@@ -35,60 +30,11 @@ function fallback(
   const a = artistName || "the artist";
   const s = songTitle || "the track";
   return {
-    prompt: `Create a 15-second vertical ${videoType} for ${a}'s track "${s}". Style: ${visualStyle}, with ${vibe} energy, ${genre} atmosphere, cinematic lighting, smooth camera movement, and space for FlowSoundz Radio branding. Keep it underground, premium, and discovery-first.`,
-    tiktokCaption: `🎵 "${s}" – ${a} • This is the one 🔥 #NewMusic #${genre.replace(/\s+/g, "")} #FlowSoundz #UndergroundSound`,
-    igCaption: `New record out now. "${s}" by ${a}. ${vibe} vibes, ${genre} roots. Link in bio. 🎵✨`,
-    youtubeCaption: `"${s}" – ${a} | ${genre} | ${vibe} | Discover it first on FlowSoundz Radio 🎧`,
+    prompt: `Create a 15-second vertical ${videoType} for ${a}'s track "${s}". Style: ${visualStyle}, with ${vibe} energy, ${genre} atmosphere, cinematic lighting, slow-burn camera movement. Underground, premium, discovery-first.`,
+    tiktokCaption: `"${s}" – ${a}. You needed to hear this. #NewMusic #${genre.replace(/\s+/g, "")} #FlowSoundz`,
+    igCaption: `"${s}" by ${a}. ${vibe} energy, ${genre} roots. Now in the FlowSoundz discovery rotation.`,
+    youtubeCaption: `"${s}" – ${a} | ${genre} | ${vibe} | FlowSoundz Radio`,
   };
-}
-
-async function callOpenAI(apiKey: string, prompt: string): Promise<string> {
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: process.env.OPENAI_MODEL_DJ ?? "gpt-4o",
-      max_tokens: 700,
-      response_format: { type: "json_object" },
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are a music video creative director for FlowSoundz Radio. Always respond with valid JSON only.",
-        },
-        { role: "user", content: prompt },
-      ],
-    }),
-  });
-  if (!res.ok) throw new Error(`OpenAI ${res.status}`);
-  const data = (await res.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-  };
-  return data.choices?.[0]?.message?.content ?? "";
-}
-
-async function callAnthropic(apiKey: string, prompt: string): Promise<string> {
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 700,
-      messages: [{ role: "user", content: prompt }],
-    }),
-  });
-  if (!res.ok) throw new Error(`Anthropic ${res.status}`);
-  const data = (await res.json()) as {
-    content?: Array<{ type: string; text?: string }>;
-  };
-  return data.content?.find((b) => b.type === "text")?.text ?? "";
 }
 
 export async function POST(request: NextRequest) {
@@ -105,6 +51,8 @@ export async function POST(request: NextRequest) {
   const vibe = str(body.vibe) || "Chill";
   const visualStyle = str(body.visualStyle) || "Cinematic";
   const videoType = str(body.videoType) || "Music video";
+  const lyricSnippet = str(body.lyricSnippet);
+  const coreThemes = str(body.coreThemes);
 
   if (!artistName || !songTitle) {
     return Response.json(
@@ -113,79 +61,56 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const openAiKey = process.env.OPENAI_API_KEY?.trim();
-  const anthropicKey = process.env.ANTHROPIC_API_KEY?.trim();
-
-  if (!openAiKey && !anthropicKey) {
-    return Response.json(fallback(artistName, songTitle, genre, vibe, visualStyle, videoType));
-  }
-
-  const prompt = [
-    "You are a music video creative director for FlowSoundz Radio — an underground, discovery-first independent artist station.",
+  const userPrompt = [
+    "Generate a visual content package for a FlowSoundz Radio artist.",
     "",
-    "Generate a video creation package for the track below.",
-    "",
+    "── TRACK DETAILS ──",
     `Artist: ${artistName}`,
-    `Track: ${songTitle}`,
+    `Track: "${songTitle}"`,
     `Genre: ${genre}`,
     `Vibe: ${vibe}`,
     `Visual style: ${visualStyle}`,
     `Video type: ${videoType}`,
+    lyricSnippet ? `Lyric snippet / concept: ${lyricSnippet}` : "",
+    coreThemes ? `Core themes or story elements: ${coreThemes}` : "",
     "",
-    "Return ONLY a valid JSON object with exactly these keys (no markdown, no extra text):",
-    "{",
-    '  "prompt": "A detailed 2-3 sentence AI video generation prompt. Include visual style, lighting, camera movement, atmosphere, and color palette. Optimized for Runway, Pika, Kling, or LTX Studio. 15-second vertical format.",',
-    '  "tiktokCaption": "A TikTok caption under 150 characters. Punchy, includes 3-4 hashtags naturally.",',
-    '  "igCaption": "An Instagram caption 1-2 sentences. Discovery energy, ends with call-to-action.",',
-    '  "youtubeCaption": "A YouTube title/caption format — artist | track | genre | platform tag."',
-    "}",
+    "── OUTPUT FORMAT ──",
+    "Return ONLY the tagged block below. Nothing else.",
     "",
-    "Tone: premium underground. Not corporate, not spammy. Sounds like a real music discovery platform.",
-  ].join("\n");
+    "<video_prompts>",
+    "<main_prompt>",
+    "A 2-3 sentence AI video generation prompt. Specify: visual style, color palette, lighting mood, camera movement, atmosphere. Optimized for Runway, Pika, Kling, or LTX Studio. 15-second vertical format.",
+    "Make it feel like a real director's brief, not a list of keywords.",
+    "</main_prompt>",
+    "<tiktok>",
+    "One TikTok caption. Under 120 characters. Punchy, discovery energy. 2-3 hashtags max, naturally placed.",
+    "</tiktok>",
+    "<instagram>",
+    "One Instagram caption. 1-2 sentences. Cinematic tone. Ends with a reason to click or listen.",
+    "</instagram>",
+    "<youtube>",
+    "One YouTube title/caption: Artist | Track | Genre | FlowSoundz Radio. Can include a short descriptor.",
+    "</youtube>",
+    "</video_prompts>",
+  ].filter(Boolean).join("\n");
 
-  let raw = "";
-  try {
-    raw = openAiKey
-      ? await callOpenAI(openAiKey, prompt)
-      : await callAnthropic(anthropicKey!, prompt);
-  } catch {
-    if (openAiKey && anthropicKey) {
-      try {
-        raw = await callAnthropic(anthropicKey, prompt);
-      } catch {
-        return Response.json(fallback(artistName, songTitle, genre, vibe, visualStyle, videoType));
-      }
-    } else {
-      return Response.json(fallback(artistName, songTitle, genre, vibe, visualStyle, videoType));
-    }
-  }
+  const raw = await runAI(userPrompt, 1000);
 
-  let parsed: Record<string, unknown>;
-  try {
-    parsed = JSON.parse(stripCodeFence(raw)) as Record<string, unknown>;
-  } catch {
+  if (!raw) {
     return Response.json(fallback(artistName, songTitle, genre, vibe, visualStyle, videoType));
   }
 
-  const fb = fallback(artistName, songTitle, genre, vibe, visualStyle, videoType);
-  const output: VideoPromptOutput = {
-    prompt:
-      typeof parsed.prompt === "string" && parsed.prompt.trim()
-        ? parsed.prompt.trim()
-        : fb.prompt,
-    tiktokCaption:
-      typeof parsed.tiktokCaption === "string" && parsed.tiktokCaption.trim()
-        ? parsed.tiktokCaption.trim()
-        : fb.tiktokCaption,
-    igCaption:
-      typeof parsed.igCaption === "string" && parsed.igCaption.trim()
-        ? parsed.igCaption.trim()
-        : fb.igCaption,
-    youtubeCaption:
-      typeof parsed.youtubeCaption === "string" && parsed.youtubeCaption.trim()
-        ? parsed.youtubeCaption.trim()
-        : fb.youtubeCaption,
-  };
+  const mainPrompt = extractTag(raw, "main_prompt");
+  const tiktokCaption = extractTag(raw, "tiktok");
+  const igCaption = extractTag(raw, "instagram");
+  const youtubeCaption = extractTag(raw, "youtube");
 
-  return Response.json(output);
+  const fb = fallback(artistName, songTitle, genre, vibe, visualStyle, videoType);
+
+  return Response.json({
+    prompt: mainPrompt || fb.prompt,
+    tiktokCaption: tiktokCaption || fb.tiktokCaption,
+    igCaption: igCaption || fb.igCaption,
+    youtubeCaption: youtubeCaption || fb.youtubeCaption,
+  } satisfies VideoPromptOutput);
 }
