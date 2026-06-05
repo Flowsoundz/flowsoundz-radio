@@ -17,7 +17,7 @@ const groups = [
     items: [
       { href: "/artists", label: "Artists" },
       { href: "/artist/dashboard", label: "Hub" },
-      { href: "/visualizer", label: "Visualizer" },
+      { href: "/for-artists", label: "Submit" },
     ],
   },
   {

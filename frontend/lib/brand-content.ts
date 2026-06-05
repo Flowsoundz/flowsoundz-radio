@@ -38,7 +38,7 @@ export const siteContent: SiteContent = {
 
   ctaButtons: [
     { label: "Listen Live", href: "/radio", variant: "cyan" },
-    { label: "Submit Your Music", href: "/promo", variant: "fuchsia" },
+    { label: "Submit Your Music", href: "/for-artists", variant: "fuchsia" },
   ],
 
   valueCards: [
