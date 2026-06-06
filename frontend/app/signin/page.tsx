@@ -9,11 +9,19 @@ function SignInForm() {
   const params = useSearchParams();
   const next = params.get("next") ?? "/";
   const error = params.get("error");
+  const errorMessage =
+    error === "OAuthSignin"
+      ? "Sign-in failed. Try again."
+      : error === "Verification"
+        ? "This magic link is invalid or already used. Request a fresh link, then open it in the same browser you use for FlowSoundz Radio."
+        : error === "CallbackRouteError"
+          ? "The sign-in callback failed. Request a new link and make sure it opens in the same browser session."
+          : "";
 
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
-  const [err, setErr] = useState(error === "OAuthSignin" ? "Sign-in failed. Try again." : "");
+  const [err, setErr] = useState(errorMessage);
   const [dbReady, setDbReady] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -58,6 +66,11 @@ function SignInForm() {
         <p className="mt-3 text-sm leading-6 text-slate-400">
           A sign-in link was sent to <span className="font-medium text-white">{email}</span>. Click the link to access your account.
         </p>
+        <div className="mt-4 rounded-[1.1rem] border border-cyan-400/15 bg-cyan-400/[0.06] px-4 py-3 text-left text-xs leading-5 text-cyan-100">
+          Open the magic link in the same browser you use for FlowSoundz Radio.
+          If Gmail opens it inside the Gmail app or an in-app browser, use that app&apos;s
+          <span className="font-semibold"> Open in browser</span> option first.
+        </div>
         <p className="mt-4 text-xs text-slate-600">
           Didn&apos;t get it? Check spam or{" "}
           <button type="button" onClick={() => setSent(false)} className="text-cyan-400 hover:text-cyan-300">
@@ -73,6 +86,9 @@ function SignInForm() {
       <h1 className="text-2xl font-semibold text-white">Sign in</h1>
       <p className="mt-2 text-sm text-slate-400">
         Get a magic link sent to your email — no password needed.
+      </p>
+      <p className="mt-2 text-xs leading-5 text-slate-500">
+        Use the same browser for both requesting and opening the link. Opening it in Gmail&apos;s in-app browser can create a separate session that does not carry over to your main browser.
       </p>
 
       {dbReady === false && (
