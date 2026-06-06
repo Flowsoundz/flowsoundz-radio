@@ -70,6 +70,18 @@ type GlobalAudioStateContextValue = {
 const AudioRefsContextGlobal = createContext<GlobalAudioRefsContextValue | null>(null);
 const AudioStateContextGlobal = createContext<GlobalAudioStateContextValue | null>(null);
 
+function isIOSLikeDevice() {
+  if (typeof navigator === "undefined") {
+    return false;
+  }
+
+  const userAgent = navigator.userAgent;
+  return (
+    /iPad|iPhone|iPod/.test(userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+  );
+}
+
 export function GlobalAudioProvider({ children }: { children: ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
@@ -90,8 +102,11 @@ export function GlobalAudioProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const audio = new Audio();
     audio.crossOrigin = "anonymous";
-    audio.preload = "metadata";
+    audio.preload = "auto";
+    audio.setAttribute("playsinline", "");
+    audio.setAttribute("webkit-playsinline", "true");
     let readyTimer: number | null = null;
+    const iosLikeDevice = isIOSLikeDevice();
     const syncPlaybackState = () => {
       if (!audio.paused && audioContextRef.current?.state === "suspended") {
         void audioContextRef.current.resume().catch(() => undefined);
@@ -119,7 +134,7 @@ export function GlobalAudioProvider({ children }: { children: ReactNode }) {
       window.AudioContext ||
       (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
 
-    if (!AudioContextCtor) {
+    if (!AudioContextCtor || iosLikeDevice) {
       audioRef.current = audio;
       readyTimer = window.setTimeout(() => setIsReady(true), 0);
       return () => {

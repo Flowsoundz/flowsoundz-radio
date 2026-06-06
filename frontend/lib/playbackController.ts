@@ -55,8 +55,11 @@ export async function playTrack(
 
   if (track.src && audio.src !== track.src) {
     audio.src = track.src;
+    audio.load();
   }
 
+  audio.setAttribute("playsinline", "");
+  audio.setAttribute("webkit-playsinline", "true");
   audio.muted = false;
   if (audio.volume <= 0) {
     audio.volume = 1;
