@@ -413,6 +413,7 @@ model QueuePreference {
   skipRate      Float    @default(0)
   completeRate  Float    @default(0)
   playCount     Int      @default(0)
+  hypeCount     Int      @default(0)
   lastPlayedAt  DateTime?
   rotationScore Float    @default(0)
   createdAt     DateTime @default(now())

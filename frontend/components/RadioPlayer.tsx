@@ -103,6 +103,11 @@ const AuthButton = dynamic(
   { ssr: false },
 );
 
+const HypeVote = dynamic(
+  () => import("@/components/HypeVote").then((m) => ({ default: m.HypeVote })),
+  { ssr: false },
+);
+
 let hlsModulePromise: Promise<typeof import("hls.js")> | null = null;
 
 async function loadHlsModule() {
@@ -2234,6 +2239,14 @@ export default function RadioPlayer() {
             </button>
           </div>
         </div>
+
+        {/* Hype / Skip voting */}
+        {currentSong && !isDropPlaying && (
+          <div className="mt-4 flex items-center gap-3">
+            <span className="text-[11px] text-slate-500">Rate this track:</span>
+            <HypeVote songId={currentSong.id} />
+          </div>
+        )}
 
         <div className="now-playing-card state-fade mt-5 rounded-[1.8rem] border border-white/12 bg-[linear-gradient(180deg,rgba(17,24,39,0.96)_0%,rgba(11,16,32,0.96)_75%,rgba(5,8,22,0.98)_100%)] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_24px_84px_rgba(0,0,0,0.42)]">
           <div className="grid items-start gap-5 sm:grid-cols-[156px_1fr] lg:grid-cols-[192px_1fr]">

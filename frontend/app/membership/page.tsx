@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 import { MembershipFAQ } from "@/components/MembershipFAQ";
 import { WaitlistForm } from "@/components/WaitlistForm";
+import { MembershipCheckoutButton } from "@/components/MembershipCheckoutButton";
 
 const tiers = [
   {
@@ -146,12 +147,24 @@ export default function MembershipPage() {
               ))}
             </div>
 
-            <Link
-              href={tier.cta.href}
-              className={`mt-6 inline-flex min-h-11 items-center justify-center rounded-full px-5 text-sm transition ${ctaClasses[tier.ctaStyle]}`}
-            >
-              {tier.cta.label}
-            </Link>
+            {tier.name === "Insider" ? (
+              <MembershipCheckoutButton
+                tier="insider"
+                className={`mt-6 ${ctaClasses[tier.ctaStyle]}`}
+              />
+            ) : tier.name === "Vault" ? (
+              <MembershipCheckoutButton
+                tier="vault"
+                className={`mt-6 ${ctaClasses[tier.ctaStyle]}`}
+              />
+            ) : (
+              <Link
+                href={tier.cta.href}
+                className={`mt-6 inline-flex min-h-11 items-center justify-center rounded-full px-5 text-sm transition ${ctaClasses[tier.ctaStyle]}`}
+              >
+                {tier.cta.label}
+              </Link>
+            )}
           </article>
         ))}
       </section>
