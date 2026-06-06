@@ -1,6 +1,11 @@
 import coverMappings from "./coverMappings.json";
 import { getAdminCoverSrc, normalizeCoverKey } from "./coverKeys";
 import { getStaticCatalog } from "./staticCatalog";
+import {
+  getBundledAudioUrl,
+  getLocalAudioUrl as getSameOriginLocalAudioUrl,
+  getLocalVisualUrl as getSameOriginLocalVisualUrl,
+} from "./stationPlayback";
 import { Song } from "./types";
 
 function isLocalHostName(hostname: string | null | undefined) {
@@ -77,14 +82,14 @@ function getLocalCoverSrc(
 }
 
 export async function getSongs(): Promise<Song[]> {
-  if (!API_BASE) {
-    try {
-      const res = await fetch("/api/songs", { cache: "no-store" });
-      if (!res.ok) {
-        throw new Error("Failed to load songs");
-      }
-      return res.json();
-    } catch {
+  try {
+    const res = await fetch("/api/songs", { cache: "no-store" });
+    if (!res.ok) {
+      throw new Error("Failed to load songs");
+    }
+    return res.json();
+  } catch {
+    if (!API_BASE) {
       return getStaticCatalog();
     }
   }
@@ -112,32 +117,31 @@ export async function getSongs(): Promise<Song[]> {
 }
 
 export async function getQueue(vibe?: string): Promise<Song[]> {
-  if (!API_BASE) {
-    const url = vibe
-      ? `/api/queue?vibe=${encodeURIComponent(vibe)}`
-      : "/api/queue";
+  const url = vibe
+    ? `/api/queue?vibe=${encodeURIComponent(vibe)}`
+    : "/api/queue";
 
-    try {
-      const res = await fetch(url, { cache: "no-store" });
-      if (!res.ok) {
-        throw new Error("Failed to load queue");
-      }
-      return res.json();
-    } catch {
+  try {
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) {
+      throw new Error("Failed to load queue");
+    }
+    return res.json();
+  } catch {
+    if (!API_BASE) {
       return getStaticCatalog(vibe);
     }
   }
 
-  const url = vibe
-    ? `${API_BASE}/queue?vibe=${encodeURIComponent(vibe)}`
-    : `${API_BASE}/queue`;
-
   try {
-    const res = await fetch(url, { cache: "no-store" });
+    const backendUrl = vibe
+      ? `${API_BASE}/queue?vibe=${encodeURIComponent(vibe)}`
+      : `${API_BASE}/queue`;
+    const res = await fetch(backendUrl, { cache: "no-store" });
     if (process.env.NODE_ENV === "development") {
       console.log("[RadioPlayer] queue response", {
         source: "backend",
-        url,
+        url: backendUrl,
         status: res.status,
         ok: res.ok,
       });
@@ -226,11 +230,15 @@ export function getStreamUrl(filename: string): string {
 }
 
 export function getLocalStreamUrl(filename: string): string {
-  return `${LOCAL_APP_BASE || ""}/api/local-stream/${encodeURIComponent(filename)}`;
+  return LOCAL_APP_BASE
+    ? `${LOCAL_APP_BASE}/api/local-stream/${encodeURIComponent(filename)}`
+    : getSameOriginLocalAudioUrl(filename);
 }
 
 export function getLocalVisualUrl(filename: string): string {
-  return `${LOCAL_APP_BASE || ""}/api/local-visual/${encodeURIComponent(filename)}`;
+  return LOCAL_APP_BASE
+    ? `${LOCAL_APP_BASE}/api/local-visual/${encodeURIComponent(filename)}`
+    : getSameOriginLocalVisualUrl(filename);
 }
 
 export function getHlsUrl(
@@ -275,7 +283,11 @@ export function getPreferredPlaybackUrl(
     return hlsUrl;
   }
 
-  return getStreamUrl(song.audio_file);
+  if (API_BASE) {
+    return getStreamUrl(song.audio_file);
+  }
+
+  return getBundledAudioUrl(song.audio_file);
 }
 
 export function getCoverUrl(

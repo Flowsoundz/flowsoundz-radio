@@ -1,19 +1,7 @@
 import { NextResponse } from "next/server";
 import { readCatalogSnapshotFromStore } from "@/lib/catalogSnapshotStore";
 import { getStaticCatalog } from "@/lib/staticCatalog";
-import type { Song } from "@/lib/types";
-
-function normalizeSong(song: Song): Song {
-  const publicAudioUrl =
-    song.public_audio_url?.trim() ||
-    (song.audio_file ? `/audio/${encodeURIComponent(song.audio_file)}` : null);
-
-  return {
-    ...song,
-    public_audio_url: publicAudioUrl,
-    is_playable: song.is_playable ?? Boolean(publicAudioUrl || song.hls_url),
-  };
-}
+import { normalizeStationSong } from "@/lib/stationPlayback";
 
 export async function GET() {
   try {
@@ -21,7 +9,7 @@ export async function GET() {
     const songs =
       snapshot.songs.length > 0 ? snapshot.songs : getStaticCatalog();
 
-    return NextResponse.json(songs.map(normalizeSong), {
+    return NextResponse.json(songs.map(normalizeStationSong), {
       headers: {
         "Cache-Control": "no-store",
       },
