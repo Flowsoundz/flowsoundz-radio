@@ -1,4 +1,5 @@
 import NextAuth from "next-auth";
+import Google from "next-auth/providers/google";
 import Nodemailer from "next-auth/providers/nodemailer";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
@@ -13,12 +14,23 @@ if (process.env.VERCEL === "1") {
 }
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL?.trim() ?? "";
+const GOOGLE_ENABLED = Boolean(
+  (process.env.AUTH_GOOGLE_ID ?? process.env.GOOGLE_CLIENT_ID)?.trim() &&
+  (process.env.AUTH_GOOGLE_SECRET ?? process.env.GOOGLE_CLIENT_SECRET)?.trim(),
+);
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(prisma),
   trustHost: true,
   session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60 }, // 30 days in cookie
   providers: [
+    ...(GOOGLE_ENABLED
+      ? [
+          Google({
+            allowDangerousEmailAccountLinking: true,
+          }),
+        ]
+      : []),
     Nodemailer({
       server: {
         host: "smtp.gmail.com",
