@@ -1,4 +1,4 @@
-const STATIC_CACHE = "flowsoundz-static-v2";
+const STATIC_CACHE = "flowsoundz-static-v3";
 const APP_SHELL = ["/", "/radio", "/songs", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
@@ -25,13 +25,25 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  if (request.headers.has("range")) {
+    return;
+  }
+
   const url = new URL(request.url);
 
   if (url.origin !== self.location.origin) {
     return;
   }
 
-  if (url.pathname.startsWith("/stream/") || url.pathname.startsWith("/queue") || url.pathname.startsWith("/songs")) {
+  if (
+    request.destination === "audio" ||
+    url.pathname.startsWith("/audio/") ||
+    url.pathname.startsWith("/stream/") ||
+    url.pathname.startsWith("/queue") ||
+    url.pathname.startsWith("/songs") ||
+    url.pathname.startsWith("/api/local-stream/") ||
+    url.pathname.startsWith("/api/local-catalog/")
+  ) {
     return;
   }
 
