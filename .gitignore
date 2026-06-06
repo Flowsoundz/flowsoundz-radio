@@ -6,6 +6,7 @@ node_modules
 *.wav
 *.zip
 *.mp4
+!backend/media/songs/i_wanna_flowsoundz.mp3
 # Allow the production audio catalog in public/
 !frontend/public/audio/*.mp3
 !frontend/public/archive/*.mp3
