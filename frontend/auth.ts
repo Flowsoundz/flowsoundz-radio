@@ -7,6 +7,7 @@ const ADMIN_EMAIL = process.env.ADMIN_EMAIL?.trim() ?? "";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(prisma),
+  session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60 }, // 30 days in cookie
   providers: [
     Nodemailer({
       server: {
@@ -27,21 +28,29 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     error: "/signin",
   },
   callbacks: {
-    session({ session, user }) {
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.role = (user as { role?: string }).role ?? "LISTENER";
+        token.tier = (user as { tier?: string }).tier ?? "FREE";
+        token.isAdmin = ADMIN_EMAIL ? user.email === ADMIN_EMAIL : false;
+      }
+      return token;
+    },
+    session({ session, token }) {
       return {
         ...session,
         user: {
           ...session.user,
-          id: user.id,
-          role: (user as { role?: string }).role ?? "LISTENER",
-          tier: (user as { tier?: string }).tier ?? "FREE",
-          isAdmin: ADMIN_EMAIL ? user.email === ADMIN_EMAIL : false,
+          id: token.id as string,
+          role: token.role as string,
+          tier: token.tier as string,
+          isAdmin: token.isAdmin as boolean,
         },
       };
     },
   },
   events: {
-    // Promote first user with admin email to ADMIN role automatically
     async createUser({ user }) {
       if (ADMIN_EMAIL && user.email === ADMIN_EMAIL) {
         await prisma.user.update({
