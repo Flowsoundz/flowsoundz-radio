@@ -6,6 +6,7 @@ import { GlobalAudioProvider } from "@/components/GlobalAudioProvider";
 import { MiniPlayer } from "@/components/MiniPlayer";
 import { PwaRegistrar } from "@/components/PwaRegistrar";
 import RadioPlayer from "@/components/RadioPlayer";
+import { SessionProvider } from "next-auth/react";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -84,13 +85,15 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full bg-[var(--page-bg)] text-white antialiased">
-        <GlobalAudioProvider>
-          <DevLocalhostGuard />
-          <PwaRegistrar />
-          <RadioPlayer />
-          {children}
-          <MiniPlayer />
-        </GlobalAudioProvider>
+        <SessionProvider>
+          <GlobalAudioProvider>
+            <DevLocalhostGuard />
+            <PwaRegistrar />
+            <RadioPlayer />
+            {children}
+            <MiniPlayer />
+          </GlobalAudioProvider>
+        </SessionProvider>
       </body>
     </html>
   );

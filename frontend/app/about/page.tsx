@@ -81,6 +81,36 @@ const TEAM = [
   },
 ];
 
+const ARTIST_SPOTLIGHTS = [
+  {
+    name: "FlowSoundz Select",
+    slug: "flowsoundz-select",
+    roots: "Orlando, FL // Santo Domingo, DR",
+    vibe: "Late Night",
+    statement: "First person, far from neat. My story lives somewhere between late-night confession, memory, and motion.",
+    cover: "/covers/flowsoundz-artist.png",
+    accent: "#00e5ff",
+  },
+  {
+    name: "Adonyz",
+    slug: "adonyz",
+    roots: "Orlando, FL // Santo Domingo, DR",
+    vibe: "Latin Urban",
+    statement: "Latin urban producer and artist who built FlowSoundz from the inside out — as an artist who needed the platform and a founder who could create it.",
+    cover: "/covers/flowsoundz-artist.png",
+    accent: "#7c4dff",
+  },
+  {
+    name: "Naz T",
+    slug: "naz-t",
+    roots: "Orlando, FL",
+    vibe: "Street · Late Night",
+    statement: "A project under the FlowSoundz umbrella. Street-facing, direct, and built for the late-night lane.",
+    cover: "/covers/flowsoundz-artist.png",
+    accent: "#ff2da6",
+  },
+];
+
 export default function AboutPage() {
   return (
     <AppShell eyebrow="About" title="Our Story">
@@ -305,6 +335,52 @@ export default function AboutPage() {
               </div>
               <p className="text-sm leading-6 text-slate-300">{item.description}</p>
             </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Artist Spotlight ── */}
+      <div className="mb-16">
+        <p className="mb-6 text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200/75">
+          Artists in Rotation
+        </p>
+        <div className="grid gap-4 sm:grid-cols-3">
+          {ARTIST_SPOTLIGHTS.map((artist) => (
+            <Link
+              key={artist.slug}
+              href={`/artists/${artist.slug}`}
+              className="glass-card group overflow-hidden rounded-[1.8rem] transition-transform duration-200 hover:-translate-y-1"
+            >
+              <div className="relative aspect-[16/9] overflow-hidden">
+                <Image
+                  src={artist.cover}
+                  alt={artist.name}
+                  fill
+                  sizes="(max-width: 640px) 100vw, 33vw"
+                  className="object-cover opacity-70 transition duration-300 group-hover:opacity-90 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_30%,rgba(5,8,22,0.9)_100%)]" />
+                <div className="absolute bottom-0 left-0 right-0 p-4">
+                  <span
+                    className="rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.18em]"
+                    style={{ color: artist.accent, background: `${artist.accent}18`, border: `1px solid ${artist.accent}30` }}
+                  >
+                    {artist.vibe}
+                  </span>
+                  <h3 className="mt-2 text-lg font-semibold text-white">{artist.name}</h3>
+                  <p className="text-[11px] text-slate-400">{artist.roots}</p>
+                </div>
+              </div>
+              <div className="p-5">
+                <p className="text-sm leading-6 text-slate-300">{artist.statement}</p>
+                <p
+                  className="mt-3 text-xs font-semibold transition group-hover:text-white"
+                  style={{ color: artist.accent }}
+                >
+                  View profile →
+                </p>
+              </div>
+            </Link>
           ))}
         </div>
       </div>

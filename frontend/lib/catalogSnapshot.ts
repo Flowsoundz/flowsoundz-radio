@@ -79,6 +79,40 @@ const ARTIST_EDITORIAL_OVERRIDES: Record<string, ArtistEditorialOverride> = {
     isLiveInVisualizer: true,
     liveSessionTitle: "FlowSoundz Radio — live now",
   },
+  "naz-t": {
+    statement:
+      "Naz T is a project under the FlowSoundz umbrella — the same founder, a different frequency. Street-facing, direct, and built for the late-night lane.",
+    rootsLabel: "Orlando, FL // Santo Domingo, DR",
+    heroImage: "/covers/flowsoundz-artist.png",
+    artistVisualUrl: "/covers/flowsoundz-artist.png",
+    socialLinks: {
+      instagram: "https://www.instagram.com/flowsoundzradio/",
+      tiktok: "https://www.tiktok.com/@flowsoundzradio",
+      spotify: "https://open.spotify.com/search/Naz%20T",
+      youtube: "https://www.youtube.com/@flowsoundzradio",
+    },
+    supportUrl: "/membership",
+    supportLabel: "Support via FlowSoundz",
+    isLiveInVisualizer: true,
+    liveSessionTitle: "Naz T — in rotation on FlowSoundz",
+  },
+  adonis: {
+    statement:
+      "Adonis is a creative alias under FlowSoundz — same roots, same story. Latin urban, introspective, and always personal.",
+    rootsLabel: "Orlando, FL // Santo Domingo, DR",
+    heroImage: "/covers/flowsoundz-artist.png",
+    artistVisualUrl: "/covers/flowsoundz-artist.png",
+    socialLinks: {
+      instagram: "https://www.instagram.com/flowsoundzradio/",
+      tiktok: "https://www.tiktok.com/@flowsoundzradio",
+      spotify: "https://open.spotify.com/search/Adonis",
+      youtube: "https://www.youtube.com/@flowsoundzradio",
+    },
+    supportUrl: "/membership",
+    supportLabel: "Support via FlowSoundz",
+    isLiveInVisualizer: true,
+    liveSessionTitle: "Adonis — in rotation on FlowSoundz",
+  },
 };
 
 function normalizeArtistName(name: string) {

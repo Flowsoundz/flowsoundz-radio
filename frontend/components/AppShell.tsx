@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import BottomNav from "@/components/BottomNav";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import { AuthButton } from "@/components/AuthButton";
 
 type AppShellProps = {
   children: ReactNode;
@@ -73,7 +74,8 @@ export function AppShell({
           ) : null}
         </div>
 
-        <div className="w-full sm:w-auto sm:shrink-0">
+        <div className="flex w-full flex-col items-end gap-3 sm:w-auto sm:shrink-0">
+          <AuthButton />
           <InstallPrompt />
         </div>
       </header>

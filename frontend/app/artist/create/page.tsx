@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { CreatorHubShell } from "@/components/creator-hub/CreatorHubShell";
-import { ToolCard } from "@/components/creator-hub/ToolCard";
 import {
   generateLyricIdeas,
   type LyricIdeasInput,
@@ -20,57 +19,12 @@ async function fetchLyricIdeas(input: ExtendedLyricForm): Promise<LyricIdeasOutp
   return (await res.json()) as LyricIdeasOutput;
 }
 
-const MUSIC_TOOLS = [
-  {
-    name: "Suno",
-    bestFor: "Full AI-generated songs with vocals, lyrics, and production",
-    href: "https://suno.com",
-    tag: "AI",
-    tagColor: "#7c4dff",
-  },
-  {
-    name: "Udio",
-    bestFor: "High-quality AI music generation with fine-grained style control",
-    href: "https://udio.com",
-    tag: "AI",
-    tagColor: "#7c4dff",
-  },
-  {
-    name: "BandLab",
-    bestFor: "Free browser-based DAW for recording, mixing, and collaboration",
-    href: "https://www.bandlab.com",
-    tag: "Free",
-    tagColor: "#00e5ff",
-  },
-  {
-    name: "Splice",
-    bestFor: "Royalty-free samples, loops, and plugins for producers",
-    href: "https://splice.com",
-    tag: "Samples",
-    tagColor: "#ff2da6",
-  },
-  {
-    name: "Logic Pro",
-    bestFor: "Professional DAW for Mac with deep MIDI and mixing tools",
-    href: "https://www.apple.com/logic-pro/",
-    tag: "Mac",
-    tagColor: "#00e5ff",
-  },
-  {
-    name: "FL Studio",
-    bestFor: "Beat-making and full production; strong in hip-hop and electronic",
-    href: "https://www.image-line.com/fl-studio/",
-    tag: "DAW",
-    tagColor: "#7c4dff",
-  },
-  {
-    name: "Pro Tools",
-    bestFor: "Industry-standard DAW for recording studios and professionals",
-    href: "https://www.avid.com/pro-tools",
-    tag: "Pro",
-    tagColor: "#ff2da6",
-  },
-];
+const LOADING_STAGES = [
+  "Analyzing sonic themes...",
+  "Generating hook structures...",
+  "Crafting title ideas...",
+  "Building caption ideas...",
+] as const;
 
 const LANGUAGE_OPTIONS = ["English", "Spanish", "Bilingual"] as const;
 const EXPLICIT_OPTIONS = ["Clean", "Explicit", "Radio-Friendly"] as const;
@@ -79,7 +33,6 @@ const GOAL_OPTIONS = [
   "Rewrite verse",
   "Make it catchier",
   "Translate",
-  "Create promo captions",
 ] as const;
 
 type ExtendedLyricForm = LyricIdeasInput & {
@@ -102,6 +55,15 @@ export default function CreatePage() {
   const [form, setForm] = useState<ExtendedLyricForm>(INITIAL_FORM);
   const [output, setOutput] = useState<LyricIdeasOutput | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingStage, setLoadingStage] = useState(0);
+
+  useEffect(() => {
+    if (!isLoading) return;
+    const timer = window.setInterval(() => {
+      setLoadingStage((s) => (s + 1) % LOADING_STAGES.length);
+    }, 1400);
+    return () => window.clearInterval(timer);
+  }, [isLoading]);
 
   function update<K extends keyof ExtendedLyricForm>(
     key: K,
@@ -113,11 +75,39 @@ export default function CreatePage() {
   async function handleGenerate() {
     if (!form.songIdea.trim() || !form.genre.trim() || !form.mood.trim()) return;
     setIsLoading(true);
+    setLoadingStage(0);
     try {
       const result = await fetchLyricIdeas(form);
       setOutput(result);
+      try {
+        sessionStorage.setItem(
+          "fsz-hub-concept",
+          JSON.stringify({
+            artistName: form.artistName,
+            songIdea: form.songIdea,
+            genre: form.genre,
+            mood: form.mood,
+            coreThemes: form.coreThemes,
+            generated: result,
+          }),
+        );
+      } catch {}
     } catch {
-      setOutput(generateLyricIdeas(form));
+      const fallback = generateLyricIdeas(form);
+      setOutput(fallback);
+      try {
+        sessionStorage.setItem(
+          "fsz-hub-concept",
+          JSON.stringify({
+            artistName: form.artistName,
+            songIdea: form.songIdea,
+            genre: form.genre,
+            mood: form.mood,
+            coreThemes: form.coreThemes,
+            generated: fallback,
+          }),
+        );
+      } catch {}
     } finally {
       setIsLoading(false);
       setTimeout(() => {
@@ -134,35 +124,16 @@ export default function CreatePage() {
           Step 1 of 5
         </p>
         <h2 className="mt-3 text-xl font-semibold text-white sm:text-2xl">
-          Create or Refine Your Music
+          Capture Your Track Concept
         </h2>
         <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300">
-          Start with your creative process — DAW, AI tool, or whatever workflow you already use.
-          This step is about getting the song right before anything else. FlowSoundz doesn&apos;t
-          touch your creative process. We help you take it from finished track to radio-ready submission.
+          Before anything else — get the idea locked. Describe your song concept below and
+          FlowSoundz will generate hook ideas and title directions to sharpen the track before
+          you move into distribution, rights, and submission.
         </p>
         <p className="mt-3 text-sm font-medium text-cyan-100/80">
-          Goal: a finished, export-ready audio file before you move to distribution.
+          Goal: a clear creative concept and a finished, export-ready audio file before you move to distribution.
         </p>
-      </div>
-
-      {/* ── Music Tools ── */}
-      <div className="mb-12">
-        <p className="mb-5 text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200/75">
-          Production Tools
-        </p>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {MUSIC_TOOLS.map((tool) => (
-            <ToolCard
-              key={tool.name}
-              name={tool.name}
-              bestFor={tool.bestFor}
-              href={tool.href}
-              tag={tool.tag}
-              tagColor={tool.tagColor}
-            />
-          ))}
-        </div>
       </div>
 
       {/* ── Lyric Assistant ── */}
@@ -309,10 +280,10 @@ export default function CreatePage() {
                 <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
                   <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="40" strokeDashoffset="15" />
                 </svg>
-                Generating…
+                <span className="transition-all duration-300">{LOADING_STAGES[loadingStage]}</span>
               </>
             ) : (
-              "✦ Generate Lyric Ideas"
+              "✦ Generate Ideas"
             )}
           </button>
 

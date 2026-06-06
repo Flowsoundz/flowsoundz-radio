@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { useSession, signOut } from "next-auth/react";
 
 const CORE_TABS = [
   {
@@ -52,6 +53,7 @@ const MORE_LINKS = [
 export default function BottomNav() {
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const { data: session } = useSession();
 
   function isActive(href: string, matchPrefixes?: readonly string[]) {
     if (href === "/") return pathname === "/";
@@ -99,6 +101,23 @@ export default function BottomNav() {
                 {link.label}
               </Link>
             ))}
+            {session?.user ? (
+              <button
+                type="button"
+                onClick={() => { setDrawerOpen(false); void signOut({ callbackUrl: "/" }); }}
+                className="flex min-h-12 items-center justify-center rounded-2xl border border-white/8 bg-white/[0.03] px-4 text-sm font-semibold text-slate-300 transition hover:border-white/14 hover:text-red-400"
+              >
+                Sign out
+              </button>
+            ) : (
+              <Link
+                href="/signin"
+                onClick={() => setDrawerOpen(false)}
+                className="flex min-h-12 items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-400/[0.07] px-4 text-sm font-semibold text-cyan-300 transition hover:bg-cyan-400/[0.12]"
+              >
+                Sign in
+              </Link>
+            )}
           </div>
         </div>
       </div>

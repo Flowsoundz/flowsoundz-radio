@@ -6,6 +6,7 @@ import { AppShell } from "@/components/AppShell";
 import { BrandLogo } from "@/components/BrandLogo";
 import { getCoverUrl, getSongs, submitPromoNetworkLead } from "@/lib/api";
 import { isTrackFeatured } from "@/lib/access";
+import { createPromoCheckoutSession, type PromoTier } from "@/lib/stripe";
 import type { Song } from "@/lib/types";
 
 const INITIAL_LEAD_FORM = {
@@ -23,6 +24,8 @@ export function PromoCheckoutPage() {
   const [leadErrorMessage, setLeadErrorMessage] = useState("");
   const [leadSuccessMessage, setLeadSuccessMessage] = useState("");
   const [isSubmittingLead, setIsSubmittingLead] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState<PromoTier | null>(null);
+  const [checkoutError, setCheckoutError] = useState("");
 
   useEffect(() => {
     let isActive = true;
@@ -81,6 +84,20 @@ export function PromoCheckoutPage() {
       );
     } finally {
       setIsSubmittingLead(false);
+    }
+  }
+
+  async function handleCheckout(tier: PromoTier) {
+    setCheckoutLoading(tier);
+    setCheckoutError("");
+    try {
+      const url = await createPromoCheckoutSession(tier);
+      window.location.href = url;
+    } catch (err) {
+      setCheckoutError(
+        err instanceof Error ? err.message : "Unable to start checkout right now.",
+      );
+      setCheckoutLoading(null);
     }
   }
 
@@ -187,30 +204,44 @@ export function PromoCheckoutPage() {
             </div>
           </section>
 
+          {checkoutError && (
+            <div className="rounded-[1.2rem] border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+              {checkoutError}
+            </div>
+          )}
+
           <section className="grid gap-4 xl:grid-cols-3">
-            {[
-              {
-                name: "Basic Submission",
-                description: "Your track into the review queue with artist details, vibe notes, and a manual listen from the FlowSoundz team.",
-                price: "$15",
-                accent: "border-[#00E5FF]/20 bg-[#00E5FF]/10",
-                labelColor: "text-cyan-300",
-              },
-              {
-                name: "Featured Consideration",
-                description: "Priority review for standout records that may fit featured placement, homepage visibility, or curated station moments.",
-                price: "$45",
-                accent: "border-[#8B5CF6]/20 bg-[#8B5CF6]/12",
-                labelColor: "text-violet-300",
-              },
-              {
-                name: "Sponsored Rotation",
-                description: "High-visibility promo lane for premium station presence, sponsored support, and elevated release visibility.",
-                price: "$95",
-                accent: "border-[#FF2DA6]/20 bg-[#FF2DA6]/10",
-                labelColor: "text-fuchsia-300",
-              },
-            ].map((pkg) => (
+            {(
+              [
+                {
+                  tier: "basic" as PromoTier,
+                  name: "Basic Submission",
+                  description: "Your track into the review queue with artist details, vibe notes, and a manual listen from the FlowSoundz team.",
+                  price: "$15",
+                  accent: "border-[#00E5FF]/20 bg-[#00E5FF]/10",
+                  labelColor: "text-cyan-300",
+                  btnClass: "bg-cyan-400/15 text-cyan-200 hover:bg-cyan-400/25",
+                },
+                {
+                  tier: "featured" as PromoTier,
+                  name: "Featured Consideration",
+                  description: "Priority review for standout records that may fit featured placement, homepage visibility, or curated station moments.",
+                  price: "$45",
+                  accent: "border-[#8B5CF6]/20 bg-[#8B5CF6]/12",
+                  labelColor: "text-violet-300",
+                  btnClass: "bg-violet-500/15 text-violet-200 hover:bg-violet-500/25",
+                },
+                {
+                  tier: "sponsored" as PromoTier,
+                  name: "Sponsored Rotation",
+                  description: "High-visibility promo lane for premium station presence, sponsored support, and elevated release visibility.",
+                  price: "$95",
+                  accent: "border-[#FF2DA6]/20 bg-[#FF2DA6]/10",
+                  labelColor: "text-fuchsia-300",
+                  btnClass: "bg-fuchsia-500/15 text-fuchsia-200 hover:bg-fuchsia-500/25",
+                },
+              ] as const
+            ).map((pkg) => (
               <div
                 key={pkg.name}
                 className={`glass-card flex flex-col rounded-[1.8rem] border p-6 ${pkg.accent}`}
@@ -223,19 +254,17 @@ export function PromoCheckoutPage() {
                   <span className="mb-0.5 text-sm text-[#CBD5E1]/60">/submission</span>
                 </div>
                 <p className="mt-3 flex-1 text-sm leading-6 text-[#CBD5E1]">{pkg.description}</p>
-                <div className="mt-5 rounded-[1.1rem] border border-white/8 bg-white/[0.04] px-4 py-3 text-center text-xs font-semibold text-[#CBD5E1]/60">
-                  Launching soon — join the waitlist below
-                </div>
+                <button
+                  type="button"
+                  disabled={checkoutLoading !== null}
+                  onClick={() => handleCheckout(pkg.tier)}
+                  className={`mt-5 rounded-[1.1rem] px-4 py-3 text-center text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${pkg.btnClass}`}
+                >
+                  {checkoutLoading === pkg.tier ? "Redirecting…" : "Get started →"}
+                </button>
               </div>
             ))}
           </section>
-
-          <div className="rounded-[1.6rem] border border-cyan-300/18 bg-[linear-gradient(135deg,rgba(0,229,255,0.07),rgba(124,77,255,0.06))] px-6 py-5">
-            <p className="text-sm font-semibold text-white">Paid promo lanes are coming soon.</p>
-            <p className="mt-1 text-sm text-slate-400">
-              Use the form below to send your track now — the team reviews every request and will confirm availability and pricing directly.
-            </p>
-          </div>
 
           <section className="glass-card rounded-[2rem] border border-white/8 bg-[#0B1020]/86 p-6 md:p-8">
             <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">

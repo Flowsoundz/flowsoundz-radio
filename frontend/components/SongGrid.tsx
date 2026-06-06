@@ -223,6 +223,26 @@ export function SongGrid({ songs, isLoading, error }: SongGridProps) {
                   Curated archive preview
                 </div>
               ) : null}
+              <div className="flex gap-2">
+                <a
+                  href={`https://open.spotify.com/search/${encodeURIComponent(`${song.title} ${song.artist}`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-full border border-[#1DB954]/18 bg-[#1DB954]/8 py-1.5 text-[11px] font-semibold text-[#1DB954] transition hover:bg-[#1DB954]/16 hover:text-white"
+                >
+                  <svg viewBox="0 0 24 24" className="h-3 w-3 fill-current"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+                  Spotify
+                </a>
+                <a
+                  href={`https://music.apple.com/search?term=${encodeURIComponent(`${song.title} ${song.artist}`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-full border border-[#fc3c44]/18 bg-[#fc3c44]/8 py-1.5 text-[11px] font-semibold text-[#fc3c44] transition hover:bg-[#fc3c44]/16 hover:text-white"
+                >
+                  <svg viewBox="0 0 24 24" className="h-3 w-3 fill-current"><path d="M23.994 6.124a9.23 9.23 0 00-.24-2.19c-.317-1.31-1.062-2.31-2.18-3.043a5.022 5.022 0 00-1.877-.726 10.496 10.496 0 00-1.564-.15c-.04-.003-.083-.01-.124-.013H5.986c-.152.01-.303.017-.455.026C4.786.07 4.043.15 3.34.428 2.004.958 1.04 1.88.475 3.208a5.494 5.494 0 00-.39 1.554c-.06.562-.087 1.125-.09 1.69v11.1c.01.55.04 1.1.1 1.648.076.715.272 1.392.63 2.012.713 1.22 1.79 2.01 3.185 2.368.505.127 1.02.19 1.54.213.563.026 1.125.03 1.688.03h11.27c.563 0 1.126-.003 1.688-.03.62-.03 1.234-.107 1.826-.316 1.33-.47 2.286-1.37 2.87-2.65.278-.62.397-1.28.44-1.95.027-.43.037-.86.04-1.29V6.124zm-6.985 9.32c-.016.026-.037.05-.058.073a1.977 1.977 0 01-2.142.568 1.976 1.976 0 01-.817-.5L9.7 11.44a1.976 1.976 0 010-2.794l1.41-1.41a1.977 1.977 0 012.794 0l4.29 4.29a1.978 1.978 0 01.002 2.794l-1.187 1.124z"/></svg>
+                  Apple Music
+                </a>
+              </div>
             </div>
           </article>
         );

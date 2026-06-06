@@ -42,7 +42,9 @@
     ".next-runtime/dev/types/cache-life.d.ts",
     ".next-runtime/dev/types/validator.ts",
     ".next-runtime/types/**/*.ts",
-    ".next-runtime/dev/types/**/*.ts"
+    ".next-runtime/dev/types/**/*.ts",
+    ".next-3001/types/**/*.ts",
+    ".next-3001/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

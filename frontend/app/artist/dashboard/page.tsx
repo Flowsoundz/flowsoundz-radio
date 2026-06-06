@@ -85,6 +85,12 @@ export default async function ArtistDashboardPage() {
             >
               Check Rights
             </Link>
+            <Link
+              href="/artist/metrics"
+              className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/10 px-6 py-2.5 text-sm font-medium text-slate-300 transition hover:border-white/20 hover:text-white"
+            >
+              View Metrics
+            </Link>
           </div>
         </div>
       </div>

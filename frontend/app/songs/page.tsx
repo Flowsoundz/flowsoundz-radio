@@ -25,6 +25,20 @@ export default function SongsPage() {
   const [vibeFilter, setVibeFilter] = useState("all");
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const v = params.get("vibe");
+    if (v) setVibeFilter(v);
+  }, []);
+
+  function handleVibeChange(vibe: string) {
+    setVibeFilter(vibe);
+    const url = new URL(window.location.href);
+    if (vibe === "all") url.searchParams.delete("vibe");
+    else url.searchParams.set("vibe", vibe);
+    window.history.replaceState(null, "", url.toString());
+  }
+
+  useEffect(() => {
     const loadSongs = async () => {
       try {
         setLoading(true);
@@ -134,7 +148,7 @@ export default function SongsPage() {
             return (
               <button
                 key={tab.value}
-                onClick={() => setVibeFilter(tab.value)}
+                onClick={() => handleVibeChange(tab.value)}
                 className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-semibold transition ${
                   isActive
                     ? isAI
@@ -153,6 +167,14 @@ export default function SongsPage() {
             <span className="ml-auto shrink-0 self-center text-xs text-white/25">
               {filtered.length} result{filtered.length !== 1 ? "s" : ""}
             </span>
+          )}
+          {vibeFilter !== "all" && vibeFilter !== "ai_generated" && (
+            <Link
+              href={`/artists?vibe=${vibeFilter}`}
+              className="ml-1 shrink-0 self-center rounded-full border border-white/10 px-3 py-1 text-xs text-white/50 transition hover:border-[#00e5ff]/30 hover:text-[#00e5ff]/80"
+            >
+              {VIBE_TABS.find((t) => t.value === vibeFilter)?.label ?? vibeFilter} artists →
+            </Link>
           )}
         </div>
       </div>

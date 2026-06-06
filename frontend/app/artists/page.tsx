@@ -13,10 +13,29 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function ArtistsPage() {
+const VIBE_TABS = [
+  { label: "All", value: "all" },
+  { label: "Chill", value: "chill" },
+  { label: "Hype", value: "hype" },
+  { label: "Late Night", value: "late_night" },
+  { label: "Emotional", value: "emotional" },
+];
+
+type PageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function ArtistsPage({ searchParams }: PageProps) {
+  const params = await searchParams;
+  const vibeFilter = typeof params.vibe === "string" ? params.vibe : "all";
   const snapshot = await readCatalogSnapshotFromStore();
-  const artists = snapshot.artists;
+  const allArtists = snapshot.artists;
+  const artists =
+    vibeFilter === "all"
+      ? allArtists
+      : allArtists.filter((a) => a.vibes.includes(vibeFilter));
   const isFallbackCatalog = snapshot.isFallbackCatalog;
+  void isFallbackCatalog;
 
   return (
     <AppShell
@@ -28,6 +47,29 @@ export default async function ArtistsPage() {
         <p className="text-sm leading-6 text-slate-300">
           Every profile is a live snapshot from the FlowSoundz catalog — tracks, cover art, vibes, and rotation status, directly from the station. Discover an artist here before the algorithm knows they exist.
         </p>
+      </div>
+
+      {/* ── Vibe filter ── */}
+      <div className="mb-6 flex gap-2 overflow-x-auto scrollbar-none">
+        {VIBE_TABS.map((tab) => {
+          const isActive = vibeFilter === tab.value;
+          return (
+            <Link
+              key={tab.value}
+              href={tab.value === "all" ? "/artists" : `/artists?vibe=${tab.value}`}
+              className={`shrink-0 rounded-full px-4 py-1.5 text-xs font-semibold transition ${
+                isActive
+                  ? "bg-[linear-gradient(135deg,#00e5ff,#7c4dff)] text-white shadow-[0_0_12px_rgba(0,229,255,0.3)]"
+                  : "border border-white/10 text-white/50 hover:border-white/20 hover:text-white/80"
+              }`}
+            >
+              {tab.label}
+            </Link>
+          );
+        })}
+        <span className="ml-auto shrink-0 self-center text-xs text-white/25">
+          {artists.length} artist{artists.length !== 1 ? "s" : ""}
+        </span>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">

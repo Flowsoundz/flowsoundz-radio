@@ -105,6 +105,7 @@ export default function SubmitPage() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [prefilledFromStep1, setPrefilledFromStep1] = useState(false);
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -117,6 +118,35 @@ export default function SubmitPage() {
 
     startedRef.current = true;
     track("artist_submission_started", { source: "artist_submit_page" });
+
+    // Pre-fill from Step 1 concept data if fields are still empty
+    try {
+      const raw = sessionStorage.getItem("fsz-hub-concept");
+      if (!raw) return;
+      const concept = JSON.parse(raw) as {
+        artistName?: string;
+        songIdea?: string;
+        genre?: string;
+        generated?: { titleIdeas?: string[] };
+      };
+      const updates = {
+        artistName: concept.artistName || "",
+        genre: concept.genre || "",
+        description: concept.songIdea || "",
+        songTitle: concept.generated?.titleIdeas?.[0] || "",
+      };
+      const hasUpdates = Object.values(updates).some(Boolean);
+      if (hasUpdates) {
+        setForm((prev) => ({
+          ...prev,
+          artistName: prev.artistName || updates.artistName,
+          genre: prev.genre || updates.genre,
+          description: prev.description || updates.description,
+          songTitle: prev.songTitle || updates.songTitle,
+        }));
+        setPrefilledFromStep1(true);
+      }
+    } catch {}
   }, []);
 
   const allChecked = REQUIRED_CHECKS.every((c) => checks[c.id]);
@@ -272,6 +302,18 @@ export default function SubmitPage() {
           <span className="text-xs text-slate-400">After submission, AI-assisted promo assets are generated for your track. These are suggestions only — you review and edit them before they go anywhere.</span>
         </div>
       </div>
+
+      {/* ── Step 1 pre-fill notice ── */}
+      {prefilledFromStep1 && (
+        <div className="mb-6 flex items-center gap-3 rounded-[1.2rem] border border-cyan-300/18 bg-cyan-300/[0.06] px-4 py-3">
+          <svg className="h-4 w-4 shrink-0 text-cyan-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          <p className="text-xs text-cyan-100/80">
+            Some fields were pre-filled from your Step 1 concept. Review and edit before submitting.
+          </p>
+        </div>
+      )}
 
       {/* ── Form ── */}
       <div className="mb-10 glass-card rounded-[1.8rem] p-6 sm:p-8">
