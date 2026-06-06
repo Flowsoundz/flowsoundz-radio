@@ -78,7 +78,15 @@ function getLocalCoverSrc(
 
 export async function getSongs(): Promise<Song[]> {
   if (!API_BASE) {
-    return getStaticCatalog();
+    try {
+      const res = await fetch("/api/songs", { cache: "no-store" });
+      if (!res.ok) {
+        throw new Error("Failed to load songs");
+      }
+      return res.json();
+    } catch {
+      return getStaticCatalog();
+    }
   }
 
   try {
@@ -105,7 +113,19 @@ export async function getSongs(): Promise<Song[]> {
 
 export async function getQueue(vibe?: string): Promise<Song[]> {
   if (!API_BASE) {
-    return getStaticCatalog(vibe);
+    const url = vibe
+      ? `/api/queue?vibe=${encodeURIComponent(vibe)}`
+      : "/api/queue";
+
+    try {
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) {
+        throw new Error("Failed to load queue");
+      }
+      return res.json();
+    } catch {
+      return getStaticCatalog(vibe);
+    }
   }
 
   const url = vibe
