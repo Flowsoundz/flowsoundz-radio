@@ -3,6 +3,15 @@ import Nodemailer from "next-auth/providers/nodemailer";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 
+// On Vercel, honor the active request host/alias for magic-link auth.
+// A stale AUTH_URL/NEXTAUTH_URL can pin callbacks to the wrong domain,
+// which makes the session cookie appear to "not stick" across the site.
+if (process.env.VERCEL === "1") {
+  delete process.env.AUTH_URL;
+  delete process.env.NEXTAUTH_URL;
+  delete process.env.NEXTAUTH_URL_INTERNAL;
+}
+
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL?.trim() ?? "";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
