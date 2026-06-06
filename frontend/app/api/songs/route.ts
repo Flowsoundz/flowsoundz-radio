@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { readCatalogSnapshotFromStore } from "@/lib/catalogSnapshotStore";
+import { getStaticCatalog } from "@/lib/staticCatalog";
 import type { Song } from "@/lib/types";
 
 function normalizeSong(song: Song): Song {
@@ -17,7 +18,10 @@ function normalizeSong(song: Song): Song {
 export async function GET() {
   try {
     const snapshot = await readCatalogSnapshotFromStore();
-    return NextResponse.json(snapshot.songs.map(normalizeSong), {
+    const songs =
+      snapshot.songs.length > 0 ? snapshot.songs : getStaticCatalog();
+
+    return NextResponse.json(songs.map(normalizeSong), {
       headers: {
         "Cache-Control": "no-store",
       },

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { readCatalogSnapshotFromStore } from "@/lib/catalogSnapshotStore";
+import { getStaticCatalog } from "@/lib/staticCatalog";
 import type { Song } from "@/lib/types";
 
 function normalizeSong(song: Song): Song {
@@ -25,7 +26,9 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const vibe = searchParams.get("vibe");
     const snapshot = await readCatalogSnapshotFromStore();
-    const songs = snapshot.songs.map(normalizeSong);
+    const baseSongs =
+      snapshot.songs.length > 0 ? snapshot.songs : getStaticCatalog();
+    const songs = baseSongs.map(normalizeSong);
     const filtered =
       vibe && vibe !== "all"
         ? songs.filter((song) => song.vibe === vibe)
