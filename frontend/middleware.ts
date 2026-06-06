@@ -1,25 +1,30 @@
-import { NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { NextResponse, type NextRequest } from "next/server";
+import { getToken } from "next-auth/jwt";
 
-export default auth((req) => {
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL?.trim() ?? "";
+
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+  const token = await getToken({ req, secret: process.env.AUTH_SECRET });
+  const isAuthed = Boolean(token);
+  const isAdmin = ADMIN_EMAIL ? token?.email === ADMIN_EMAIL : false;
 
   if (pathname.startsWith("/admin")) {
-    if (!req.auth?.user) {
+    if (!isAuthed) {
       return NextResponse.redirect(new URL(`/signin?next=${pathname}`, req.url));
     }
 
-    if (!(req.auth.user as { isAdmin?: boolean }).isAdmin) {
+    if (!isAdmin) {
       return NextResponse.redirect(new URL("/", req.url));
     }
   }
 
-  if (pathname.startsWith("/artist/metrics") && !req.auth?.user) {
+  if (pathname.startsWith("/artist/metrics") && !isAuthed) {
     return NextResponse.redirect(new URL(`/signin?next=${pathname}`, req.url));
   }
 
   return NextResponse.next();
-});
+}
 
 export const config = {
   matcher: ["/admin/:path*", "/artist/metrics/:path*"],
