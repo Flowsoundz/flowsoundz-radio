@@ -3,12 +3,12 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 
 const UNAVAILABLE = {
-  error: "This admin tool requires the FlowSoundz media backend to be running.",
-  hint: "Start the local backend (cd backend && uvicorn app.main:app) to use this tool.",
+  error:
+    "Release submission inbox storage is not configured for this deployment yet.",
 };
 
 export async function GET() {
-  return NextResponse.json(UNAVAILABLE, { status: 503 });
+  return NextResponse.json({ submissions: [], storageMode: "unconfigured" });
 }
 
 export async function POST() {

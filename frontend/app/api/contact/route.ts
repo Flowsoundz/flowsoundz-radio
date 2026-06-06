@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { appendContactMessage } from "@/lib/adminContactStore";
 import { sendContactNotification } from "@/lib/mailer";
 
 export const runtime = "nodejs";
@@ -53,6 +54,7 @@ export async function POST(request: Request) {
   };
 
   void sendContactNotification(entry).catch(() => undefined);
+  void appendContactMessage(entry).catch(() => undefined);
 
   return NextResponse.json({
     message: "Message received. We'll get back to you soon.",

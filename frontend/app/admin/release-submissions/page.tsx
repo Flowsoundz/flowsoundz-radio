@@ -5,30 +5,14 @@ import {
 } from "@/components/AdminReleaseSubmissionsReview";
 
 export const dynamic = "force-dynamic";
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE || "http://127.0.0.1:8000";
-
 async function loadSubmissions(): Promise<ReleaseSubmission[]> {
-  try {
-    const response = await fetch(`${API_BASE}/admin/release-submissions`, {
-      cache: "no-store",
-    });
-    if (!response.ok) {
-      return [];
-    }
-
-    const data = (await response.json()) as {
-      submissions?: ReleaseSubmission[];
-    };
-    return data.submissions ?? [];
-  } catch {
-    return [];
-  }
+  return [];
 }
 
 export default async function AdminReleaseSubmissionsPage() {
   const isConfigured = Boolean(process.env.ADMIN_UPLOAD_PASSWORD);
   const submissions = isConfigured ? await loadSubmissions() : [];
+  const isStorageConfigured = false;
 
   const pendingCount = submissions.filter((submission) =>
     ["received", "reviewed"].includes(submission.status),
@@ -48,8 +32,14 @@ export default async function AdminReleaseSubmissionsPage() {
               : `${submissions.length} submission${submissions.length === 1 ? "" : "s"} · all reviewed.`
       }
     >
-      {isConfigured ? (
+      {isConfigured && isStorageConfigured ? (
         <AdminReleaseSubmissionsReview submissions={submissions} />
+      ) : isConfigured ? (
+        <div className="glass-card rounded-[1.8rem] p-6 text-sm leading-6 text-amber-100">
+          Release submission inbox storage is not configured for this deployment
+          yet. This screen should stay hidden until a dedicated database-backed
+          store is added.
+        </div>
       ) : (
         <div className="glass-card rounded-[1.8rem] p-6 text-sm leading-6 text-rose-100">
           Set `ADMIN_UPLOAD_PASSWORD` in `.env.local` to enable this admin

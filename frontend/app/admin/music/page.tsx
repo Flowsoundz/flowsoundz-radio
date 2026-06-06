@@ -1,10 +1,9 @@
 import { AppShell } from "@/components/AppShell";
 import { AdminMusicUploader } from "@/components/AdminMusicUploader";
+import { readAdminCatalogSongs } from "@/lib/adminCatalog";
 import type { Song } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE || "http://127.0.0.1:8000";
 
 type AdminSongOption = Pick<
   Song,
@@ -23,14 +22,7 @@ type AdminSongOption = Pick<
 >;
 
 async function loadCatalog(): Promise<AdminSongOption[]> {
-  const response = await fetch(`${API_BASE}/admin/catalog`, {
-    cache: "no-store",
-  });
-  if (!response.ok) {
-    return [];
-  }
-  const data = (await response.json()) as { songs?: Song[] };
-  const songs = data.songs ?? [];
+  const songs = await readAdminCatalogSongs();
   return songs.map(
     ({
       id,

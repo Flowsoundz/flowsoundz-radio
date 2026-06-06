@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { appendWaitlistEntry } from "@/lib/adminWaitlistStore";
 import { sendWaitlistNotification } from "@/lib/mailer";
 
 export const runtime = "nodejs";
@@ -23,9 +24,12 @@ export async function POST(request: Request) {
   const entry = {
     id: `wl_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
     email,
+    joined_at: new Date().toISOString(),
+    source: "homepage",
   };
 
   void sendWaitlistNotification(entry).catch(() => undefined);
+  void appendWaitlistEntry(entry).catch(() => undefined);
 
   return NextResponse.json({
     message: "You're on the list. Welcome to FlowSoundz.",

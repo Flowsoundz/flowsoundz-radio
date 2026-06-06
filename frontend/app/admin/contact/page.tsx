@@ -1,9 +1,11 @@
 import { AppShell } from "@/components/AppShell";
 import { ContactInbox } from "@/components/ContactInbox";
+import {
+  CONTACT_STORAGE_MODE,
+  readContactMessages,
+} from "@/lib/adminContactStore";
 
 export const dynamic = "force-dynamic";
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE || "http://127.0.0.1:8000";
 
 export type ContactMessage = {
   id: string;
@@ -16,26 +18,14 @@ export type ContactMessage = {
 };
 
 async function loadMessages(): Promise<ContactMessage[]> {
-  try {
-    const response = await fetch(`${API_BASE}/admin/contact`, {
-      cache: "no-store",
-    });
-
-    if (!response.ok) {
-      return [];
-    }
-
-    const payload = (await response.json()) as { messages?: ContactMessage[] };
-    const messages = Array.isArray(payload.messages) ? payload.messages : [];
-    return [...messages].reverse();
-  } catch {
-    return [];
-  }
+  const messages = await readContactMessages();
+  return [...messages].reverse();
 }
 
 export default async function AdminContactPage() {
   const messages = await loadMessages();
   const unreadCount = messages.filter((m) => m.status === "unread").length;
+  const isStorageConfigured = CONTACT_STORAGE_MODE !== "unconfigured";
 
   return (
     <AppShell
@@ -49,7 +39,14 @@ export default async function AdminContactPage() {
             : `${messages.length} message${messages.length === 1 ? "" : "s"} · all read`
       }
     >
-      <ContactInbox messages={messages} />
+      {isStorageConfigured ? (
+        <ContactInbox messages={messages} />
+      ) : (
+        <div className="glass-card rounded-[1.8rem] p-6 text-sm leading-6 text-amber-100">
+          Contact form notifications are being emailed, but durable inbox storage
+          is not configured for this production deployment yet.
+        </div>
+      )}
     </AppShell>
   );
 }

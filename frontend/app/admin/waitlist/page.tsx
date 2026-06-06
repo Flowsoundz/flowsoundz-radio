@@ -1,9 +1,11 @@
 import { AppShell } from "@/components/AppShell";
 import { WaitlistTable } from "@/components/WaitlistTable";
+import {
+  WAITLIST_STORAGE_MODE,
+  readWaitlistEntries,
+} from "@/lib/adminWaitlistStore";
 
 export const dynamic = "force-dynamic";
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE || "http://127.0.0.1:8000";
 
 type WaitlistEntry = {
   id: string;
@@ -13,25 +15,13 @@ type WaitlistEntry = {
 };
 
 async function loadWaitlist(): Promise<WaitlistEntry[]> {
-  try {
-    const response = await fetch(`${API_BASE}/admin/waitlist`, {
-      cache: "no-store",
-    });
-
-    if (!response.ok) {
-      return [];
-    }
-
-    const payload = (await response.json()) as { entries?: WaitlistEntry[] };
-    const entries = Array.isArray(payload.entries) ? payload.entries : [];
-    return [...entries].reverse();
-  } catch {
-    return [];
-  }
+  const entries = await readWaitlistEntries();
+  return [...entries].reverse();
 }
 
 export default async function AdminWaitlistPage() {
   const entries = await loadWaitlist();
+  const isStorageConfigured = WAITLIST_STORAGE_MODE !== "unconfigured";
 
   return (
     <AppShell
@@ -43,7 +33,14 @@ export default async function AdminWaitlistPage() {
           : `${entries.length} signup${entries.length === 1 ? "" : "s"} — most recent first.`
       }
     >
-      <WaitlistTable entries={entries} />
+      {isStorageConfigured ? (
+        <WaitlistTable entries={entries} />
+      ) : (
+        <div className="glass-card rounded-[1.8rem] p-6 text-sm leading-6 text-amber-100">
+          Waitlist emails are being captured for notifications, but durable admin
+          storage is not configured for this production deployment yet.
+        </div>
+      )}
     </AppShell>
   );
 }
