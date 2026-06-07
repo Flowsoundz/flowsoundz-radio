@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { runAI, extractTag } from "@/lib/creatorHub/aiEngine";
 
 export const runtime = "nodejs";
 
@@ -83,10 +84,49 @@ export async function POST(req: NextRequest) {
     };
 
     if (action === "generate_ai_summary") {
-      // AI summary generation — placeholder, returns current record
       const existing = await prisma.releaseSubmission.findUnique({ where: { id: submissionId } });
       if (!existing) return NextResponse.json({ error: "Not found." }, { status: 404 });
-      return NextResponse.json({ submission: toClientShape(existing) });
+
+      const userPrompt = [
+        "You are a music curator reviewing a release submission for FlowSoundz Radio.",
+        "Write a short internal curator summary and curation tags for this submission.",
+        "",
+        `Artist: ${existing.artistName}`,
+        `Track: ${existing.trackTitle}`,
+        `Genre: ${existing.genre}`,
+        `Release date: ${existing.releaseDate}`,
+        existing.notes ? `Artist notes: ${existing.notes}` : "",
+        "",
+        "Output only these tagged blocks:",
+        "<summary>2–3 sentence internal curator take on this submission. Specific, editorial, honest.</summary>",
+        "<tags>3–5 comma-separated genre/vibe/style tags relevant to FlowSoundz rotation.</tags>",
+        "<recommendation>One of: approve, reject, revisit</recommendation>",
+        "<confidence>One of: high, medium, low</confidence>",
+      ].filter(Boolean).join("\n");
+
+      let updated = existing;
+      const raw = await runAI(userPrompt, 600);
+      if (raw) {
+        const summary = extractTag(raw, "summary");
+        const tagsRaw = extractTag(raw, "tags");
+        const recommendation = extractTag(raw, "recommendation") || null;
+        const confidence = extractTag(raw, "confidence") || null;
+        const tags = tagsRaw ? tagsRaw.split(",").map((t) => t.trim()).filter(Boolean) : [];
+
+        updated = await prisma.releaseSubmission.update({
+          where: { id: submissionId },
+          data: {
+            aiSummary: summary || null,
+            aiTags: tags,
+            aiRecommendation: recommendation,
+            aiConfidence: confidence,
+            aiGeneratedAt: new Date(),
+            aiModel: process.env.OPENAI_API_KEY ? (process.env.OPENAI_MODEL_DJ ?? "gpt-4o") : "claude-sonnet-4-20250514",
+          },
+        });
+      }
+
+      return NextResponse.json({ submission: toClientShape(updated) });
     }
 
     try {

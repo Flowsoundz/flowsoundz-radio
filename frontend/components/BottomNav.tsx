@@ -10,7 +10,7 @@ const CORE_TABS = [
     href: "/radio",
     label: "Radio",
     icon: (
-      <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="2" />
         <path d="M4.93 19.07A10 10 0 1 1 19.07 4.93" />
         <path d="M7.76 16.24A6 6 0 1 1 16.24 7.76" />
@@ -22,7 +22,7 @@ const CORE_TABS = [
     label: "Discover",
     matchPrefixes: ["/songs", "/artists"],
     icon: (
-      <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="11" cy="11" r="8" />
         <line x1="21" y1="21" x2="16.65" y2="16.65" />
       </svg>
@@ -33,7 +33,7 @@ const CORE_TABS = [
     label: "Creator",
     matchPrefixes: ["/artist"],
     icon: (
-      <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M9 18V5l12-2v13" />
         <circle cx="6" cy="18" r="3" />
         <circle cx="18" cy="16" r="3" />
@@ -48,6 +48,8 @@ const MORE_LINKS = [
   { href: "/visualizer", label: "Visualizer" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
+  { href: "/privacy", label: "Privacy" },
+  { href: "/terms", label: "Terms" },
 ] as const;
 
 export default function BottomNav() {
@@ -149,12 +151,14 @@ export default function BottomNav() {
           {/* More tab */}
           <button
             type="button"
+            aria-label="More navigation options"
             onClick={() => setDrawerOpen((o) => !o)}
             className={`flex flex-col items-center gap-1 rounded-2xl px-2 py-2 text-[10px] font-semibold transition ${
               drawerOpen || moreIsActive ? "text-[#00e5ff]" : "text-slate-400 hover:text-slate-200"
             }`}
           >
             <svg
+              aria-hidden="true"
               className={`h-5 w-5 transition-transform duration-200 ${drawerOpen ? "rotate-45" : ""}`}
               viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
             >

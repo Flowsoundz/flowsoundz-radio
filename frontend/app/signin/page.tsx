@@ -73,6 +73,8 @@ function SignInForm() {
     setErr("");
     try {
       await signIn("google", { callbackUrl: next });
+      // On success, the browser redirects — component unmounts before this runs.
+      // setGoogleLoading(false) is intentionally omitted to avoid a flash.
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Google sign-in failed.");
       setGoogleLoading(false);

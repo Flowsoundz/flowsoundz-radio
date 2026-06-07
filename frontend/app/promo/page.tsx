@@ -1,6 +1,17 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { AppShell } from "@/components/AppShell";
 import { PromoCheckoutPage } from "@/components/PromoCheckoutPage";
+
+export const metadata: Metadata = {
+  title: "Artist Promo — FlowSoundz Radio",
+  description:
+    "Submit your track for FlowSoundz Radio rotation and featured placement. Secure checkout, human curation review, and direct path to underground radio.",
+  openGraph: {
+    title: "FlowSoundz Artist Promo Portal",
+    description: "Get your music into FlowSoundz Radio rotation.",
+  },
+};
 
 function PromoCheckoutFallback() {
   return (

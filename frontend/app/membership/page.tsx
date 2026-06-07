@@ -1,8 +1,18 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 import { MembershipFAQ } from "@/components/MembershipFAQ";
-import { WaitlistForm } from "@/components/WaitlistForm";
 import { MembershipCheckoutButton } from "@/components/MembershipCheckoutButton";
+
+export const metadata: Metadata = {
+  title: "Membership — FlowSoundz Radio",
+  description:
+    "Join FlowSoundz Radio as an Insider or Vault member. Get early access to drops, exclusive tracks, and direct support for underground artists.",
+  openGraph: {
+    title: "FlowSoundz Membership — Insider & Vault",
+    description: "Support underground music. Get early drops and exclusive access.",
+  },
+};
 
 const tiers = [
   {
@@ -90,10 +100,10 @@ export default function MembershipPage() {
     >
       <div className="mb-8 rounded-[1.8rem] border border-cyan-300/18 bg-[linear-gradient(135deg,rgba(0,229,255,0.09),rgba(124,77,255,0.08),rgba(255,45,166,0.06))] px-6 py-5">
         <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-200/75">
-          Limited access windows
+          Now open
         </p>
         <p className="mt-2 text-sm leading-6 text-slate-200">
-          Insider and Vault members get first call on early drops, archive perks, and creator-side experiments while beta slots remain limited.
+          Insider and Vault memberships are live. Cancel any time — no contracts, no hidden fees.
         </p>
       </div>
 
@@ -204,17 +214,17 @@ export default function MembershipPage() {
 
       <MembershipFAQ />
 
-      {/* Early access capture */}
-      <div id="early-access" className="mt-10 scroll-mt-8 rounded-[1.8rem] border border-cyan-300/18 bg-[linear-gradient(135deg,rgba(0,229,255,0.06),rgba(124,77,255,0.05))] px-8 py-10 text-center">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-cyan-300/70">Internal Circle — Limited Slots</p>
-        <h3 className="mt-2 text-xl font-semibold text-white">Paid onboarding is temporarily locked.</h3>
+      <div className="mt-10 rounded-[1.8rem] border border-white/8 bg-white/[0.025] px-8 py-8 text-center">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">Questions?</p>
         <p className="mt-2 text-sm leading-6 text-slate-400">
-          Join the internal waitlist today and bypass the standard curation queue on launch day — priority radio placement, launch pricing locked in, and first entry into every Midnight Drop window before public slots open.
+          Memberships renew monthly and can be cancelled any time from the{" "}
+          <strong className="text-white">Manage billing</strong> option in your account menu.
+          Reach us at{" "}
+          <a href="mailto:flowsoundzradio@gmail.com" className="text-cyan-400 hover:text-cyan-300">
+            flowsoundzradio@gmail.com
+          </a>{" "}
+          with any questions.
         </p>
-        <div className="mt-6 flex justify-center">
-          <WaitlistForm />
-        </div>
-        <p className="mt-4 text-xs text-white/25">No spam. Unsubscribe any time.</p>
       </div>
     </AppShell>
   );

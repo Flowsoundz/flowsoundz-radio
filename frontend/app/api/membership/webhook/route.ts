@@ -32,11 +32,11 @@ export async function POST(req: NextRequest) {
 
   let event: import("stripe").Stripe.Event;
   try {
-    if (webhookSecret && sig) {
-      event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
-    } else {
-      event = JSON.parse(body) as import("stripe").Stripe.Event;
+    if (!webhookSecret || !sig) {
+      console.error("[membership/webhook] missing STRIPE_WEBHOOK_SECRET or stripe-signature header");
+      return NextResponse.json({ error: "Webhook not configured" }, { status: 400 });
     }
+    event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
   } catch (err) {
     console.error("[membership/webhook] signature error", err);
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
@@ -66,14 +66,30 @@ export async function POST(req: NextRequest) {
     if (event.type === "customer.subscription.updated") {
       const sub = event.data.object as import("stripe").Stripe.Subscription;
       const tier = (sub.metadata?.tier ?? "").toLowerCase();
-      if (!TIER_MAP[tier] || sub.status !== "active") return NextResponse.json({ received: true });
-
       const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer.id;
       const email = await getCustomerEmail(stripe, customerId);
+
       if (email) {
-        await prisma.user.update({ where: { email }, data: { tier: TIER_MAP[tier] } }).catch((err) => {
-          console.warn("[webhook] user not found for upgrade:", email, err);
-        });
+        if (TIER_MAP[tier] && sub.status === "active") {
+          await prisma.user.update({ where: { email }, data: { tier: TIER_MAP[tier] } }).catch((err) => {
+            console.warn("[webhook] user not found for upgrade:", email, err);
+          });
+        } else if (sub.status === "past_due" || sub.status === "unpaid") {
+          // Payment failed and Stripe grace period is over — revoke access
+          await prisma.user.update({ where: { email }, data: { tier: "FREE" } }).catch((err) => {
+            console.warn("[webhook] user not found for past_due downgrade:", email, err);
+          });
+        }
+      }
+    }
+
+    if (event.type === "invoice.payment_failed") {
+      const invoice = event.data.object as import("stripe").Stripe.Invoice;
+      const customerId = typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id;
+      if (customerId) {
+        const email = await getCustomerEmail(stripe, customerId);
+        // Log for monitoring — Stripe will retry and fire subscription.updated/deleted on final failure
+        console.warn("[webhook] payment failed for customer:", email ?? customerId);
       }
     }
   } catch (err) {

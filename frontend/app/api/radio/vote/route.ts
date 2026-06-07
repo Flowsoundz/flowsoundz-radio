@@ -41,8 +41,10 @@ export async function POST(req: NextRequest) {
       ? Math.min(1, currentSkipRate + 1 / Math.max(playCount, 1))
       : currentSkipRate;
 
-    // rotationScore: 0-100, driven by hype density minus skip penalty
-    const hypeDensity = newHypeCount / Math.max(playCount, 1);
+    // hypeDensity is bounded to [0,1] by dividing by max(hypeCount+1, playCount).
+    // This prevents a single hype on a new record (playCount=1) from saturating
+    // the score immediately — it gives diminishing returns as hypes accumulate.
+    const hypeDensity = newHypeCount / Math.max(newHypeCount + 1, playCount);
     const newRotationScore = Math.max(0, Math.min(100,
       50 + (hypeDensity * 60) - (newSkipRate * 40)
     ));
