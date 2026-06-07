@@ -27,9 +27,47 @@ export default function manifest(): MetadataRoute.Manifest {
         purpose: "maskable",
       },
       {
+        src: "/brand/flowsoundz-fr-appicon-transparent.png",
+        sizes: "192x192",
+        type: "image/png",
+        purpose: "any",
+      },
+      {
+        src: "/brand/flowsoundz-fr-appicon-transparent.png",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "any",
+      },
+      {
         src: "/brand/flowsoundz-fr-appicon-dark.png",
         sizes: "180x180",
         type: "image/png",
+      },
+    ],
+    screenshots: [
+      {
+        src: "/splash/splash-iphone-15-pro-max.png",
+        sizes: "1290x2796",
+        type: "image/png",
+
+        form_factor: "narrow",
+        label: "FlowSoundz Radio — now playing",
+      },
+      {
+        src: "/splash/splash-iphone-14-pro.png",
+        sizes: "1179x2556",
+        type: "image/png",
+
+        form_factor: "narrow",
+        label: "FlowSoundz Radio — discover",
+      },
+      {
+        src: "/splash/splash-ipad-pro-13.png",
+        sizes: "2064x2752",
+        type: "image/png",
+
+        form_factor: "wide",
+        label: "FlowSoundz Radio — tablet",
       },
     ],
   };

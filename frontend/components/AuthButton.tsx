@@ -4,6 +4,12 @@ import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { useState } from "react";
 
+async function openBillingPortal() {
+  const res = await fetch("/api/membership/portal", { method: "POST" });
+  const data = await res.json() as { url?: string };
+  if (data.url) window.location.href = data.url;
+}
+
 export function AuthButton() {
   const { data: session, status } = useSession();
   const [open, setOpen] = useState(false);
@@ -87,6 +93,18 @@ export function AuthButton() {
                 <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>
                 Admin Panel
               </Link>
+            )}
+            {tier !== "FREE" && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => { setOpen(false); void openBillingPortal(); }}
+                  className="flex w-full items-center gap-2 rounded-[1rem] px-3 py-2 text-xs text-slate-300 transition hover:bg-white/5 hover:text-white"
+                >
+                  <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                  Manage billing
+                </button>
+              </>
             )}
             <div className="my-1 border-t border-white/8" />
             <button

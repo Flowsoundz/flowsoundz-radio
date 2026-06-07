@@ -23,9 +23,13 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL(`/signin?next=${pathname}`, req.url));
   }
 
+  if (pathname.startsWith("/artist/release-submit") && !isAuthed) {
+    return NextResponse.redirect(new URL(`/signin?next=${pathname}`, req.url));
+  }
+
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/artist/metrics/:path*"],
+  matcher: ["/admin/:path*", "/artist/metrics/:path*", "/artist/release-submit/:path*"],
 };

@@ -10,9 +10,9 @@ export const metadata: Metadata = {
 
 const FREE_INCLUDES = [
   "Manual review by the FlowSoundz curation team",
-  "AI-generated bio, vibe tag, promo blurb, and radio intro — all editable",
+  "Submit your track link, release date, and genre — takes under 3 minutes",
   "If approved: rotation on FlowSoundz Radio + artist discovery listing",
-  "Email confirmation with your AI promo preview",
+  "We reply to your email with next steps",
 ];
 
 const PAID_INCLUDES = [
@@ -91,7 +91,7 @@ export default function ForArtistsPage() {
 
           <div className="space-y-3">
             <Link
-              href="/artist/submit"
+              href="/artist/release-submit"
               className="inline-flex w-full items-center justify-center rounded-full bg-[linear-gradient(135deg,#00e5ff,#7c4dff)] py-3 text-sm font-bold text-white shadow-[0_0_22px_rgba(0,229,255,0.25)] transition hover:shadow-[0_0_36px_rgba(0,229,255,0.45)]"
             >
               Submit a Track — Free
@@ -100,7 +100,7 @@ export default function ForArtistsPage() {
               href="/artist/dashboard"
               className="inline-flex w-full items-center justify-center rounded-full border border-white/12 py-2.5 text-xs font-semibold text-white/60 transition hover:border-white/22 hover:text-white"
             >
-              Start in Creator Hub instead
+              Full Creator Hub (AI promo assets)
             </Link>
           </div>
         </div>
@@ -174,7 +174,7 @@ export default function ForArtistsPage() {
           </div>
           <div className="flex shrink-0 flex-wrap justify-center gap-3 sm:justify-end">
             <Link
-              href="/artist/submit"
+              href="/artist/release-submit"
               className="inline-flex min-h-11 items-center justify-center rounded-full bg-[linear-gradient(135deg,#00e5ff_0%,#7c4dff_100%)] px-6 py-2.5 text-sm font-bold text-white shadow-[0_0_18px_rgba(0,229,255,0.35)] transition hover:shadow-[0_0_28px_rgba(0,229,255,0.55)]"
             >
               Submit for Free

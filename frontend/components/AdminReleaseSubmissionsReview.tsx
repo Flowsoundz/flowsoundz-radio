@@ -202,7 +202,7 @@ export function AdminReleaseSubmissionsReview({
     return (
       <div className="glass-card rounded-[1.8rem] p-6 text-sm leading-6 text-slate-300">
         No release submissions yet. They will appear here after artists submit
-        through the homepage release modal.
+        via <span className="font-mono text-cyan-300">/artist/release-submit</span>.
       </div>
     );
   }

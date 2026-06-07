@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Space_Grotesk, Inter, Bebas_Neue } from "next/font/google";
 import "./globals.css";
+import { CookieBanner } from "@/components/CookieBanner";
 import { DevLocalhostGuard } from "@/components/DevLocalhostGuard";
 import { GlobalAudioProvider } from "@/components/GlobalAudioProvider";
 import { MiniPlayer } from "@/components/MiniPlayer";
@@ -42,6 +43,13 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "FlowSoundz Radio",
+    startupImage: [
+      { url: "/splash/splash-iphone-15-pro-max.png", media: "(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3)" },
+      { url: "/splash/splash-iphone-14-pro.png",     media: "(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3)" },
+      { url: "/splash/splash-iphone-se.png",         media: "(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" },
+      { url: "/splash/splash-ipad-pro-13.png",       media: "(device-width: 1032px) and (device-height: 1376px) and (-webkit-device-pixel-ratio: 2)" },
+      { url: "/splash/splash-ipad-pro-11.png",       media: "(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2)" },
+    ],
   },
   formatDetection: {
     telephone: false,
@@ -92,6 +100,7 @@ export default function RootLayout({
             <RadioPlayer />
             {children}
             <MiniPlayer />
+            <CookieBanner />
           </GlobalAudioProvider>
         </SessionProvider>
       </body>
