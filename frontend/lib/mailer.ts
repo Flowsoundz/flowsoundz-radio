@@ -535,8 +535,8 @@ export async function sendLaunchAnnouncement(email: string, magicLink?: string) 
 
           <div style="margin:0 0 24px;padding:20px 24px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:14px">
             <p style="margin:0 0 4px;font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#94a3b8">Option 2 — sign in with Google</p>
-            <p style="margin:0 0 14px;font-size:13px;color:#94a3b8">If you prefer Google, click below to sign in with your Google account.</p>
-            <a href="${siteUrl}/signin?next=/radio" style="display:inline-flex;align-items:center;gap:10px;padding:12px 22px;background:#fff;color:#1e293b;font-size:13px;font-weight:700;text-decoration:none;border-radius:999px">
+            <p style="margin:0 0 14px;font-size:13px;color:#94a3b8">One click — takes you straight to Google sign-in.</p>
+            <a href="${siteUrl}/signin?next=/radio&google=1" style="display:inline-flex;align-items:center;gap:10px;padding:12px 22px;background:#fff;color:#1e293b;font-size:13px;font-weight:700;text-decoration:none;border-radius:999px">
               <img src="https://www.google.com/favicon.ico" width="16" height="16" alt="" style="border-radius:2px" />
               Continue with Google
             </a>

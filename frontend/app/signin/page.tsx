@@ -22,6 +22,8 @@ function SignInForm() {
           ? "The sign-in callback failed. Request a new link and make sure it opens in the same browser session."
           : "";
 
+  const autoGoogle = params.get("google") === "1";
+
   const [email, setEmail] = useState("");
   const [providers, setProviders] = useState<AuthProviderMap>({});
   const [loading, setLoading] = useState(false);
@@ -38,12 +40,18 @@ function SignInForm() {
           setProvidersReady(false);
           return;
         }
-
         setProviders(data as AuthProviderMap);
         setProvidersReady(Object.keys(data).length > 0);
       })
       .catch(() => setProvidersReady(false));
   }, []);
+
+  // Auto-trigger Google OAuth when ?google=1 is in the URL (e.g. from launch email)
+  useEffect(() => {
+    if (!autoGoogle || !providersReady) return;
+    setGoogleLoading(true);
+    void signIn("google", { callbackUrl: next }).catch(() => setGoogleLoading(false));
+  }, [autoGoogle, providersReady, next]);
 
   const googleEnabled = Boolean(providers.google);
   const emailEnabled = Boolean(providers.nodemailer);
