@@ -102,7 +102,7 @@ export function ArtistDiscoveryProfile({ artist }: Props) {
             <div className="flex flex-col justify-between rounded-[1.6rem] border border-white/8 bg-[radial-gradient(circle_at_top,rgba(0,229,255,0.12),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-6">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.26em] text-cyan-200/80">
-                  FlowSoundz Select
+                  FlowSoundz Radio
                 </p>
                 <h2 className="mt-4 text-[clamp(2rem,5vw,3.5rem)] font-semibold tracking-tight text-white">
                   {artist.name}

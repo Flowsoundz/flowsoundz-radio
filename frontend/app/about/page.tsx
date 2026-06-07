@@ -56,12 +56,12 @@ const COMPARISONS = [
 
 const TEAM = [
   {
-    name: "Adonyz",
+    name: "FlowSoundz",
     role: "Founder · Artist",
-    bio: "Latin urban producer and the creative force behind FlowSoundz Radio. He built this platform from the inside out — as both an artist who needed it and a founder who could create it.",
+    bio: "Latin urban producer and the creative force behind FlowSoundz Radio. Built this platform from the inside out — as both an artist who needed it and a founder who could create it.",
     gradient: "from-cyan-400/20 to-fuchsia-500/20",
     glow: "rgba(0,229,255,0.18)",
-    initials: "AZ",
+    initials: "FS",
   },
   {
     name: "The Programmers",
@@ -83,31 +83,13 @@ const TEAM = [
 
 const ARTIST_SPOTLIGHTS = [
   {
-    name: "FlowSoundz Select",
-    slug: "flowsoundz-select",
+    name: "FlowSoundz",
+    slug: "flowsoundz",
     roots: "Orlando, FL // Santo Domingo, DR",
-    vibe: "Late Night",
-    statement: "First person, far from neat. My story lives somewhere between late-night confession, memory, and motion.",
+    vibe: "Latin Urban · Late Night",
+    statement: "First person, far from neat. Latin urban producer and artist — I built FlowSoundz from the inside out, as an artist who needed the platform and a founder who could create it. Every record is a version of me making sense of what I survived and what I still want.",
     cover: "/covers/flowsoundz-artist.png",
     accent: "#00e5ff",
-  },
-  {
-    name: "Adonyz",
-    slug: "adonyz",
-    roots: "Orlando, FL // Santo Domingo, DR",
-    vibe: "Latin Urban",
-    statement: "Latin urban producer and artist who built FlowSoundz from the inside out — as an artist who needed the platform and a founder who could create it.",
-    cover: "/covers/flowsoundz-artist.png",
-    accent: "#7c4dff",
-  },
-  {
-    name: "Naz T",
-    slug: "naz-t",
-    roots: "Orlando, FL",
-    vibe: "Street · Late Night",
-    statement: "A project under the FlowSoundz umbrella. Street-facing, direct, and built for the late-night lane.",
-    cover: "/covers/flowsoundz-artist.png",
-    accent: "#ff2da6",
   },
 ];
 

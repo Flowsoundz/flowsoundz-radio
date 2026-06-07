@@ -2346,7 +2346,7 @@ export default function RadioPlayer() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.26em] text-[#CBD5E1]/55">
-                    {archivePlaybackMode ? "Continuous Mix" : archiveStandbyMode ? "FlowSoundz Select" : "Now Playing"}
+                    {archivePlaybackMode ? "Continuous Mix" : archiveStandbyMode ? "FlowSoundz" : "Now Playing"}
                   </p>
                   <h2
                     className={`mt-3 text-3xl font-semibold leading-tight text-[#F8FAFC] sm:text-4xl ${
@@ -2385,7 +2385,7 @@ export default function RadioPlayer() {
                     {archivePlaybackMode
                       ? "FlowSoundz Continuous Mix — curated selection on air"
                       : archiveStandbyMode
-                        ? "FlowSoundz Select — curated discovery while live rotation loads"
+                        ? "FlowSoundz — curated discovery while live rotation loads"
                       : maintenanceMode
                         ? "FlowSoundz Continuous Mix — live rotation coming up"
                         : isDropPlaying
