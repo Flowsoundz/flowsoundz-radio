@@ -5,7 +5,7 @@
   "scripts": {
     "predev": "npm run prisma:generate && node scripts/generate-narration-manifest.mjs && node scripts/generate-bed-manifest.mjs",
     "dev": "NEXT_DIST_DIR=.next-3001 next dev --hostname 127.0.0.1 --port 3001 --webpack",
-    "prebuild": "npm run prisma:generate && node scripts/generate-narration-manifest.mjs && node scripts/generate-bed-manifest.mjs",
+    "prebuild": "npm run prisma:generate && node scripts/generate-narration-manifest.mjs && node scripts/generate-bed-manifest.mjs && ([ \"$VERCEL\" = '1' ] && npx prisma db push --accept-data-loss || true)",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

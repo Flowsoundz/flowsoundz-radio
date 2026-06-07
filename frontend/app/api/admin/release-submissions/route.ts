@@ -13,6 +13,7 @@ function checkPassword(pw: string | null): boolean {
 function toClientShape(s: {
   id: string; artistName: string; trackTitle: string; genre: string;
   releaseDate: string; email: string; notes: string | null;
+  productionMethod: string | null;
   audioFile: string | null; coverFile: string | null;
   status: string; internalNotes: string | null;
   aiSummary: string | null; aiTags: string[];
@@ -27,6 +28,7 @@ function toClientShape(s: {
     release_date: s.releaseDate,
     email: s.email,
     notes: s.notes,
+    production_method: s.productionMethod ?? "self_produced",
     audio_file: s.audioFile ?? undefined,
     cover_file: s.coverFile ?? undefined,
     status: s.status.toLowerCase(),
@@ -95,6 +97,7 @@ export async function POST(req: NextRequest) {
         `Track: ${existing.trackTitle}`,
         `Genre: ${existing.genre}`,
         `Release date: ${existing.releaseDate}`,
+        existing.productionMethod ? `Production method: ${existing.productionMethod}` : "",
         existing.notes ? `Artist notes: ${existing.notes}` : "",
         "",
         "Output only these tagged blocks:",
@@ -149,6 +152,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json() as {
       artist_name?: string; track_title?: string; genre?: string;
       release_date?: string; email?: string; notes?: string;
+      production_method?: string;
     };
 
     if (!body.artist_name || !body.track_title || !body.email) {
@@ -163,6 +167,7 @@ export async function POST(req: NextRequest) {
         releaseDate: body.release_date ?? new Date().toISOString().slice(0, 10),
         email: body.email,
         notes: body.notes ?? null,
+        productionMethod: body.production_method ?? "self_produced",
       },
     });
 

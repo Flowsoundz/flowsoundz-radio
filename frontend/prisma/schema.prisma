@@ -477,6 +477,7 @@ model ReleaseSubmission {
   releaseDate      String
   email            String
   notes            String?
+  productionMethod String?   // self_produced | ai_assisted | ai_generated
   audioFile        String?
   coverFile        String?
   status           ReleaseSubmissionStatus @default(RECEIVED)

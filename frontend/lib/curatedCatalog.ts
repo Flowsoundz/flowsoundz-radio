@@ -4,7 +4,7 @@ export const CURATED_CATALOG_FALLBACK: Song[] = [
   {
     id: "curated-1888",
     title: "1888",
-    artist: "FlowSoundz Select",
+    artist: "FlowSoundz",
     album: "After Hours Rotation",
     genre: "Latin Urban",
     vibe: "late_night",
@@ -23,7 +23,7 @@ export const CURATED_CATALOG_FALLBACK: Song[] = [
   {
     id: "curated-body-language",
     title: "Body Language",
-    artist: "FlowSoundz Select",
+    artist: "FlowSoundz",
     album: "Discovery First",
     genre: "R&B",
     vibe: "chill",
@@ -40,7 +40,7 @@ export const CURATED_CATALOG_FALLBACK: Song[] = [
   {
     id: "curated-quiere-mas",
     title: "Quiere Mas",
-    artist: "FlowSoundz Select",
+    artist: "FlowSoundz",
     album: "Midnight Drops",
     genre: "Reggaeton",
     vibe: "hype",
@@ -55,7 +55,7 @@ export const CURATED_CATALOG_FALLBACK: Song[] = [
   {
     id: "curated-still-got-love",
     title: "Still Got Love",
-    artist: "FlowSoundz Select",
+    artist: "FlowSoundz",
     album: "Night Shift",
     genre: "Alternative",
     vibe: "emotional",
@@ -70,7 +70,7 @@ export const CURATED_CATALOG_FALLBACK: Song[] = [
   {
     id: "curated-doctora",
     title: "Doctora",
-    artist: "FlowSoundz Select",
+    artist: "FlowSoundz",
     album: "Pulse Check",
     genre: "Latin Pop",
     vibe: "hype",
@@ -85,7 +85,7 @@ export const CURATED_CATALOG_FALLBACK: Song[] = [
   {
     id: "curated-essential",
     title: "Essential",
-    artist: "FlowSoundz Select",
+    artist: "FlowSoundz",
     album: "Late Night Index",
     genre: "Electronic",
     vibe: "late_night",

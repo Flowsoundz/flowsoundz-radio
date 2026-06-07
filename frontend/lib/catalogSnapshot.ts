@@ -28,44 +28,10 @@ type CatalogSnapshotOptions = {
 };
 
 const ARTIST_EDITORIAL_OVERRIDES: Record<string, ArtistEditorialOverride> = {
-  "flowsoundz-select": {
-    statement:
-      "First person, far from neat. My story lives somewhere between late-night confession, memory, and motion. Every record I release is another version of me trying to make sense of what I survived and what I still want.",
-    rootsLabel: "Orlando, FL // Santo Domingo, DR",
-    heroImage: "/covers/flowsoundz-artist.png",
-    artistVisualUrl: "/covers/flowsoundz-artist.png",
-    socialLinks: {
-      instagram: "https://www.instagram.com/flowsoundzradio/",
-      tiktok: "https://www.tiktok.com/@flowsoundzradio",
-      spotify: "https://open.spotify.com/search/FlowSoundz%20Select",
-      youtube: "https://www.youtube.com/results?search_query=FlowSoundz+Select",
-    },
-    supportUrl: "/membership",
-    supportLabel: "Support Artist / Tipping",
-    isLiveInVisualizer: true,
-    liveSessionTitle: "Live listening room open",
-  },
-  adonyz: {
-    statement:
-      "Latin urban producer and artist from Orlando, FL with roots in Santo Domingo, DR. I built FlowSoundz from the inside out — as an artist who needed the platform and a founder who could create it. Every record I put out is a version of me making sense of what I survived and what I still want.",
-    rootsLabel: "Orlando, FL // Santo Domingo, DR",
-    heroImage: "/covers/flowsoundz-artist.png",
-    artistVisualUrl: "/covers/flowsoundz-artist.png",
-    socialLinks: {
-      instagram: "https://www.instagram.com/flowsoundzradio/",
-      tiktok: "https://www.tiktok.com/@flowsoundzradio",
-      spotify: "https://open.spotify.com/search/Adonyz",
-      youtube: "https://www.youtube.com/@flowsoundzradio",
-    },
-    supportUrl: "/membership",
-    supportLabel: "Support Adonyz",
-    isLiveInVisualizer: true,
-    liveSessionTitle: "Adonyz — live in rotation",
-  },
   flowsoundz: {
     statement:
-      "Underground discovery, programmed like radio. FlowSoundz is the station and the sound — curating independent music before the algorithm catches up.",
-    rootsLabel: "Orlando, FL // FlowSoundz Radio",
+      "First person, far from neat. Latin urban producer and artist from Orlando, FL — roots in Santo Domingo, DR. I built FlowSoundz from the inside out: as an artist who needed the platform, and a founder who could create it. Every record I put out is a version of me making sense of what I survived and what I still want.",
+    rootsLabel: "Orlando, FL // Santo Domingo, DR",
     heroImage: "/covers/flowsoundz-artist.png",
     artistVisualUrl: "/covers/flowsoundz-artist.png",
     socialLinks: {
@@ -75,48 +41,29 @@ const ARTIST_EDITORIAL_OVERRIDES: Record<string, ArtistEditorialOverride> = {
       youtube: "https://www.youtube.com/@flowsoundzradio",
     },
     supportUrl: "/membership",
-    supportLabel: "Join the FlowSoundz circle",
+    supportLabel: "Support FlowSoundz",
     isLiveInVisualizer: true,
-    liveSessionTitle: "FlowSoundz Radio — live now",
+    liveSessionTitle: "FlowSoundz — live in rotation",
   },
-  "naz-t": {
-    statement:
-      "Naz T is a project under the FlowSoundz umbrella — the same founder, a different frequency. Street-facing, direct, and built for the late-night lane.",
-    rootsLabel: "Orlando, FL // Santo Domingo, DR",
-    heroImage: "/covers/flowsoundz-artist.png",
-    artistVisualUrl: "/covers/flowsoundz-artist.png",
-    socialLinks: {
-      instagram: "https://www.instagram.com/flowsoundzradio/",
-      tiktok: "https://www.tiktok.com/@flowsoundzradio",
-      spotify: "https://open.spotify.com/search/Naz%20T",
-      youtube: "https://www.youtube.com/@flowsoundzradio",
-    },
-    supportUrl: "/membership",
-    supportLabel: "Support via FlowSoundz",
-    isLiveInVisualizer: true,
-    liveSessionTitle: "Naz T — in rotation on FlowSoundz",
-  },
-  adonis: {
-    statement:
-      "Adonis is a creative alias under FlowSoundz — same roots, same story. Latin urban, introspective, and always personal.",
-    rootsLabel: "Orlando, FL // Santo Domingo, DR",
-    heroImage: "/covers/flowsoundz-artist.png",
-    artistVisualUrl: "/covers/flowsoundz-artist.png",
-    socialLinks: {
-      instagram: "https://www.instagram.com/flowsoundzradio/",
-      tiktok: "https://www.tiktok.com/@flowsoundzradio",
-      spotify: "https://open.spotify.com/search/Adonis",
-      youtube: "https://www.youtube.com/@flowsoundzradio",
-    },
-    supportUrl: "/membership",
-    supportLabel: "Support via FlowSoundz",
-    isLiveInVisualizer: true,
-    liveSessionTitle: "Adonis — in rotation on FlowSoundz",
-  },
+};
+
+// Maps old artist aliases to the canonical display name.
+// Applied before slugifying so the production DB doesn't need migration.
+const ARTIST_NAME_ALIASES: Record<string, string> = {
+  "adonyz": "FlowSoundz",
+  "naz-t": "FlowSoundz",
+  "adonis": "FlowSoundz",
+  "flowsoundz-select": "FlowSoundz",
 };
 
 function normalizeArtistName(name: string) {
   return name.trim().replace(/\s+/g, " ");
+}
+
+function resolveArtistName(raw: string): string {
+  const normalized = normalizeArtistName(raw);
+  const slug = slugifyArtistName(normalized);
+  return ARTIST_NAME_ALIASES[slug] ?? normalized;
 }
 
 export function slugifyArtistName(name: string) {
@@ -209,7 +156,7 @@ function buildReleaseRecord(
   index: number,
   milestoneOverride?: ReleaseMilestone,
 ): ReleaseRecord {
-  const artistName = normalizeArtistName(song.artist);
+  const artistName = resolveArtistName(song.artist);
   const artistSlug = slugifyArtistName(artistName);
 
   return {
@@ -279,7 +226,7 @@ export function getCatalogSnapshot(
   const grouped = new Map<string, Song[]>();
 
   for (const song of songs) {
-    const artistName = normalizeArtistName(song.artist);
+    const artistName = resolveArtistName(song.artist);
     if (!artistName) continue;
 
     const slug = slugifyArtistName(artistName);
@@ -291,7 +238,7 @@ export function getCatalogSnapshot(
   const artists: ArtistProfileRecord[] = Array.from(grouped.entries())
     .map(([slug, artistSongs]) => {
       const orderedSongs = sortSongsForArtist(artistSongs);
-      const name = normalizeArtistName(orderedSongs[0]?.artist ?? "");
+      const name = resolveArtistName(orderedSongs[0]?.artist ?? "");
       const genres = uniqueStrings(orderedSongs.map((song) => song.genre));
       const vibes = uniqueStrings(orderedSongs.map((song) => song.vibe));
       const releases = orderedSongs.map((song, index) =>

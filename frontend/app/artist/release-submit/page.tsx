@@ -9,13 +9,23 @@ const GENRES = [
   "Pop", "Alternative", "Indie", "Lo-Fi", "Funk", "Other",
 ];
 
+type ProductionMethod = "self_produced" | "ai_assisted" | "ai_generated";
+
+const PRODUCTION_OPTIONS: { id: ProductionMethod; label: string; description: string }[] = [
+  { id: "self_produced",  label: "Self-produced",  description: "Live instruments, DAW, or original recording — fully yours." },
+  { id: "ai_assisted",   label: "AI-assisted",    description: "I wrote the melody, lyrics & creative direction. AI tools were used in production." },
+  { id: "ai_generated",  label: "AI-generated",   description: "Track primarily generated from AI prompts (Suno, Udio, etc.)." },
+];
+
 type Field = {
   artistName: string; trackTitle: string; genre: string;
   releaseDate: string; email: string; notes: string;
+  productionMethod: ProductionMethod;
 };
 
 const EMPTY: Field = {
   artistName: "", trackTitle: "", genre: "", releaseDate: "", email: "", notes: "",
+  productionMethod: "self_produced",
 };
 
 export default function ReleaseSubmitPage() {
@@ -44,6 +54,7 @@ export default function ReleaseSubmitPage() {
           release_date: fields.releaseDate || new Date().toISOString().slice(0, 10),
           email: fields.email,
           notes: fields.notes || undefined,
+          production_method: fields.productionMethod,
         }),
       });
       if (!res.ok) throw new Error("Submission failed. Try again.");
@@ -172,6 +183,38 @@ export default function ReleaseSubmitPage() {
                 rows={3} placeholder="SoundCloud, Spotify, or any context about the track..."
                 className="resize-none rounded-[1.1rem] border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-white/20"
               />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label className="text-xs font-semibold text-slate-400">Production method *</label>
+              <div className="flex flex-col gap-2">
+                {PRODUCTION_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => set("productionMethod", opt.id)}
+                    className={`flex items-start gap-3 rounded-[1.1rem] border px-4 py-3 text-left transition ${
+                      fields.productionMethod === opt.id
+                        ? "border-cyan-400/40 bg-cyan-400/[0.07]"
+                        : "border-white/10 bg-white/[0.02] hover:border-white/18"
+                    }`}
+                  >
+                    <span className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${
+                      fields.productionMethod === opt.id
+                        ? "border-cyan-400 bg-cyan-400"
+                        : "border-white/20 bg-transparent"
+                    }`}>
+                      {fields.productionMethod === opt.id && (
+                        <span className="h-1.5 w-1.5 rounded-full bg-[#050816]" />
+                      )}
+                    </span>
+                    <div>
+                      <p className="text-xs font-semibold text-white">{opt.label}</p>
+                      <p className="mt-0.5 text-[11px] leading-5 text-slate-500">{opt.description}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
             </div>
 
             <button

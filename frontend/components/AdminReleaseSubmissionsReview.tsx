@@ -10,6 +10,7 @@ export type ReleaseSubmission = {
   release_date: string;
   email: string;
   notes?: string | null;
+  production_method?: string | null;
   audio_file?: string;
   cover_file?: string;
   created_at: string;
@@ -289,6 +290,7 @@ export function AdminReleaseSubmissionsReview({
                 {[
                   { label: "Genre", value: selected.genre || "Not provided" },
                   { label: "Release date", value: selected.release_date || "Not provided" },
+                  { label: "Production", value: selected.production_method === "ai_assisted" ? "AI-assisted (human creative)" : selected.production_method === "ai_generated" ? "AI-generated" : "Self-produced" },
                   { label: "Email", value: selected.email },
                   { label: "Submitted", value: formatDate(selected.created_at) },
                   { label: "Audio file", value: selected.audio_file || "Not uploaded" },
