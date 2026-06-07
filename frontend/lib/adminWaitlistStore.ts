@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { prisma } from "@/lib/prisma";
 
 export type WaitlistEntryRecord = {
   id: string;
@@ -15,10 +16,13 @@ const STORE_PATH = path.resolve(
 
 const CAN_USE_FILE_FALLBACK =
   process.env.NODE_ENV !== "production" && !process.env.VERCEL;
+const SHOULD_USE_PRISMA = Boolean(process.env.DATABASE_URL?.trim());
 
-export const WAITLIST_STORAGE_MODE = CAN_USE_FILE_FALLBACK
-  ? "file"
-  : "unconfigured";
+export const WAITLIST_STORAGE_MODE = SHOULD_USE_PRISMA
+  ? "prisma"
+  : CAN_USE_FILE_FALLBACK
+    ? "file"
+    : "unconfigured";
 
 async function ensureStoreFile() {
   await mkdir(path.dirname(STORE_PATH), { recursive: true });
@@ -30,6 +34,20 @@ async function ensureStoreFile() {
 }
 
 export async function readWaitlistEntries(): Promise<WaitlistEntryRecord[]> {
+  if (SHOULD_USE_PRISMA) {
+    const records = await prisma.waitlistEntry.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 5000,
+    });
+
+    return records.map((record) => ({
+      id: record.id,
+      email: record.email,
+      joined_at: record.createdAt.toISOString(),
+      source: record.source,
+    }));
+  }
+
   if (!CAN_USE_FILE_FALLBACK) {
     return [];
   }
@@ -45,6 +63,22 @@ export async function readWaitlistEntries(): Promise<WaitlistEntryRecord[]> {
 }
 
 export async function appendWaitlistEntry(entry: WaitlistEntryRecord) {
+  if (SHOULD_USE_PRISMA) {
+    await prisma.waitlistEntry.upsert({
+      where: { email: entry.email },
+      create: {
+        id: entry.id,
+        email: entry.email,
+        source: entry.source,
+        createdAt: new Date(entry.joined_at),
+      },
+      update: {
+        source: entry.source,
+      },
+    });
+    return;
+  }
+
   if (!CAN_USE_FILE_FALLBACK) {
     return;
   }

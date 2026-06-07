@@ -90,6 +90,17 @@ enum ArtistSubmissionStatus {
   REJECTED
 }
 
+enum InboxStatus {
+  UNREAD
+  READ
+}
+
+enum ContactTopic {
+  ARTIST
+  PARTNERSHIP
+  GENERAL
+}
+
 enum AnalyticsEventName {
   PAGE_VIEW
   START_LISTENING_CLICK
@@ -405,6 +416,32 @@ model AnalyticsEvent {
   @@index([submissionId])
   @@index([createdAt])
   @@map("analytics_events")
+}
+
+model ContactMessage {
+  id        String      @id @default(cuid())
+  topic     ContactTopic
+  name      String
+  email     String
+  message   String
+  status    InboxStatus @default(UNREAD)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@index([status, createdAt])
+  @@index([email, createdAt])
+  @@map("contact_messages")
+}
+
+model WaitlistEntry {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  source    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([createdAt])
+  @@map("waitlist_entries")
 }
 
 model QueuePreference {
