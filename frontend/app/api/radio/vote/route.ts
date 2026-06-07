@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
         hypeCount: newHypeCount,
         skipRate: newSkipRate,
         rotationScore: newRotationScore,
-        playCount: 1,
+        playCount: existing?.playCount ?? 1,
       },
       update: {
         hypeCount: newHypeCount,

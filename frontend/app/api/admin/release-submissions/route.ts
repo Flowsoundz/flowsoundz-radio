@@ -3,6 +3,12 @@ import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 
+const ADMIN_PASSWORD = process.env.ADMIN_UPLOAD_PASSWORD ?? "";
+
+function checkPassword(pw: string | null): boolean {
+  return Boolean(ADMIN_PASSWORD && pw === ADMIN_PASSWORD);
+}
+
 function toClientShape(s: {
   id: string; artistName: string; trackTitle: string; genre: string;
   releaseDate: string; email: string; notes: string | null;
@@ -34,6 +40,7 @@ function toClientShape(s: {
   };
 }
 
+// GET — list all submissions (admin page is server-side auth protected)
 export async function GET() {
   try {
     const submissions = await prisma.releaseSubmission.findMany({
@@ -49,12 +56,59 @@ export async function GET() {
   }
 }
 
+// POST — either public intake (JSON) or admin update (FormData with password)
 export async function POST(req: NextRequest) {
+  const contentType = req.headers.get("content-type") ?? "";
+
+  // Admin update via FormData (from AdminReleaseSubmissionsReview component)
+  if (contentType.includes("multipart/form-data") || contentType.includes("application/x-www-form-urlencoded")) {
+    const form = await req.formData();
+    const password = form.get("password") as string | null;
+    if (!checkPassword(password)) {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
+
+    const submissionId = form.get("submissionId") as string | null;
+    const action = form.get("action") as string | null;
+    const statusRaw = form.get("status") as string | null;
+    const internalNotes = form.get("internalNotes") as string | null;
+
+    if (!submissionId) {
+      return NextResponse.json({ error: "Missing submissionId." }, { status: 400 });
+    }
+
+    const STATUS_MAP: Record<string, "RECEIVED" | "REVIEWED" | "APPROVED" | "REJECTED"> = {
+      received: "RECEIVED", reviewed: "REVIEWED",
+      approved: "APPROVED", rejected: "REJECTED",
+    };
+
+    if (action === "generate_ai_summary") {
+      // AI summary generation — placeholder, returns current record
+      const existing = await prisma.releaseSubmission.findUnique({ where: { id: submissionId } });
+      if (!existing) return NextResponse.json({ error: "Not found." }, { status: 404 });
+      return NextResponse.json({ submission: toClientShape(existing) });
+    }
+
+    try {
+      const updated = await prisma.releaseSubmission.update({
+        where: { id: submissionId },
+        data: {
+          ...(statusRaw && STATUS_MAP[statusRaw] ? { status: STATUS_MAP[statusRaw] } : {}),
+          ...(internalNotes !== null ? { internalNotes: internalNotes || null } : {}),
+        },
+      });
+      return NextResponse.json({ submission: toClientShape(updated) });
+    } catch (err) {
+      console.error("[release-submissions admin update]", err);
+      return NextResponse.json({ error: "Failed to update submission." }, { status: 500 });
+    }
+  }
+
+  // Public intake via JSON
   try {
     const body = await req.json() as {
       artist_name?: string; track_title?: string; genre?: string;
       release_date?: string; email?: string; notes?: string;
-      audio_file?: string; cover_file?: string;
     };
 
     if (!body.artist_name || !body.track_title || !body.email) {
@@ -69,8 +123,6 @@ export async function POST(req: NextRequest) {
         releaseDate: body.release_date ?? new Date().toISOString().slice(0, 10),
         email: body.email,
         notes: body.notes ?? null,
-        audioFile: body.audio_file ?? null,
-        coverFile: body.cover_file ?? null,
       },
     });
 
@@ -81,12 +133,17 @@ export async function POST(req: NextRequest) {
   }
 }
 
+// PATCH — admin update via JSON (fallback, same password auth)
 export async function PATCH(req: NextRequest) {
   try {
     const body = await req.json() as {
-      submission_id?: string; status?: string; internal_notes?: string;
+      submission_id?: string; password?: string;
+      status?: string; internal_notes?: string;
     };
 
+    if (!checkPassword(body.password ?? null)) {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
     if (!body.submission_id) {
       return NextResponse.json({ error: "Missing submission_id." }, { status: 400 });
     }
@@ -111,11 +168,17 @@ export async function PATCH(req: NextRequest) {
   }
 }
 
+// DELETE — password protected
 export async function DELETE(req: NextRequest) {
   try {
-    const { submission_id } = await req.json() as { submission_id?: string };
-    if (!submission_id) return NextResponse.json({ error: "Missing submission_id." }, { status: 400 });
-    await prisma.releaseSubmission.delete({ where: { id: submission_id } });
+    const body = await req.json() as { submission_id?: string; password?: string };
+    if (!checkPassword(body.password ?? null)) {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
+    if (!body.submission_id) {
+      return NextResponse.json({ error: "Missing submission_id." }, { status: 400 });
+    }
+    await prisma.releaseSubmission.delete({ where: { id: body.submission_id } });
     return NextResponse.json({ deleted: true });
   } catch (err) {
     console.error("[release-submissions DELETE]", err);
