@@ -524,12 +524,22 @@ export async function sendLaunchAnnouncement(email: string, magicLink?: string) 
             Underground music, curated and programmed like radio. Drop in, discover something new, and grab your membership spot while it&apos;s early.
           </p>
 
-          <div style="margin:0 0 20px;padding:20px 24px;background:rgba(0,229,255,0.06);border:1px solid rgba(0,229,255,0.18);border-radius:14px">
-            <p style="margin:0 0 12px;font-size:13px;font-weight:600;color:#e2e8f0">Sign in instantly — one click, no password:</p>
-            <a href="${signInUrl}" style="display:inline-block;padding:14px 28px;background:linear-gradient(135deg,#00e5ff 0%,#7c4dff 100%);color:#fff;font-size:14px;font-weight:700;text-decoration:none;border-radius:999px">
-              Sign me in →
+          <div style="margin:0 0 16px;padding:20px 24px;background:rgba(0,229,255,0.06);border:1px solid rgba(0,229,255,0.18);border-radius:14px">
+            <p style="margin:0 0 4px;font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#00e5ff">Option 1 — instant email sign-in</p>
+            <p style="margin:0 0 14px;font-size:13px;color:#94a3b8">One click, no password. Works with the email you used to join.</p>
+            <a href="${signInUrl}" style="display:inline-block;padding:13px 26px;background:linear-gradient(135deg,#00e5ff 0%,#7c4dff 100%);color:#fff;font-size:14px;font-weight:700;text-decoration:none;border-radius:999px">
+              Sign me in instantly →
             </a>
-            <p style="margin:12px 0 0;font-size:11px;color:#64748b">This link expires in 24 hours and can only be used once.</p>
+            <p style="margin:10px 0 0;font-size:11px;color:#64748b">Expires in 24 hours · single use</p>
+          </div>
+
+          <div style="margin:0 0 24px;padding:20px 24px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:14px">
+            <p style="margin:0 0 4px;font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#94a3b8">Option 2 — sign in with Google</p>
+            <p style="margin:0 0 14px;font-size:13px;color:#94a3b8">If you prefer Google, click below to sign in with your Google account.</p>
+            <a href="${siteUrl}/signin?next=/radio" style="display:inline-flex;align-items:center;gap:10px;padding:12px 22px;background:#fff;color:#1e293b;font-size:13px;font-weight:700;text-decoration:none;border-radius:999px">
+              <img src="https://www.google.com/favicon.ico" width="16" height="16" alt="" style="border-radius:2px" />
+              Continue with Google
+            </a>
           </div>
 
           <a href="${siteUrl}/membership" style="display:inline-block;padding:12px 24px;border:1.5px solid rgba(255,255,255,0.12);color:#cbd5e1;font-size:13px;font-weight:600;text-decoration:none;border-radius:999px">
@@ -537,7 +547,8 @@ export async function sendLaunchAnnouncement(email: string, magicLink?: string) 
           </a>
 
           <p style="font-size:11px;color:#475569;margin:28px 0 0">
-            You&apos;re receiving this because you joined the FlowSoundz waitlist. If the button doesn&apos;t work, copy this link into your browser:<br/>
+            You&apos;re receiving this because you joined the FlowSoundz waitlist.<br/>
+            If the instant sign-in button doesn&apos;t work, copy this into your browser:<br/>
             <span style="color:#64748b;word-break:break-all">${signInUrl}</span>
           </p>
         </div>
