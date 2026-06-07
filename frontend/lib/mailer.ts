@@ -440,3 +440,99 @@ export async function sendWaitlistNotification(entry: {
     `,
   });
 }
+
+export async function sendWaitlistConfirmation(email: string) {
+  const transporter = getTransporter();
+  if (!transporter) return;
+
+  const from = getNotifyEmail();
+  const siteUrl = getSiteUrl();
+
+  await transporter.sendMail({
+    from: `"FlowSoundz Radio" <${from}>`,
+    to: email,
+    subject: "You're on the FlowSoundz waitlist 🎵",
+    text: [
+      `You're on the list.`,
+      ``,
+      `We'll hit you first when FlowSoundz Radio goes fully live — new drops, exclusive features, and early access before anyone else.`,
+      ``,
+      `In the meantime, tune in at: ${siteUrl}/radio`,
+      ``,
+      `— FlowSoundz Radio`,
+    ].join("\n"),
+    html: `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#050816;border-radius:16px;overflow:hidden">
+        <div style="padding:32px 32px 24px;background:linear-gradient(135deg,#0c1328 0%,#07111f 100%);border-bottom:1px solid rgba(0,229,255,0.15)">
+          <p style="margin:0 0 16px;font-size:11px;font-weight:700;letter-spacing:0.3em;text-transform:uppercase;color:#00e5ff">FlowSoundz Radio</p>
+          <h1 style="margin:0;font-size:26px;font-weight:700;color:#fff;line-height:1.2">You're on the list.</h1>
+        </div>
+        <div style="padding:28px 32px 32px">
+          <p style="font-size:15px;line-height:1.7;color:#cbd5e1;margin:0 0 20px">
+            We'll hit you <strong style="color:#fff">first</strong> when FlowSoundz Radio goes fully live — new drops, exclusive features, and early access before anyone else hears it.
+          </p>
+          <p style="font-size:14px;line-height:1.7;color:#94a3b8;margin:0 0 28px">
+            Underground music, programmed like radio. Discovery before the algorithm catches up.
+          </p>
+          <a href="${siteUrl}/radio" style="display:inline-block;padding:14px 28px;background:linear-gradient(135deg,#00e5ff 0%,#7c4dff 100%);color:#fff;font-size:14px;font-weight:700;text-decoration:none;border-radius:999px">
+            Tune in now →
+          </a>
+          <p style="font-size:11px;color:#475569;margin:28px 0 0">
+            No spam. You joined from flowsoundzradio.com. <a href="${siteUrl}/contact" style="color:#64748b">Unsubscribe</a> any time.
+          </p>
+        </div>
+      </div>
+    `,
+  });
+}
+
+export async function sendLaunchAnnouncement(email: string) {
+  const transporter = getTransporter();
+  if (!transporter) return;
+
+  const from = getNotifyEmail();
+  const siteUrl = getSiteUrl();
+
+  await transporter.sendMail({
+    from: `"FlowSoundz Radio" <${from}>`,
+    to: email,
+    subject: "FlowSoundz Radio is live — you're in first 🎙️",
+    text: [
+      `It's live.`,
+      ``,
+      `FlowSoundz Radio is now fully open. You're getting this because you were on the waitlist — which means you're in before anyone else.`,
+      ``,
+      `Tune in: ${siteUrl}/radio`,
+      `Membership: ${siteUrl}/membership`,
+      ``,
+      `— FlowSoundz Radio`,
+    ].join("\n"),
+    html: `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#050816;border-radius:16px;overflow:hidden">
+        <div style="padding:32px 32px 24px;background:linear-gradient(135deg,#0c1328 0%,#07111f 100%);border-bottom:1px solid rgba(0,229,255,0.15)">
+          <p style="margin:0 0 16px;font-size:11px;font-weight:700;letter-spacing:0.3em;text-transform:uppercase;color:#00e5ff">FlowSoundz Radio</p>
+          <h1 style="margin:0;font-size:28px;font-weight:700;color:#fff;line-height:1.2">It&apos;s live.</h1>
+        </div>
+        <div style="padding:28px 32px 32px">
+          <p style="font-size:15px;line-height:1.7;color:#cbd5e1;margin:0 0 16px">
+            FlowSoundz Radio is now <strong style="color:#fff">fully open</strong>. You&apos;re getting this because you were on the waitlist — which means you&apos;re in before anyone else.
+          </p>
+          <p style="font-size:14px;line-height:1.7;color:#94a3b8;margin:0 0 28px">
+            Underground music, curated and programmed like radio. Drop in, discover something new, and grab your membership spot while it&apos;s early.
+          </p>
+          <div style="display:flex;gap:12px;flex-wrap:wrap">
+            <a href="${siteUrl}/radio" style="display:inline-block;padding:14px 28px;background:linear-gradient(135deg,#00e5ff 0%,#7c4dff 100%);color:#fff;font-size:14px;font-weight:700;text-decoration:none;border-radius:999px">
+              Tune in now →
+            </a>
+            <a href="${siteUrl}/membership" style="display:inline-block;padding:14px 28px;border:1.5px solid rgba(255,255,255,0.15);color:#e2e8f0;font-size:14px;font-weight:600;text-decoration:none;border-radius:999px">
+              View membership
+            </a>
+          </div>
+          <p style="font-size:11px;color:#475569;margin:28px 0 0">
+            You&apos;re receiving this because you joined the FlowSoundz waitlist. <a href="${siteUrl}/contact" style="color:#64748b">Contact us</a> if you have questions.
+          </p>
+        </div>
+      </div>
+    `,
+  });
+}

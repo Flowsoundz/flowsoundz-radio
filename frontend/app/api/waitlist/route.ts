@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { appendWaitlistEntry } from "@/lib/adminWaitlistStore";
-import { sendWaitlistNotification } from "@/lib/mailer";
+import { sendWaitlistNotification, sendWaitlistConfirmation } from "@/lib/mailer";
 
 export const runtime = "nodejs";
 
@@ -28,11 +28,25 @@ export async function POST(request: Request) {
     source: "homepage",
   };
 
-  void sendWaitlistNotification(entry).catch(() => undefined);
-  void appendWaitlistEntry(entry).catch(() => undefined);
+  // Check for duplicate before saving (upsert still runs but we want to return 200 vs 201)
+  const { readWaitlistEntries } = await import("@/lib/adminWaitlistStore");
+  const existing = await readWaitlistEntries().catch(() => []);
+  const isDuplicate = existing.some((e) => e.email === email);
 
-  return NextResponse.json({
-    message: "You're on the list. Welcome to FlowSoundz.",
-    entry,
-  });
+  if (isDuplicate) {
+    return NextResponse.json(
+      { message: "You're already on the list — we'll be in touch." },
+      { status: 200 },
+    );
+  }
+
+  void appendWaitlistEntry(entry).catch(() => undefined);
+  // Notify admin and send confirmation to the user — fire and forget
+  void sendWaitlistNotification(entry).catch(() => undefined);
+  void sendWaitlistConfirmation(email).catch(() => undefined);
+
+  return NextResponse.json(
+    { message: "You're on the list. Welcome to FlowSoundz.", entry },
+    { status: 201 },
+  );
 }
