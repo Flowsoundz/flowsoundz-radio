@@ -486,12 +486,13 @@ export async function sendWaitlistConfirmation(email: string) {
   });
 }
 
-export async function sendLaunchAnnouncement(email: string) {
+export async function sendLaunchAnnouncement(email: string, magicLink?: string) {
   const transporter = getTransporter();
   if (!transporter) return;
 
   const from = getNotifyEmail();
   const siteUrl = getSiteUrl();
+  const signInUrl = magicLink ?? `${siteUrl}/signin`;
 
   await transporter.sendMail({
     from: `"FlowSoundz Radio" <${from}>`,
@@ -502,8 +503,10 @@ export async function sendLaunchAnnouncement(email: string) {
       ``,
       `FlowSoundz Radio is now fully open. You're getting this because you were on the waitlist — which means you're in before anyone else.`,
       ``,
-      `Tune in: ${siteUrl}/radio`,
-      `Membership: ${siteUrl}/membership`,
+      `Click the link below to sign in instantly — no password needed:`,
+      signInUrl,
+      ``,
+      `Link expires in 24 hours. After that, just sign in at ${siteUrl}/signin.`,
       ``,
       `— FlowSoundz Radio`,
     ].join("\n"),
@@ -520,16 +523,22 @@ export async function sendLaunchAnnouncement(email: string) {
           <p style="font-size:14px;line-height:1.7;color:#94a3b8;margin:0 0 28px">
             Underground music, curated and programmed like radio. Drop in, discover something new, and grab your membership spot while it&apos;s early.
           </p>
-          <div style="display:flex;gap:12px;flex-wrap:wrap">
-            <a href="${siteUrl}/radio" style="display:inline-block;padding:14px 28px;background:linear-gradient(135deg,#00e5ff 0%,#7c4dff 100%);color:#fff;font-size:14px;font-weight:700;text-decoration:none;border-radius:999px">
-              Tune in now →
+
+          <div style="margin:0 0 20px;padding:20px 24px;background:rgba(0,229,255,0.06);border:1px solid rgba(0,229,255,0.18);border-radius:14px">
+            <p style="margin:0 0 12px;font-size:13px;font-weight:600;color:#e2e8f0">Sign in instantly — one click, no password:</p>
+            <a href="${signInUrl}" style="display:inline-block;padding:14px 28px;background:linear-gradient(135deg,#00e5ff 0%,#7c4dff 100%);color:#fff;font-size:14px;font-weight:700;text-decoration:none;border-radius:999px">
+              Sign me in →
             </a>
-            <a href="${siteUrl}/membership" style="display:inline-block;padding:14px 28px;border:1.5px solid rgba(255,255,255,0.15);color:#e2e8f0;font-size:14px;font-weight:600;text-decoration:none;border-radius:999px">
-              View membership
-            </a>
+            <p style="margin:12px 0 0;font-size:11px;color:#64748b">This link expires in 24 hours and can only be used once.</p>
           </div>
+
+          <a href="${siteUrl}/membership" style="display:inline-block;padding:12px 24px;border:1.5px solid rgba(255,255,255,0.12);color:#cbd5e1;font-size:13px;font-weight:600;text-decoration:none;border-radius:999px">
+            View membership →
+          </a>
+
           <p style="font-size:11px;color:#475569;margin:28px 0 0">
-            You&apos;re receiving this because you joined the FlowSoundz waitlist. <a href="${siteUrl}/contact" style="color:#64748b">Contact us</a> if you have questions.
+            You&apos;re receiving this because you joined the FlowSoundz waitlist. If the button doesn&apos;t work, copy this link into your browser:<br/>
+            <span style="color:#64748b;word-break:break-all">${signInUrl}</span>
           </p>
         </div>
       </div>
