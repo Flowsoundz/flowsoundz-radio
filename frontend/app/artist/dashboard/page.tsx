@@ -133,6 +133,12 @@ export default async function ArtistDashboardPage() {
               Start Creating
             </Link>
             <Link
+              href="/artist/release-submit"
+              className="inline-flex min-h-11 items-center justify-center rounded-full border border-cyan-400/25 px-6 py-2.5 text-sm font-semibold text-cyan-300 transition hover:border-cyan-400/40 hover:bg-cyan-400/10"
+            >
+              Submit Release
+            </Link>
+            <Link
               href="/radio"
               className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/15 px-6 py-2.5 text-sm font-semibold text-white transition hover:border-white/25 hover:bg-white/5"
             >
