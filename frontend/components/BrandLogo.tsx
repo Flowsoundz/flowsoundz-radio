@@ -14,15 +14,15 @@ const BRAND_LOGOS: Record<
   { src: string; width: number; height: number; alt: string }
 > = {
   full: {
-    src: "/brand/flowsoundz-radio-full-transparent.png",
-    width: 1600,
-    height: 514,
+    src: "/brand/flowsoundz-radio-full-dark.svg",
+    width: 240,
+    height: 180,
     alt: "FlowSoundz Radio logo",
   },
   wordmark: {
-    src: "/brand/flowsoundz-radio-wordmark-transparent.png",
-    width: 1600,
-    height: 258,
+    src: "/brand/flowsoundz-radio-full-dark.svg",
+    width: 240,
+    height: 180,
     alt: "FlowSoundz Radio wordmark",
   },
   icon: {

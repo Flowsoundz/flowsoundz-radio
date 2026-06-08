@@ -10,6 +10,7 @@ export function MiniPlayer() {
     audioRef,
     currentTrack,
     isPlaying,
+    isReady,
     hasStartedPlayback,
     togglePlaybackRef,
     skipTrackRef,
@@ -17,6 +18,9 @@ export function MiniPlayer() {
   const [hasSource, setHasSource] = useState(false);
   const [progress, setProgress] = useState(0);
 
+  // isReady is added so this effect re-runs once GlobalAudioProvider has created the
+  // audio element — audioRef.current is null on the very first render (children effects
+  // run before parents), so depending only on audioRef (stable object) was a no-op.
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) {
@@ -48,7 +52,7 @@ export function MiniPlayer() {
       audio.removeEventListener("emptied", syncSourceState);
       audio.removeEventListener("timeupdate", updateProgress);
     };
-  }, [audioRef]);
+  }, [audioRef, isReady]);
 
   if (pathname === "/radio") {
     return null;

@@ -177,6 +177,28 @@ export function GlobalAudioProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // Resume AudioContext on any user gesture or page becoming visible — fixes iOS/WKWebView
+  // suspension that can happen during SPA navigation or app backgrounding
+  useEffect(() => {
+    const tryResume = () => {
+      const ctx = audioContextRef.current;
+      if (ctx && ctx.state === "suspended") {
+        void ctx.resume().catch(() => undefined);
+      }
+    };
+    const onVisibility = () => {
+      if (!document.hidden) tryResume();
+    };
+    document.addEventListener("click", tryResume, { passive: true });
+    document.addEventListener("touchstart", tryResume, { passive: true });
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      document.removeEventListener("click", tryResume);
+      document.removeEventListener("touchstart", tryResume);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, []);
+
   // Media Session API — lock screen controls and now-playing info
   useEffect(() => {
     if (!("mediaSession" in navigator)) return;

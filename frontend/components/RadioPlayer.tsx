@@ -59,6 +59,7 @@ import {
   type VisualizerModeId,
 } from "@/lib/visualizerModes";
 import type Hls from "hls.js";
+import { getLyrics } from "@/lib/lyrics";
 
 const VisualizerModal = dynamic(
   () =>
@@ -468,6 +469,7 @@ export default function RadioPlayer() {
 
   const [showVisualizer, setShowVisualizer] = useState(false);
   const [showArtistPanel, setShowArtistPanel] = useState(false);
+  const [showLyrics, setShowLyrics] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [queue, setQueue] = useState<Song[]>([]);
   const [selectedVibe, setSelectedVibe] = useState("all");
@@ -857,6 +859,7 @@ export default function RadioPlayer() {
   useEffect(() => {
     previousSongIdRef.current = currentSong?.id;
     setShowArtistPanel(false);
+    setShowLyrics(false);
   }, [currentSong?.id]);
 
   useEffect(() => {
@@ -2286,6 +2289,11 @@ export default function RadioPlayer() {
                           <p className={`mt-1 line-clamp-1 text-sm text-[#CBD5E1] ${currentSong || isDropPlaying ? "" : "waiting-copy"}`}>
                             {isDropPlaying ? activeDropLabel || "FlowSoundz Radio" : currentSong ? currentSong.artist : waitingArtist}
                           </p>
+                          {currentSong?.producer && !isDropPlaying && (
+                            <p className="mt-0.5 text-[10px] tracking-wide text-[#00E5FF]/50">
+                              prod. {currentSong.producer}
+                            </p>
+                          )}
                         </div>
                       </div>
                     )}
@@ -2384,6 +2392,11 @@ export default function RadioPlayer() {
                       waitingArtist
                     )}
                   </p>
+                  {currentSong?.producer && !isDropPlaying && (
+                    <p className="mt-1 text-xs tracking-wide text-[#00E5FF]/55">
+                      prod. {currentSong.producer}
+                    </p>
+                  )}
                   <p className="mt-2 text-sm text-[#CBD5E1]/75">
                     {archivePlaybackMode
                       ? "FlowSoundz Continuous Mix — curated selection on air"
@@ -2460,6 +2473,15 @@ export default function RadioPlayer() {
                     Artist Profile
                   </button>
                 ) : null}
+                {currentSong && !isDropPlaying && getLyrics(currentSong.id) ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowLyrics((v) => !v)}
+                    className={`pointer-events-auto state-fade rounded-full border px-3 py-1 text-xs font-medium transition ${showLyrics ? "border-[#8B5CF6]/40 bg-[#8B5CF6]/15 text-[#c4b5fd]" : "border-white/8 bg-white/5 text-[#CBD5E1] hover:border-[#8B5CF6]/25 hover:text-[#F8FAFC]"}`}
+                  >
+                    {showLyrics ? "Hide Lyrics" : "Lyrics"}
+                  </button>
+                ) : null}
                 {currentSong && !isDropPlaying ? (
                   <a
                     href={`https://open.spotify.com/search/${encodeURIComponent(`${currentSong.title} ${currentSong.artist}`)}`}
@@ -2526,6 +2548,17 @@ export default function RadioPlayer() {
                   </span>
                 </div>
               </div>
+
+              {showLyrics && currentSong && getLyrics(currentSong.id) ? (
+                <div className="state-fade rounded-[1.4rem] border border-[#8B5CF6]/18 bg-[linear-gradient(160deg,rgba(139,92,246,0.07)_0%,rgba(0,229,255,0.04)_100%)] px-5 py-4 max-h-72 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
+                  <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.28em] text-[#8B5CF6]/70">
+                    Lyrics — {currentSong.title}
+                  </p>
+                  <div className="space-y-3 text-sm leading-7 text-[#CBD5E1]/90 whitespace-pre-line">
+                    {getLyrics(currentSong.id)}
+                  </div>
+                </div>
+              ) : null}
 
               {maintenanceMode || archivePlaybackMode ? (
                 <div

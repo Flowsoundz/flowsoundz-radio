@@ -1,5 +1,11 @@
 [
   {
+    "event": "start_listening_click",
+    "url": "/radio",
+    "ts": "2026-06-04T20:42:40.310Z",
+    "action": "play"
+  },
+  {
     "event": "artist_submission_started",
     "url": "/artist/submit",
     "ts": "2026-06-01T17:25:19.289Z",
