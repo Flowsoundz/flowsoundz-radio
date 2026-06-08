@@ -202,13 +202,13 @@ export default async function HomePage() {
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6">
           <div className="mx-auto max-w-xl text-center">
             <p className="text-[11px] font-semibold uppercase tracking-[0.34em] text-cyan-400">
-              Early Access
+              Stay In The Loop
             </p>
             <h2 className="mt-3 font-headline text-[clamp(28px,4vw,48px)] font-black uppercase leading-tight tracking-tight text-white">
-              Get Early Access
+              Never Miss A Drop
             </h2>
             <p className="mt-3 text-sm leading-7 text-white/50">
-              Be the first to know when new features, drops, and artist exclusives go live.
+              Get notified about new releases, exclusive drops, and artist moments before they hit the public feed.
             </p>
             <div className="mt-8">
               <WaitlistForm />
@@ -303,10 +303,10 @@ export default async function HomePage() {
                 <PricingFeature text="Priority Midnight Drop access" highlighted />
               </ul>
               <Link
-                href="/membership#early-access"
+                href="/membership"
                 className="mt-8 inline-flex w-full items-center justify-center rounded-full bg-[linear-gradient(135deg,#00e5ff,#7c4dff)] py-3 text-sm font-bold text-white shadow-[0_0_20px_rgba(0,229,255,0.4)] transition hover:shadow-[0_0_28px_rgba(0,229,255,0.6)]"
               >
-                Get Notified
+                Join Insider
               </Link>
             </div>
 
@@ -325,10 +325,10 @@ export default async function HomePage() {
                 <PricingFeature text="Founder Circle status" />
               </ul>
               <Link
-                href="/membership#early-access"
+                href="/membership"
                 className="mt-8 inline-flex w-full items-center justify-center rounded-full border border-fuchsia-400/35 py-3 text-sm font-semibold text-fuchsia-200 transition hover:border-fuchsia-400/55 hover:bg-fuchsia-400/[0.08]"
               >
-                Get Notified
+                Join Vault
               </Link>
             </div>
           </div>
