@@ -210,7 +210,7 @@
   {
     "id": "track_017",
     "title": "Find a Way",
-    "artist": "FlowSoundz",
+    "artist": "FlowSoundz feat. Adrian 🪐",
     "album": "Singles",
     "genre": "R&B Soul",
     "vibe": "emotional",
@@ -235,8 +235,8 @@
   },
   {
     "id": "track_019",
-    "title": "Galacta",
-    "artist": "FlowSoundz",
+    "title": "Galacta-Adrian",
+    "artist": "FlowSoundz feat. Adrian 🪐",
     "album": "Singles",
     "genre": "Urban Latino",
     "vibe": "hype",
@@ -244,7 +244,8 @@
     "audio_file": "galacta.mp3",
     "cover_file": "default.webp",
     "featured": false,
-    "sponsored": false
+    "sponsored": false,
+    "is_playable": false
   },
   {
     "id": "track_020",
@@ -314,7 +315,7 @@
   {
     "id": "track_025",
     "title": "I Just Decided",
-    "artist": "FlowSoundz",
+    "artist": "FlowSoundz feat. Ezeqiel",
     "album": "Singles",
     "genre": "R&B",
     "vibe": "emotional",
