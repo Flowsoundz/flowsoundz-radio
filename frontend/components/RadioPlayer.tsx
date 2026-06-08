@@ -60,6 +60,7 @@ import {
 } from "@/lib/visualizerModes";
 import type Hls from "hls.js";
 import { getLyrics } from "@/lib/lyrics";
+import { isSpecialNarrationMoment } from "@/lib/radioContext";
 
 const VisualizerModal = dynamic(
   () =>
@@ -466,6 +467,10 @@ export default function RadioPlayer() {
   const handleLoadedMetadataRef = useRef<() => void>(() => {});
   const lastCurrentTimeUiUpdateRef = useRef(0);
   const lastPersistedPlaybackKeyRef = useRef("");
+  const smartNarrationAudioRef = useRef<string | null>(null);
+  const smartNarrationFetchKeyRef = useRef<string | null>(null);
+  const smartNarrationCacheRef = useRef<Map<string, string>>(new Map());
+  const songTransitionCountRef = useRef(0);
 
   const [showVisualizer, setShowVisualizer] = useState(false);
   const [showArtistPanel, setShowArtistPanel] = useState(false);
@@ -1040,10 +1045,15 @@ export default function RadioPlayer() {
           settings: { volume: 0.82, playbackRate: 1 },
         };
     let plannedDrop = scheduledDrop;
-    const plannedNarration = getNarrationEventForVibe(
+    const baseNarration = getNarrationEventForVibe(
       nextVibe ?? nextSong.vibe ?? selectedVibe,
       plan,
     );
+    const smartSrc = smartNarrationAudioRef.current;
+    const plannedNarration = smartSrc
+      ? { ...baseNarration, clipSrc: smartSrc }
+      : baseNarration;
+    if (smartSrc) smartNarrationAudioRef.current = null;
     const plannedBed = getTransitionBedForVibe(
       nextVibe ?? nextSong.vibe ?? selectedVibe,
       recentBedIdsRef.current,
@@ -1424,6 +1434,7 @@ export default function RadioPlayer() {
     playbackSessionTrackIdRef.current = null;
     transitionInFlightRef.current = false;
     isPlayingRef.current = false;
+    songTransitionCountRef.current += 1;
   }
 
   async function playTransitionAudioBeforeTrack({
@@ -1863,6 +1874,46 @@ export default function RadioPlayer() {
       setDuration((current) =>
         current !== audio.duration ? audio.duration : current,
       );
+
+      // Pre-fetch smart narration at 30s remaining for special moments
+      if (
+        currentSong &&
+        !isDropPlaying &&
+        audio.duration - audio.currentTime <= 30 &&
+        audio.duration - audio.currentTime > 25 &&
+        queue.length > 1
+      ) {
+        const nextIdx = getNextTrackIndex(queue, currentIndex);
+        const nextSong = queue[nextIdx];
+        if (nextSong && isSpecialNarrationMoment(songTransitionCountRef.current)) {
+          const fetchKey = `${Math.floor(Date.now() / 3600000)}-${currentSong.id}-${nextSong.id}`;
+          if (smartNarrationFetchKeyRef.current !== fetchKey) {
+            smartNarrationFetchKeyRef.current = fetchKey;
+            const cached = smartNarrationCacheRef.current.get(fetchKey);
+            if (cached) {
+              smartNarrationAudioRef.current = cached;
+            } else {
+              void fetch("/api/radio/smart-narrate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  currentSongTitle: currentSong.title,
+                  currentSongArtist: currentSong.artist,
+                  nextSongTitle: nextSong.title,
+                  nextSongArtist: nextSong.artist,
+                  vibe: selectedVibe,
+                }),
+              }).then(async (res) => {
+                if (!res.ok) return;
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                smartNarrationAudioRef.current = url;
+                smartNarrationCacheRef.current.set(fetchKey, url);
+              }).catch(() => undefined);
+            }
+          }
+        }
+      }
 
       if (
         currentSong &&
