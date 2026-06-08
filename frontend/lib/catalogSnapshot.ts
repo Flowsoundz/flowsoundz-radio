@@ -60,7 +60,7 @@ function normalizeArtistName(name: string) {
   return name.trim().replace(/\s+/g, " ");
 }
 
-function resolveArtistName(raw: string): string {
+export function resolveArtistName(raw: string): string {
   const normalized = normalizeArtistName(raw);
   const slug = slugifyArtistName(normalized);
   return ARTIST_NAME_ALIASES[slug] ?? normalized;
