@@ -12,6 +12,8 @@ type SmartNarrateRequest = {
   nextSongTitle?: string;
   nextSongArtist?: string;
   vibe?: string;
+  lat?: number;
+  lon?: number;
 };
 
 function buildDjScript(
@@ -27,7 +29,7 @@ function buildDjScript(
   const dayStr = isWeekend ? `${dayOfWeek} night` : dayOfWeek;
   const weatherNote =
     weatherCondition === "rainy" || weatherCondition === "stormy"
-      ? `${weatherDesc} night in Orlando${tempStr}`
+      ? `${weatherDesc} out there${tempStr}`
       : weatherCondition === "clear" && (context.hour >= 22 || context.hour < 4)
         ? `clear night out there${tempStr}`
         : null;
@@ -82,13 +84,15 @@ export async function POST(request: NextRequest) {
   const nextTitle = body.nextSongTitle?.trim() ?? "";
   const nextArtist = body.nextSongArtist?.trim() ?? "";
   const vibe = body.vibe?.trim() || "chill";
+  const lat = typeof body.lat === "number" && isFinite(body.lat) ? body.lat : undefined;
+  const lon = typeof body.lon === "number" && isFinite(body.lon) ? body.lon : undefined;
 
   if (!currentTitle || !nextTitle) {
     return new Response(JSON.stringify({ error: "Missing song info." }), { status: 400 });
   }
 
-  // 1. Get live context (time + weather)
-  const context = await getRadioContext();
+  // 1. Get live context (time + weather — listener location if provided, else Orlando)
+  const context = await getRadioContext(lat, lon);
   const prompt = buildDjScript(context, currentTitle, currentArtist, nextTitle, nextArtist, vibe);
 
   // 2. Generate DJ script with Claude

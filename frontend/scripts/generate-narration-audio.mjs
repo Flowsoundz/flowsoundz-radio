@@ -44,26 +44,28 @@ const BASE_URL = "https://api.elevenlabs.io/v1";
 //   Rachel      → 21m00Tcm4TlvDq8ikWAM  (calm, clear female)
 //   Elli        → MF3mGyEYCl7XYWbV9V9of (soft, emotional female)
 //   Bella       → EXAVITQu4vr4xnSDxMaL  (warm, expressive female)
+// Using female host voice (ZdLBnnnCu702bKpWMoSC) for all vibes.
+// Voice settings tuned per vibe energy level.
 const VOICE_CONFIG = {
   hype: {
-    voiceId: "yoZ06aMxZJJ28mfd3POQ", // Sam — raspy, punchy
+    voiceId: "ZdLBnnnCu702bKpWMoSC",
     djName: "Rico Flame",
-    settings: { stability: 0.35, similarity_boost: 0.75, style: 0.55, use_speaker_boost: true },
+    settings: { stability: 0.38, similarity_boost: 0.8, style: 0.55, use_speaker_boost: true },
   },
   chill: {
-    voiceId: "TxGEqnHWrfWFTfGW9XjX", // Josh — smooth, warm
+    voiceId: "ZdLBnnnCu702bKpWMoSC",
     djName: "Nova Calm",
-    settings: { stability: 0.75, similarity_boost: 0.6, style: 0.1, use_speaker_boost: false },
+    settings: { stability: 0.75, similarity_boost: 0.72, style: 0.12, use_speaker_boost: false },
   },
   late_night: {
-    voiceId: "21m00Tcm4TlvDq8ikWAM", // Rachel — intimate, feminine
+    voiceId: "ZdLBnnnCu702bKpWMoSC",
     djName: "Velvet Rose",
-    settings: { stability: 0.55, similarity_boost: 0.78, style: 0.45, use_speaker_boost: true },
+    settings: { stability: 0.58, similarity_boost: 0.78, style: 0.45, use_speaker_boost: true },
   },
   emotional: {
-    voiceId: "MF3mGyEYCl7XYWbV9V9of", // Elli — soft, reflective
+    voiceId: "ZdLBnnnCu702bKpWMoSC",
     djName: "Luna Echo",
-    settings: { stability: 0.7, similarity_boost: 0.65, style: 0.25, use_speaker_boost: false },
+    settings: { stability: 0.72, similarity_boost: 0.72, style: 0.22, use_speaker_boost: false },
   },
 };
 

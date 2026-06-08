@@ -471,6 +471,7 @@ export default function RadioPlayer() {
   const smartNarrationFetchKeyRef = useRef<string | null>(null);
   const smartNarrationCacheRef = useRef<Map<string, string>>(new Map());
   const songTransitionCountRef = useRef(0);
+  const listenerCoordsRef = useRef<{ lat: number; lon: number } | null>(null);
 
   const [showVisualizer, setShowVisualizer] = useState(false);
   const [showArtistPanel, setShowArtistPanel] = useState(false);
@@ -627,6 +628,19 @@ export default function RadioPlayer() {
       setVisualizerAnalyser(sharedAnalyserRef.current);
     }
   }, [isAudioReady, sharedAnalyserRef]);
+
+  // Silently grab listener coords once — used to localise weather in DJ narration.
+  // Falls back to Orlando if denied or unavailable.
+  useEffect(() => {
+    if (!("geolocation" in navigator)) return;
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        listenerCoordsRef.current = { lat: coords.latitude, lon: coords.longitude };
+      },
+      () => undefined,
+      { timeout: 5000, maximumAge: 30 * 60 * 1000 },
+    );
+  }, []);
 
   useEffect(() => {
     const interval = window.setInterval(() => {
@@ -1902,6 +1916,7 @@ export default function RadioPlayer() {
                   nextSongTitle: nextSong.title,
                   nextSongArtist: nextSong.artist,
                   vibe: selectedVibe,
+                  ...(listenerCoordsRef.current ?? {}),
                 }),
               }).then(async (res) => {
                 if (!res.ok) return;

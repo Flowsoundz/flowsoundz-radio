@@ -22,9 +22,9 @@ export type RadioContext = {
   tempF: number | null;
 };
 
-// Orlando, FL coordinates
-const LAT = 28.5383;
-const LON = -81.3792;
+// Default: Orlando, FL
+const DEFAULT_LAT = 28.5383;
+const DEFAULT_LON = -81.3792;
 
 function weatherCodeToCondition(code: number): WeatherCondition {
   if (code === 0) return "clear";
@@ -67,18 +67,19 @@ function getTimeLabel(hour: number): string {
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-let weatherCache: { condition: WeatherCondition; tempF: number | null; fetchedAt: number } | null = null;
+let weatherCache: { condition: WeatherCondition; tempF: number | null; fetchedAt: number; cacheKey: string } | null = null;
 const WEATHER_CACHE_TTL_MS = 20 * 60 * 1000; // 20 minutes
 
-async function fetchWeather(): Promise<{ condition: WeatherCondition; tempF: number | null }> {
+async function fetchWeather(lat = DEFAULT_LAT, lon = DEFAULT_LON): Promise<{ condition: WeatherCondition; tempF: number | null }> {
   const now = Date.now();
-  if (weatherCache && now - weatherCache.fetchedAt < WEATHER_CACHE_TTL_MS) {
+  const cacheKey = `${Math.round(lat * 10)},${Math.round(lon * 10)}`;
+  if (weatherCache && weatherCache.cacheKey === cacheKey && now - weatherCache.fetchedAt < WEATHER_CACHE_TTL_MS) {
     return { condition: weatherCache.condition, tempF: weatherCache.tempF };
   }
 
   try {
     const res = await fetch(
-      `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&current=temperature_2m,weather_code&temperature_unit=fahrenheit`,
+      `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&temperature_unit=fahrenheit`,
       { signal: AbortSignal.timeout(4000) },
     );
     if (!res.ok) throw new Error("weather fetch failed");
@@ -88,14 +89,14 @@ async function fetchWeather(): Promise<{ condition: WeatherCondition; tempF: num
     const code = data.current?.weather_code ?? 0;
     const tempF = data.current?.temperature_2m ?? null;
     const condition = weatherCodeToCondition(code);
-    weatherCache = { condition, tempF, fetchedAt: now };
+    weatherCache = { condition, tempF, fetchedAt: now, cacheKey };
     return { condition, tempF };
   } catch {
     return { condition: "clear", tempF: null };
   }
 }
 
-export async function getRadioContext(): Promise<RadioContext> {
+export async function getRadioContext(lat?: number, lon?: number): Promise<RadioContext> {
   const now = new Date();
   const hour = now.getHours();
   const minute = now.getMinutes();
@@ -105,7 +106,7 @@ export async function getRadioContext(): Promise<RadioContext> {
     minute < 5 || // top of any hour
     ((hour === 0 || hour === 6 || hour === 12 || hour === 18) && minute < 10);
 
-  const { condition, tempF } = await fetchWeather();
+  const { condition, tempF } = await fetchWeather(lat, lon);
 
   return {
     hour,
