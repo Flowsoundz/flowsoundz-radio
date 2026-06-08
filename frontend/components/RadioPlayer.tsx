@@ -915,11 +915,14 @@ export default function RadioPlayer() {
       return;
     }
 
+    const coverSrc = getCoverUrl(currentSong);
+    const artwork = Array.isArray(coverSrc) ? (coverSrc[0] ?? null) : (coverSrc ?? null);
     setCurrentTrack({
       id: currentSong.id,
       src: getPreferredPlaybackUrl(currentSong, audioRef.current),
       title: currentSong.title,
       artist: currentSong.artist,
+      artwork,
     });
   }, [audioRef, currentSong, setCurrentTrack]);
 

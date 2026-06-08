@@ -370,6 +370,26 @@ export async function updateArtistSubmissionReview(input: {
   return updated;
 }
 
+export async function readArtistSubmissionsByEmail(
+  email: string,
+): Promise<ArtistSubmissionRecord[]> {
+  if (SHOULD_USE_PRISMA) {
+    const submissions = await prisma.artistSubmission.findMany({
+      where: { email },
+      orderBy: { createdAt: "desc" },
+      include: {
+        promoAssets: true,
+        reviews: { orderBy: { createdAt: "desc" } },
+      },
+    });
+    return submissions.map(mapPrismaSubmission);
+  }
+
+  if (!CAN_USE_FILE_FALLBACK) return [];
+  const all = await readArtistSubmissions();
+  return all.filter((s) => s.email === email);
+}
+
 export async function updateArtistSubmissionPromo(input: {
   submissionId: string;
   promo: ArtistPromoOutput;

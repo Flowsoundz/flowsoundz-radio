@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { runAI, extractTag } from "@/lib/creatorHub/aiEngine";
+import { sendArtistApprovalEmail } from "@/lib/mailer";
 
 export const runtime = "nodejs";
 
@@ -133,13 +134,24 @@ export async function POST(req: NextRequest) {
     }
 
     try {
+      const newStatus = statusRaw && STATUS_MAP[statusRaw] ? STATUS_MAP[statusRaw] : null;
       const updated = await prisma.releaseSubmission.update({
         where: { id: submissionId },
         data: {
-          ...(statusRaw && STATUS_MAP[statusRaw] ? { status: STATUS_MAP[statusRaw] } : {}),
+          ...(newStatus ? { status: newStatus } : {}),
           ...(internalNotes !== null ? { internalNotes: internalNotes || null } : {}),
         },
       });
+
+      if (newStatus === "APPROVED" && updated.email) {
+        void sendArtistApprovalEmail({
+          contactName: updated.artistName,
+          email: updated.email,
+          artistName: updated.artistName,
+          songTitle: updated.trackTitle,
+        });
+      }
+
       return NextResponse.json({ submission: toClientShape(updated) });
     } catch (err) {
       console.error("[release-submissions admin update]", err);

@@ -111,10 +111,10 @@ export default function ReleaseSubmitPage() {
         <div className="mb-8 flex justify-center"><BrandLogo variant="full" /></div>
 
         <div className="rounded-[2rem] border border-white/8 bg-[#0B1020]/90 p-8 shadow-[0_0_60px_rgba(0,0,0,0.4)]">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-300/80">Release Submission</p>
-          <h1 className="mt-2 text-2xl font-semibold text-white">Submit your release</h1>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-300/80">Quick Intake</p>
+          <h1 className="mt-2 text-2xl font-semibold text-white">Register your release</h1>
           <p className="mt-2 text-sm leading-6 text-slate-400">
-            Submit your track for FlowSoundz Radio rotation. We review every submission and respond within 5–7 days.
+            A lightweight form to log your release with FlowSoundz — no song link required. For the full submission with AI promo assets and curation review, use the <Link href="/artist/submit" className="text-cyan-400 hover:text-cyan-300">Creator Hub submission flow</Link>.
           </p>
 
           {error && (

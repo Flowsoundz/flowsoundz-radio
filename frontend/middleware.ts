@@ -36,6 +36,10 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL(`/signin?next=${pathname}`, req.url));
   }
 
+  if (pathname.startsWith("/artist/submissions") && !isAuthed) {
+    return NextResponse.redirect(new URL(`/signin?next=${pathname}`, req.url));
+  }
+
   return NextResponse.next();
 }
 
@@ -44,6 +48,7 @@ export const config = {
     "/admin/:path*",
     "/artist/metrics/:path*",
     "/artist/release-submit/:path*",
+    "/artist/submissions/:path*",
     "/((?!_next/static|_next/image|favicon.ico|brand/|splash/|covers/|FSRLogo).*)",
   ],
 };

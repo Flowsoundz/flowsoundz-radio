@@ -556,3 +556,118 @@ export async function sendLaunchAnnouncement(email: string, magicLink?: string) 
     `,
   });
 }
+
+export async function sendArtistApprovalEmail(data: {
+  contactName: string;
+  email: string;
+  artistName: string;
+  songTitle: string;
+}) {
+  const transporter = getTransporter();
+  if (!transporter) return;
+  const from = getNotifyEmail();
+  const siteUrl = getSiteUrl();
+
+  await transporter.sendMail({
+    from: `"FlowSoundz Radio" <${from}>`,
+    to: data.email,
+    replyTo: from,
+    subject: `Your track is approved for FlowSoundz Radio rotation`,
+    text: [
+      `Hi ${data.contactName},`,
+      ``,
+      `Great news — "${data.songTitle}" by ${data.artistName} has been approved for FlowSoundz Radio rotation.`,
+      ``,
+      `Your track will be added to our curation queue and you'll hear it on the station.`,
+      ``,
+      `Tune in: ${siteUrl}/radio`,
+      ``,
+      `Thank you for submitting — we're excited to share your music.`,
+      ``,
+      `FlowSoundz Radio — Discovery-first curation for independent music.`,
+    ].join("\n"),
+    html: `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#1e293b">
+        <div style="background:#07111f;padding:24px 28px;border-radius:12px 12px 0 0">
+          <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:#00e5ff">FlowSoundz Radio</p>
+          <h1 style="margin:8px 0 4px;font-size:20px;color:#fff">Your track is approved</h1>
+          <p style="margin:0;font-size:14px;color:#94a3b8">${data.artistName} — &ldquo;${data.songTitle}&rdquo;</p>
+        </div>
+        <div style="background:#0f172a;padding:28px;border-radius:0 0 12px 12px">
+          <p style="font-size:15px;color:#e2e8f0;margin:0 0 16px">Hi ${data.contactName},</p>
+          <p style="font-size:14px;color:#94a3b8;line-height:1.7;margin:0 0 20px">
+            Great news — <strong style="color:#fff">&ldquo;${data.songTitle}&rdquo;</strong> has been approved for <strong style="color:#fff">FlowSoundz Radio</strong> rotation.
+          </p>
+          <div style="border-left:3px solid #00e5ff;padding:12px 16px;background:rgba(0,229,255,0.06);border-radius:0 8px 8px 0;margin:0 0 24px">
+            <p style="margin:0;font-size:13px;color:#cbd5e1;line-height:1.6">
+              Your track will be added to our curation queue. Tune in to hear it on the station.
+            </p>
+          </div>
+          <a href="${siteUrl}/radio" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg,#00e5ff 0%,#7c4dff 100%);color:#fff;font-size:13px;font-weight:700;text-decoration:none;border-radius:999px">
+            Tune in to FlowSoundz Radio →
+          </a>
+          <p style="font-size:12px;color:#475569;margin:28px 0 0">
+            Thank you for submitting — we&apos;re excited to share your music.<br/>
+            FlowSoundz Radio — Discovery-first curation for independent music.
+          </p>
+        </div>
+      </div>
+    `,
+  });
+}
+
+export async function sendArtistRejectionEmail(data: {
+  contactName: string;
+  email: string;
+  artistName: string;
+  songTitle: string;
+}) {
+  const transporter = getTransporter();
+  if (!transporter) return;
+  const from = getNotifyEmail();
+  const siteUrl = getSiteUrl();
+
+  await transporter.sendMail({
+    from: `"FlowSoundz Radio" <${from}>`,
+    to: data.email,
+    replyTo: from,
+    subject: `FlowSoundz Radio — update on your submission`,
+    text: [
+      `Hi ${data.contactName},`,
+      ``,
+      `Thank you for submitting "${data.songTitle}" by ${data.artistName} to FlowSoundz Radio.`,
+      ``,
+      `After review, we're not adding this track to our rotation at this time. This is a curation decision and does not reflect the quality of your work.`,
+      ``,
+      `We encourage you to keep creating and submit again in the future.`,
+      ``,
+      `Submit again: ${siteUrl}/artist/submit`,
+      ``,
+      `FlowSoundz Radio — Discovery-first curation for independent music.`,
+    ].join("\n"),
+    html: `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#1e293b">
+        <div style="background:#07111f;padding:24px 28px;border-radius:12px 12px 0 0">
+          <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:#00e5ff">FlowSoundz Radio</p>
+          <h1 style="margin:8px 0 4px;font-size:20px;color:#fff">Submission update</h1>
+          <p style="margin:0;font-size:14px;color:#94a3b8">${data.artistName} — &ldquo;${data.songTitle}&rdquo;</p>
+        </div>
+        <div style="background:#0f172a;padding:28px;border-radius:0 0 12px 12px">
+          <p style="font-size:15px;color:#e2e8f0;margin:0 0 16px">Hi ${data.contactName},</p>
+          <p style="font-size:14px;color:#94a3b8;line-height:1.7;margin:0 0 16px">
+            Thank you for submitting <strong style="color:#fff">&ldquo;${data.songTitle}&rdquo;</strong> to FlowSoundz Radio.
+          </p>
+          <p style="font-size:14px;color:#94a3b8;line-height:1.7;margin:0 0 20px">
+            After review, we&apos;re not adding this track to our rotation at this time. This is a curation decision and does not reflect the quality of your work — we encourage you to keep creating and submit again.
+          </p>
+          <a href="${siteUrl}/artist/submit" style="display:inline-block;padding:12px 24px;border:1.5px solid rgba(255,255,255,0.15);color:#cbd5e1;font-size:13px;font-weight:600;text-decoration:none;border-radius:999px">
+            Submit another track →
+          </a>
+          <p style="font-size:12px;color:#475569;margin:28px 0 0">
+            FlowSoundz Radio — Discovery-first curation for independent music.
+          </p>
+        </div>
+      </div>
+    `,
+  });
+}

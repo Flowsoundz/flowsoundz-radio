@@ -86,10 +86,10 @@ export default async function ArtistDashboardPage() {
               Check Rights
             </Link>
             <Link
-              href="/artist/metrics"
+              href="/artist/submissions"
               className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/10 px-6 py-2.5 text-sm font-medium text-slate-300 transition hover:border-white/20 hover:text-white"
             >
-              View Metrics
+              My Submissions
             </Link>
           </div>
         </div>
@@ -133,10 +133,10 @@ export default async function ArtistDashboardPage() {
               Start Creating
             </Link>
             <Link
-              href="/artist/release-submit"
+              href="/artist/submit"
               className="inline-flex min-h-11 items-center justify-center rounded-full border border-cyan-400/25 px-6 py-2.5 text-sm font-semibold text-cyan-300 transition hover:border-cyan-400/40 hover:bg-cyan-400/10"
             >
-              Submit Release
+              Submit for Review
             </Link>
             <Link
               href="/radio"

@@ -12,6 +12,14 @@ import {
 } from "react";
 import { resetPlaybackController } from "@/lib/playbackController";
 
+type CurrentTrack = {
+  id: string;
+  src: string;
+  title: string;
+  artist: string;
+  artwork?: string | null;
+};
+
 type GlobalAudioContextValue = {
   audioRef: MutableRefObject<HTMLAudioElement | null>;
   analyserRef: MutableRefObject<AnalyserNode | null>;
@@ -19,23 +27,11 @@ type GlobalAudioContextValue = {
   audioContextRef: MutableRefObject<AudioContext | null>;
   togglePlaybackRef: MutableRefObject<(() => void) | null>;
   skipTrackRef: MutableRefObject<(() => Promise<void> | void) | null>;
-  setCurrentTrack: (
-    track: {
-      id: string;
-      src: string;
-      title: string;
-      artist: string;
-    } | null,
-  ) => void;
+  setCurrentTrack: (track: CurrentTrack | null) => void;
   isReady: boolean;
   isPlaying: boolean;
   hasStartedPlayback: boolean;
-  currentTrack: {
-    id: string;
-    src: string;
-    title: string;
-    artist: string;
-  } | null;
+  currentTrack: CurrentTrack | null;
 };
 
 type GlobalAudioRefsContextValue = {
@@ -45,26 +41,14 @@ type GlobalAudioRefsContextValue = {
   audioContextRef: MutableRefObject<AudioContext | null>;
   togglePlaybackRef: MutableRefObject<(() => void) | null>;
   skipTrackRef: MutableRefObject<(() => Promise<void> | void) | null>;
-  setCurrentTrack: (
-    track: {
-      id: string;
-      src: string;
-      title: string;
-      artist: string;
-    } | null,
-  ) => void;
+  setCurrentTrack: (track: CurrentTrack | null) => void;
 };
 
 type GlobalAudioStateContextValue = {
   isReady: boolean;
   isPlaying: boolean;
   hasStartedPlayback: boolean;
-  currentTrack: {
-    id: string;
-    src: string;
-    title: string;
-    artist: string;
-  } | null;
+  currentTrack: CurrentTrack | null;
 };
 
 const AudioRefsContextGlobal = createContext<GlobalAudioRefsContextValue | null>(null);
@@ -92,12 +76,7 @@ export function GlobalAudioProvider({ children }: { children: ReactNode }) {
   const [isReady, setIsReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasStartedPlayback, setHasStartedPlayback] = useState(false);
-  const [currentTrack, setCurrentTrack] = useState<{
-    id: string;
-    src: string;
-    title: string;
-    artist: string;
-  } | null>(null);
+  const [currentTrack, setCurrentTrack] = useState<CurrentTrack | null>(null);
 
   useEffect(() => {
     const audio = new Audio();
@@ -197,6 +176,52 @@ export function GlobalAudioProvider({ children }: { children: ReactNode }) {
       audioContextRef.current = null;
     };
   }, []);
+
+  // Media Session API — lock screen controls and now-playing info
+  useEffect(() => {
+    if (!("mediaSession" in navigator)) return;
+
+    if (!currentTrack) {
+      navigator.mediaSession.metadata = null;
+      navigator.mediaSession.playbackState = "none";
+      return;
+    }
+
+    const raw = currentTrack.artwork ?? null;
+    const artworkSrc = raw
+      ? raw.startsWith("http")
+        ? raw
+        : `${window.location.origin}${raw}`
+      : `${window.location.origin}/brand/flowsoundz-fr-appicon-dark.png`;
+
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: currentTrack.title,
+      artist: currentTrack.artist,
+      album: "FlowSoundz Radio",
+      artwork: [{ src: artworkSrc, sizes: "512x512", type: "image/png" }],
+    });
+
+    navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
+
+    navigator.mediaSession.setActionHandler("play", () => {
+      togglePlaybackRef.current?.();
+    });
+    navigator.mediaSession.setActionHandler("pause", () => {
+      togglePlaybackRef.current?.();
+    });
+    navigator.mediaSession.setActionHandler("stop", () => {
+      audioRef.current?.pause();
+    });
+    navigator.mediaSession.setActionHandler("nexttrack", () => {
+      void skipTrackRef.current?.();
+    });
+    // previoustrack not applicable for a radio — remove handler if previously set
+    try {
+      navigator.mediaSession.setActionHandler("previoustrack", null);
+    } catch {
+      // some browsers throw if the action was never registered
+    }
+  }, [currentTrack, isPlaying, audioRef, togglePlaybackRef, skipTrackRef]);
 
   const refsValue = useMemo<GlobalAudioRefsContextValue>(
     () => ({

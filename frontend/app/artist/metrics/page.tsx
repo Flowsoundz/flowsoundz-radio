@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { AppShell } from "@/components/AppShell";
 import { readCatalogSnapshotFromStore } from "@/lib/catalogSnapshotStore";
@@ -8,6 +9,7 @@ import {
 } from "@/lib/analyticsEventStore";
 import { readArtistSubmissions } from "@/lib/artistSubmissionStore";
 import { STATIC_CATALOG } from "@/lib/staticCatalog";
+import { auth } from "@/auth";
 
 export const metadata: Metadata = {
   title: "Station Metrics — FlowSoundz Radio",
@@ -55,6 +57,11 @@ function StatCard({
 }
 
 export default async function ArtistMetricsPage() {
+  const session = await auth();
+  if (!session?.user || !(session.user as { isAdmin?: boolean }).isAdmin) {
+    redirect("/signin?next=/artist/metrics");
+  }
+
   const [snapshot, submissions] = await Promise.all([
     readCatalogSnapshotFromStore(),
     readArtistSubmissions(),

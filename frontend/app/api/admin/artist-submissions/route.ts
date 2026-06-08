@@ -4,6 +4,10 @@ import {
   updateArtistSubmissionReview,
   type ArtistSubmissionStatus,
 } from "@/lib/artistSubmissionStore";
+import {
+  sendArtistApprovalEmail,
+  sendArtistRejectionEmail,
+} from "@/lib/mailer";
 
 export const runtime = "nodejs";
 
@@ -59,6 +63,23 @@ export async function POST(request: Request) {
       status,
       internalNotes,
     });
+
+    if (status === "approved") {
+      void sendArtistApprovalEmail({
+        contactName: submission.contact_name,
+        email: submission.email,
+        artistName: submission.artist_name,
+        songTitle: submission.song_title,
+      });
+    } else if (status === "rejected") {
+      void sendArtistRejectionEmail({
+        contactName: submission.contact_name,
+        email: submission.email,
+        artistName: submission.artist_name,
+        songTitle: submission.song_title,
+      });
+    }
+
     return NextResponse.json({ ok: true, submission });
   } catch (error) {
     return NextResponse.json(
