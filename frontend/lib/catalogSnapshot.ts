@@ -56,6 +56,32 @@ const ARTIST_NAME_ALIASES: Record<string, string> = {
   "flowsoundz-select": "FlowSoundz",
 };
 
+// Per-track editorial overrides keyed by audio_file name.
+// Applied at render time so the DB doesn't need migration for title renames,
+// feat. credits, or playability changes.
+type SongOverride = { title?: string; artist?: string; is_playable?: false };
+const SONG_OVERRIDES: Record<string, SongOverride> = {
+  "find_a_way.mp3":        { artist: "FlowSoundz feat. Adrian 🪐" },
+  "no_other.mp3":          { title: "No Where to Go", artist: "FlowSoundz feat. Adrian 🪐" },
+  "galacta.mp3":           { title: "Galacta-Adrian", artist: "FlowSoundz feat. Adrian 🪐", is_playable: false },
+  "i_just_decided.mp3":    { artist: "FlowSoundz feat. Ezeqiel" },
+  "far_away.mp3":          { artist: "FlowSoundz feat. Ezeqiel" },
+  "5321_bobby_st_3.mp3":   { title: "No Te Imaginas" },
+  "baby_tu_sabes.mp3":     { title: "Apaga el Mundo" },
+  "adonis.mp3":            { is_playable: false },
+};
+
+export function applySongOverrides(song: Song): Song {
+  const override = SONG_OVERRIDES[song.audio_file ?? ""] ?? {};
+  if (Object.keys(override).length === 0) return song;
+  return {
+    ...song,
+    ...(override.title !== undefined    ? { title: override.title }       : {}),
+    ...(override.artist !== undefined   ? { artist: override.artist }     : {}),
+    ...(override.is_playable === false  ? { is_playable: false }          : {}),
+  };
+}
+
 function normalizeArtistName(name: string) {
   return name.trim().replace(/\s+/g, " ");
 }

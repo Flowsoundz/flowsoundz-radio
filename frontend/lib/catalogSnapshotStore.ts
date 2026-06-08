@@ -8,7 +8,7 @@ import {
   VisualizerSessionStatus,
   type Prisma,
 } from "@prisma/client";
-import { getCatalogSnapshot, slugifyArtistName } from "@/lib/catalogSnapshot";
+import { applySongOverrides, getCatalogSnapshot, slugifyArtistName } from "@/lib/catalogSnapshot";
 import { prisma } from "@/lib/prisma";
 import { getCuratedCatalog } from "@/lib/curatedCatalog";
 import type {
@@ -193,7 +193,7 @@ async function readLocalCatalogSongs(): Promise<Song[]> {
   try {
     const catalogRaw = await readFile(LOCAL_CATALOG_PATH, "utf8");
     const catalog = JSON.parse(catalogRaw) as Song[];
-    return catalog.map((song) => ({
+    return catalog.map((song) => applySongOverrides({
       ...song,
       is_playable: true,
       local_stream: true,
@@ -285,7 +285,7 @@ async function readCatalogSnapshotFromPrisma(): Promise<CatalogSnapshot> {
     };
 
     for (const song of artist.songs) {
-      songs.push(mapPrismaSong(artist, song));
+      songs.push(applySongOverrides(mapPrismaSong(artist, song)));
 
       const primaryMilestone = song.milestones[0] ?? null;
       if (primaryMilestone) {
