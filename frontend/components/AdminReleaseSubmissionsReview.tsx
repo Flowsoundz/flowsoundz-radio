@@ -10,6 +10,7 @@ export type ReleaseSubmission = {
   release_date: string;
   email: string;
   notes?: string | null;
+  lyrics?: string | null;
   production_method?: string | null;
   audio_file?: string;
   cover_file?: string;
@@ -318,6 +319,17 @@ export function AdminReleaseSubmissionsReview({
                   )}
                 </p>
               </div>
+
+              {selected.lyrics && (
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#CBD5E1]/55">
+                    Lyrics
+                  </p>
+                  <pre className="mt-2 max-h-60 overflow-y-auto whitespace-pre-wrap rounded-[1.4rem] border border-[#8B5CF6]/18 bg-[#8B5CF6]/[0.05] px-4 py-3 text-sm leading-6 text-[#CBD5E1]">
+                    {selected.lyrics}
+                  </pre>
+                </div>
+              )}
 
               <div>
                 <div className="flex items-center justify-between gap-3">

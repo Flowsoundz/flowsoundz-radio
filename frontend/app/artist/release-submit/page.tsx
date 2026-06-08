@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { BrandLogo } from "@/components/BrandLogo";
 
@@ -20,11 +20,13 @@ const PRODUCTION_OPTIONS: { id: ProductionMethod; label: string; description: st
 type Field = {
   artistName: string; trackTitle: string; genre: string;
   releaseDate: string; email: string; notes: string;
+  lyrics: string;
   productionMethod: ProductionMethod;
 };
 
 const EMPTY: Field = {
   artistName: "", trackTitle: "", genre: "", releaseDate: "", email: "", notes: "",
+  lyrics: "",
   productionMethod: "self_produced",
 };
 
@@ -33,9 +35,40 @@ export default function ReleaseSubmitPage() {
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
+  const [extracting, setExtracting] = useState(false);
+  const [extractStatus, setExtractStatus] = useState<"idle" | "found" | "none">("idle");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   function set(key: keyof Field, val: string) {
     setFields((f) => ({ ...f, [key]: val }));
+  }
+
+  async function handleMp3Pick(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setExtracting(true);
+    setExtractStatus("idle");
+    try {
+      const { parseBlob } = await import("music-metadata");
+      const meta = await parseBlob(file, { skipCovers: true });
+      const raw = meta.common.lyrics;
+      let text = "";
+      if (Array.isArray(raw) && raw.length > 0) {
+        const entry = raw[0];
+        text = typeof entry === "string" ? entry : ((entry as { text?: string })?.text ?? "");
+      }
+      if (text.trim()) {
+        set("lyrics", text.trim());
+        setExtractStatus("found");
+      } else {
+        setExtractStatus("none");
+      }
+    } catch {
+      setExtractStatus("none");
+    } finally {
+      setExtracting(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -54,6 +87,7 @@ export default function ReleaseSubmitPage() {
           release_date: fields.releaseDate || new Date().toISOString().slice(0, 10),
           email: fields.email,
           notes: fields.notes || undefined,
+          lyrics: fields.lyrics || undefined,
           production_method: fields.productionMethod,
         }),
       });
@@ -183,6 +217,40 @@ export default function ReleaseSubmitPage() {
                 rows={3} placeholder="SoundCloud, Spotify, or any context about the track..."
                 className="resize-none rounded-[1.1rem] border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-white/20"
               />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-slate-400">Lyrics <span className="font-normal text-slate-600">(optional)</span></label>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={extracting}
+                  className="flex items-center gap-1.5 rounded-full border border-[#8B5CF6]/25 bg-[#8B5CF6]/10 px-3 py-1 text-[10px] font-semibold text-[#c4b5fd] transition hover:bg-[#8B5CF6]/18 disabled:opacity-50"
+                >
+                  {extracting ? "Reading file…" : "Extract from MP3"}
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="audio/mpeg,.mp3"
+                  className="hidden"
+                  onChange={(e) => void handleMp3Pick(e)}
+                />
+              </div>
+              <textarea
+                value={fields.lyrics}
+                onChange={(e) => set("lyrics", e.target.value)}
+                rows={6}
+                placeholder={"Verse 1\n...\n\nChorus\n...\n\nPaste or type your lyrics here. Use blank lines to separate sections."}
+                className="resize-y rounded-[1.1rem] border border-white/10 bg-white/[0.04] px-4 py-3 text-sm leading-6 text-white outline-none placeholder:text-slate-600 focus:border-white/20"
+              />
+              {extractStatus === "found" && (
+                <p className="text-[10px] text-emerald-400/80">Lyrics extracted from file metadata — edit freely.</p>
+              )}
+              {extractStatus === "none" && (
+                <p className="text-[10px] text-slate-500">No lyrics found in file metadata. You can paste them manually above.</p>
+              )}
             </div>
 
             <div className="flex flex-col gap-2">

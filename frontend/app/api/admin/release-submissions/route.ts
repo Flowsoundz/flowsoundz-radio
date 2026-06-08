@@ -14,6 +14,7 @@ function checkPassword(pw: string | null): boolean {
 function toClientShape(s: {
   id: string; artistName: string; trackTitle: string; genre: string;
   releaseDate: string; email: string; notes: string | null;
+  lyrics: string | null;
   productionMethod: string | null;
   audioFile: string | null; coverFile: string | null;
   status: string; internalNotes: string | null;
@@ -29,6 +30,7 @@ function toClientShape(s: {
     release_date: s.releaseDate,
     email: s.email,
     notes: s.notes,
+    lyrics: s.lyrics ?? null,
     production_method: s.productionMethod ?? "self_produced",
     audio_file: s.audioFile ?? undefined,
     cover_file: s.coverFile ?? undefined,
@@ -100,6 +102,7 @@ export async function POST(req: NextRequest) {
         `Release date: ${existing.releaseDate}`,
         existing.productionMethod ? `Production method: ${existing.productionMethod}` : "",
         existing.notes ? `Artist notes: ${existing.notes}` : "",
+        existing.lyrics ? `Lyrics excerpt: ${existing.lyrics.slice(0, 400)}` : "",
         "",
         "Output only these tagged blocks:",
         "<summary>2–3 sentence internal curator take on this submission. Specific, editorial, honest.</summary>",
@@ -164,6 +167,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json() as {
       artist_name?: string; track_title?: string; genre?: string;
       release_date?: string; email?: string; notes?: string;
+      lyrics?: string;
       production_method?: string;
     };
 
@@ -179,6 +183,7 @@ export async function POST(req: NextRequest) {
         releaseDate: body.release_date ?? new Date().toISOString().slice(0, 10),
         email: body.email,
         notes: body.notes ?? null,
+        lyrics: body.lyrics ?? null,
         productionMethod: body.production_method ?? "self_produced",
       },
     });
