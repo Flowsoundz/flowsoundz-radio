@@ -234,20 +234,6 @@
     "sponsored": false
   },
   {
-    "id": "track_019",
-    "title": "Galacta-Adrian",
-    "artist": "FlowSoundz feat. Adrian 🪐",
-    "album": "Singles",
-    "genre": "Urban Latino",
-    "vibe": "hype",
-    "duration_sec": 179,
-    "audio_file": "galacta.mp3",
-    "cover_file": "default.webp",
-    "featured": false,
-    "sponsored": false,
-    "is_playable": false
-  },
-  {
     "id": "track_020",
     "title": "Getting Down Tonight",
     "artist": "FlowSoundz",
@@ -702,20 +688,6 @@
     "cover_file": "default.webp",
     "featured": false,
     "sponsored": false
-  },
-  {
-    "id": "track_055",
-    "title": "Adonis",
-    "artist": "FlowSoundz",
-    "album": "Singles",
-    "genre": "R&B Trap",
-    "vibe": "late_night",
-    "duration_sec": 228,
-    "audio_file": "adonis.mp3",
-    "cover_file": "default.webp",
-    "featured": false,
-    "sponsored": false,
-    "is_playable": false
   },
   {
     "id": "track_056",
