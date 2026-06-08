@@ -36,7 +36,9 @@ export default function ReleaseSubmitPage() {
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
   const [extracting, setExtracting] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
   const [extractStatus, setExtractStatus] = useState<"idle" | "found" | "none">("idle");
+  const [lastFile, setLastFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   function set(key: keyof Field, val: string) {
@@ -46,6 +48,7 @@ export default function ReleaseSubmitPage() {
   async function handleMp3Pick(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    setLastFile(file);
     setExtracting(true);
     setExtractStatus("idle");
     try {
@@ -68,6 +71,30 @@ export default function ReleaseSubmitPage() {
     } finally {
       setExtracting(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
+  async function handleTranscribe() {
+    const file = lastFile;
+    if (!file) return;
+    setTranscribing(true);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/transcribe-lyrics", { method: "POST", body: form });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string };
+        throw new Error(err.error ?? "Transcription failed.");
+      }
+      const { transcript } = await res.json() as { transcript: string };
+      if (transcript.trim()) {
+        set("lyrics", transcript.trim());
+        setExtractStatus("found");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Transcription failed.");
+    } finally {
+      setTranscribing(false);
     }
   }
 
@@ -246,10 +273,20 @@ export default function ReleaseSubmitPage() {
                 className="resize-y rounded-[1.1rem] border border-white/10 bg-white/[0.04] px-4 py-3 text-sm leading-6 text-white outline-none placeholder:text-slate-600 focus:border-white/20"
               />
               {extractStatus === "found" && (
-                <p className="text-[10px] text-emerald-400/80">Lyrics extracted from file metadata — edit freely.</p>
+                <p className="text-[10px] text-emerald-400/80">Lyrics extracted — edit freely.</p>
               )}
               {extractStatus === "none" && (
-                <p className="text-[10px] text-slate-500">No lyrics found in file metadata. You can paste them manually above.</p>
+                <div className="flex items-center gap-3">
+                  <p className="text-[10px] text-slate-500">No lyrics in file metadata.</p>
+                  <button
+                    type="button"
+                    onClick={() => void handleTranscribe()}
+                    disabled={transcribing}
+                    className="flex items-center gap-1.5 rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-1 text-[10px] font-semibold text-cyan-300 transition hover:bg-cyan-400/18 disabled:opacity-50"
+                  >
+                    {transcribing ? "Transcribing…" : "Transcribe with AI"}
+                  </button>
+                </div>
               )}
             </div>
 
