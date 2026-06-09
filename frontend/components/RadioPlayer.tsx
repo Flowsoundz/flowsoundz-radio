@@ -2788,13 +2788,28 @@ export default function RadioPlayer() {
                 <button
                   type="button"
                   onClick={() => {
-                    const title = currentSong?.title;
-                    const artist = currentSong?.artist;
-                    const url = `${window.location.origin}/radio`;
+                    const song = currentSong;
+                    const title = song?.title;
+                    const artist = song?.artist;
+                    const url = song?.id
+                      ? `${window.location.origin}/radio?song=${song.id}`
+                      : `${window.location.origin}/radio`;
                     const shareText = title && artist
                       ? `Listening to "${title}" by ${artist} on FlowSoundz Radio`
                       : `Live on FlowSoundz Radio`;
                     track("share_track_click", { title: title ?? null, artist: artist ?? null });
+
+                    // Award Vibe Points for sharing (fire-and-forget)
+                    void fetch("/api/share/award", { method: "POST" }).then(async (res) => {
+                      if (res.ok) {
+                        const data = (await res.json()) as { ok: boolean; balance: number | null };
+                        if (data.ok && data.balance !== null) {
+                          setShareCopied(true);
+                          setTimeout(() => setShareCopied(false), 2500);
+                        }
+                      }
+                    });
+
                     if (navigator.share) {
                       void navigator.share({ title: shareText, url }).catch(() => {});
                     } else {
@@ -2806,12 +2821,12 @@ export default function RadioPlayer() {
                   }}
                   disabled={!currentSong}
                   className="min-h-16 rounded-full border border-white/8 bg-[#111827] px-4 text-base font-semibold text-[#F8FAFC] transition hover:border-[#00e5ff]/25 hover:bg-[#111827]/90 disabled:cursor-not-allowed disabled:opacity-40"
-                  title="Copy share link"
+                  title="Share — earn 25 Vibe Points"
                 >
                   {shareCopied ? (
                     <span className="flex items-center gap-2 text-[#00e5ff]">
                       <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                      Copied
+                      +25 pts
                     </span>
                   ) : (
                     <span className="flex items-center gap-2">
