@@ -2,6 +2,7 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -28,6 +29,7 @@ type GlobalAudioContextValue = {
   togglePlaybackRef: MutableRefObject<(() => void) | null>;
   skipTrackRef: MutableRefObject<(() => Promise<void> | void) | null>;
   setCurrentTrack: (track: CurrentTrack | null) => void;
+  duckMain: (gain: number, durationSec?: number) => void;
   isReady: boolean;
   isPlaying: boolean;
   hasStartedPlayback: boolean;
@@ -42,6 +44,7 @@ type GlobalAudioRefsContextValue = {
   togglePlaybackRef: MutableRefObject<(() => void) | null>;
   skipTrackRef: MutableRefObject<(() => Promise<void> | void) | null>;
   setCurrentTrack: (track: CurrentTrack | null) => void;
+  duckMain: (gain: number, durationSec?: number) => void;
 };
 
 type GlobalAudioStateContextValue = {
@@ -71,6 +74,7 @@ export function GlobalAudioProvider({ children }: { children: ReactNode }) {
   const analyserRef = useRef<AnalyserNode | null>(null);
   const dataArrayRef = useRef<Uint8Array<ArrayBuffer> | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
+  const duckGainRef = useRef<GainNode | null>(null);
   const togglePlaybackRef = useRef<(() => void) | null>(null);
   const skipTrackRef = useRef<(() => Promise<void> | void) | null>(null);
   const [isReady, setIsReady] = useState(false);
@@ -146,12 +150,18 @@ export function GlobalAudioProvider({ children }: { children: ReactNode }) {
     compressor.attack.setValueAtTime(0.003, context.currentTime);
     compressor.release.setValueAtTime(0.15, context.currentTime);
 
+    // Duck GainNode — sits between compressor and destination, controlled by duckMain()
+    const duckGain = context.createGain();
+    duckGain.gain.setValueAtTime(1, context.currentTime);
+
     source.connect(analyser);
     analyser.connect(compressor);
-    compressor.connect(context.destination);
+    compressor.connect(duckGain);
+    duckGain.connect(context.destination);
 
     audioRef.current = audio;
     analyserRef.current = analyser;
+    duckGainRef.current = duckGain;
     dataArrayRef.current = new Uint8Array(analyser.frequencyBinCount) as Uint8Array<ArrayBuffer>;
     audioContextRef.current = context;
     readyTimer = window.setTimeout(() => setIsReady(true), 0);
@@ -245,6 +255,24 @@ export function GlobalAudioProvider({ children }: { children: ReactNode }) {
     }
   }, [currentTrack, isPlaying, audioRef, togglePlaybackRef, skipTrackRef]);
 
+  // Ramp main audio gain down for DJ drops, restore after durationSec
+  const duckMain = useCallback(
+    (gain: number, durationSec = 0) => {
+      const node = duckGainRef.current;
+      const ctx = audioContextRef.current;
+      if (!node || !ctx) return;
+      const now = ctx.currentTime;
+      node.gain.cancelScheduledValues(now);
+      node.gain.setValueAtTime(node.gain.value, now);
+      node.gain.linearRampToValueAtTime(gain, now + 0.3);
+      if (durationSec > 0) {
+        node.gain.setValueAtTime(gain, now + durationSec - 0.3);
+        node.gain.linearRampToValueAtTime(1, now + durationSec);
+      }
+    },
+    [],
+  );
+
   const refsValue = useMemo<GlobalAudioRefsContextValue>(
     () => ({
       audioRef,
@@ -254,8 +282,9 @@ export function GlobalAudioProvider({ children }: { children: ReactNode }) {
       togglePlaybackRef,
       skipTrackRef,
       setCurrentTrack,
+      duckMain,
     }),
-    [],
+    [duckMain],
   );
 
   const stateValue = useMemo<GlobalAudioStateContextValue>(

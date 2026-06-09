@@ -33,6 +33,7 @@ export type Song = {
   youtube_url?: string | null;
   local_stream?: boolean;
   producer?: string | null;
+  lang?: "en" | "es" | "spanglish";
   is_ai_generated?: boolean;
   ai_platform?: string | null;
   curated_fallback?: boolean;

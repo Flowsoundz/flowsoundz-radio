@@ -14,6 +14,7 @@
     "prisma:studio": "prisma studio"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.102.0",
     "@auth/prisma-adapter": "^2.11.2",
     "@capacitor/cli": "^8.4.0",
     "@capacitor/core": "^8.4.0",
