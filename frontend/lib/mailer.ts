@@ -671,3 +671,52 @@ export async function sendArtistRejectionEmail(data: {
     `,
   });
 }
+
+export async function sendFoundingMemberEmail(email: string, spotNumber: number) {
+  const transporter = getTransporter();
+  if (!transporter) return;
+
+  const from = getNotifyEmail();
+  const siteUrl = getSiteUrl();
+  const signInUrl = `${siteUrl}/signin`;
+
+  await transporter.sendMail({
+    from: `"FlowSoundz Radio" <${from}>`,
+    to: email,
+    subject: `You're Founding Member #${spotNumber} — FlowSoundz Early Access`,
+    text: [
+      `You made it.`,
+      ``,
+      `You're Founding Member #${spotNumber} on FlowSoundz Radio. That means you get free INSIDER access — unlimited listening, all vibes, before anyone else.`,
+      ``,
+      `Sign in to start listening: ${signInUrl}`,
+      ``,
+      `Enter your email on that page and we'll send you a magic link — no password needed.`,
+      ``,
+      `— FlowSoundz Radio`,
+    ].join("\n"),
+    html: `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#050816;border-radius:16px;overflow:hidden">
+        <div style="padding:32px 32px 24px;background:linear-gradient(135deg,#0c1328 0%,#07111f 100%);border-bottom:1px solid rgba(139,92,246,0.3)">
+          <p style="margin:0 0 12px;font-size:11px;font-weight:700;letter-spacing:0.3em;text-transform:uppercase;color:#8B5CF6">FlowSoundz Radio · Founding Member</p>
+          <h1 style="margin:0;font-size:28px;font-weight:700;color:#fff;line-height:1.2">You're in. 🎧</h1>
+        </div>
+        <div style="padding:28px 32px 32px">
+          <p style="font-size:22px;font-weight:700;color:#c4b5fd;margin:0 0 16px">Founding Member #${spotNumber}</p>
+          <p style="font-size:15px;line-height:1.7;color:#cbd5e1;margin:0 0 16px">
+            You signed up early — so you get <strong style="color:#fff">free INSIDER access</strong> from day one. Full listening on all vibes, no restrictions.
+          </p>
+          <p style="font-size:15px;line-height:1.7;color:#cbd5e1;margin:0 0 28px">
+            Sign in with your email and you're set. No password, no credit card.
+          </p>
+          <a href="${signInUrl}" style="display:inline-block;padding:14px 32px;background:linear-gradient(135deg,#8B5CF6 0%,#00e5ff 100%);color:#fff;font-size:15px;font-weight:700;text-decoration:none;border-radius:999px">
+            Sign in &amp; Start Listening →
+          </a>
+          <p style="font-size:12px;color:#475569;margin:28px 0 0">
+            Enter <strong style="color:#64748b">${email}</strong> on the sign-in page — we'll send a magic link. No password needed.
+          </p>
+        </div>
+      </div>
+    `,
+  });
+}

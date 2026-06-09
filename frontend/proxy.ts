@@ -3,6 +3,7 @@ import { getToken } from "next-auth/jwt";
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL?.trim() ?? "";
 const MAINTENANCE = process.env.MAINTENANCE_MODE === "true";
+const LAUNCH_MODE = process.env.LAUNCH_MODE === "true";
 const STREAM_WINDOW_MS = 50 * 60 * 1000;
 const STREAM_COOKIE = "fsr-stream-token";
 
@@ -29,6 +30,20 @@ async function isValidStreamToken(secret: string, token: string): Promise<boolea
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
+
+  // Launch mode: gate /radio and /audio/* behind INSIDER/VAULT tier
+  if (LAUNCH_MODE && (pathname.startsWith("/radio") || pathname.startsWith("/audio/"))) {
+    const jwtToken = await getToken({ req, secret: process.env.AUTH_SECRET });
+    const tier = (jwtToken as { tier?: string } | null)?.tier ?? "";
+    const hasAccess = tier === "INSIDER" || tier === "VAULT";
+    if (!hasAccess) {
+      // Audio requests: block outright. Page requests: redirect to homepage (waitlist).
+      if (pathname.startsWith("/audio/")) {
+        return new NextResponse("Early access only.", { status: 403 });
+      }
+      return NextResponse.redirect(new URL("/?early=1", req.url));
+    }
+  }
 
   // Protect audio files — require a valid stream token cookie
   if (pathname.startsWith("/audio/")) {
