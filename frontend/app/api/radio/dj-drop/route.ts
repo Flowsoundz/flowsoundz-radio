@@ -104,8 +104,8 @@ export async function POST(req: Request) {
   try {
     script = await generateScript({ trackTitle, artist, vibe, lang, listenerCount });
   } catch (err) {
-    console.error("[dj-drop] Claude script error:", err);
-    return Response.json({ error: "Script generation failed." }, { status: 502 });
+    console.error("[dj-drop] Claude script error (using template fallback):", err);
+    script = templateScript(trackTitle, artist, vibe, lang);
   }
 
   let ttsRes: Response;
