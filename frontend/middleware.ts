@@ -3,9 +3,44 @@ import { getToken } from "next-auth/jwt";
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL?.trim() ?? "";
 const MAINTENANCE = process.env.MAINTENANCE_MODE === "true";
+const STREAM_WINDOW_MS = 50 * 60 * 1000;
+const STREAM_COOKIE = "fsr-stream-token";
+
+async function hmacHex(secret: string, message: string): Promise<string> {
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw", enc.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false, ["sign"],
+  );
+  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(message));
+  return Array.from(new Uint8Array(sig)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function isValidStreamToken(secret: string, token: string): Promise<boolean> {
+  const now = Date.now();
+  for (const offset of [0, -1]) {
+    const windowId = Math.floor(now / STREAM_WINDOW_MS) + offset;
+    const expected = await hmacHex(secret, `stream:${windowId}`);
+    if (expected === token) return true;
+  }
+  return false;
+}
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+
+  // Protect audio files — require a valid stream token cookie
+  if (pathname.startsWith("/audio/")) {
+    const secret = process.env.AUTH_SECRET;
+    if (secret) {
+      const token = req.cookies.get(STREAM_COOKIE)?.value ?? "";
+      if (!(await isValidStreamToken(secret, token))) {
+        return new NextResponse("Stream access denied.", { status: 403 });
+      }
+    }
+    return NextResponse.next();
+  }
 
   // Maintenance gate — allow admin and API through so Vercel deploy hooks still work
   if (MAINTENANCE && !pathname.startsWith("/admin") && !pathname.startsWith("/api")) {
@@ -45,6 +80,7 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
+    "/audio/:path*",
     "/admin/:path*",
     "/artist/metrics/:path*",
     "/artist/release-submit/:path*",

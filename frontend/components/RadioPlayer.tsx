@@ -636,6 +636,14 @@ export default function RadioPlayer() {
     }
   }, [isAudioReady, sharedAnalyserRef]);
 
+  // Fetch stream auth cookie on mount, refresh every 50 min to keep audio access alive.
+  useEffect(() => {
+    const fetchStreamAuth = () => { void fetch("/api/stream/auth"); };
+    fetchStreamAuth();
+    const id = window.setInterval(fetchStreamAuth, 50 * 60 * 1000);
+    return () => window.clearInterval(id);
+  }, []);
+
   // Silently grab listener coords once — used to localise weather in DJ narration.
   // Falls back to Orlando if denied or unavailable.
   useEffect(() => {
