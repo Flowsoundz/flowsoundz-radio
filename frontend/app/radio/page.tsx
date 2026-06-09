@@ -9,6 +9,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   const songId = typeof params.song === "string" ? params.song : null;
 
   const base =
+    process.env.NEXT_PUBLIC_SITE_URL ??
     process.env.NEXT_PUBLIC_BASE_URL ??
     (process.env.NEXT_PUBLIC_VERCEL_URL ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}` : null) ??
     (process.env.NEXTAUTH_URL ?? "https://flowsoundz.com");
