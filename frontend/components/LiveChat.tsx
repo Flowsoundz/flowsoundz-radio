@@ -5,8 +5,8 @@ import type { ChatMessage, ChatRole } from "@/lib/chatStore";
 
 const ROLE_BADGE: Record<ChatRole, { label: string; className: string } | null> = {
   ADMIN:    { label: "ADMIN",    className: "border-[#ef4444]/40 text-[#fca5a5] bg-[#ef4444]/10" },
-  ARTIST:   { label: "ARTIST",  className: "border-[#00E5FF]/40 text-[#00E5FF] bg-[#00E5FF]/10" },
-  VAULT:    { label: "VAULT",   className: "border-[#8B5CF6]/40 text-[#c4b5fd] bg-[#8B5CF6]/10" },
+  ARTIST:   { label: "ARTIST",  className: "border-[#00FF88]/50 text-[#00FF88] bg-[#00FF88]/10 shadow-[0_0_6px_rgba(0,255,136,0.45)]" },
+  VAULT:    { label: "VAULT",   className: "border-[#FF2DA6]/40 text-[#FF2DA6] bg-[#FF2DA6]/10" },
   INSIDER:  { label: "INSIDER", className: "border-[#22c55e]/30 text-[#86efac] bg-[#22c55e]/08" },
   LISTENER: null,
 };

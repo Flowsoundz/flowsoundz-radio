@@ -1561,6 +1561,46 @@ export default function RadioPlayer() {
     prepared?: PreparedStationEvent | null,
   ) {
     const transitionAudio = dropAudioRef.current;
+
+    // Try ElevenLabs live DJ drop first — falls through to local drops on failure
+    const nextSong = prepared?.nextSong ?? queue[nextIndex];
+    if (nextSong && transitionAudio) {
+      try {
+        const resp = await Promise.race<Response>([
+          fetch("/api/radio/dj-drop", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              trackId: nextSong.id,
+              trackTitle: nextSong.title,
+              artist: nextSong.artist,
+              vibe: nextSong.vibe ?? selectedVibe,
+              lang: "spanglish",
+            }),
+          }),
+          new Promise<Response>((_, reject) =>
+            window.setTimeout(() => reject(new Error("timeout")), 6000),
+          ),
+        ]);
+        if (resp.ok) {
+          const data = (await resp.json()) as { url?: string };
+          if (data.url) {
+            await playTransitionAudioBeforeTrack({
+              mode: "drop",
+              src: data.url,
+              label: "FlowSoundz Radio",
+              volume: 0.88,
+              playbackRate: 1,
+              nextIndex,
+            });
+            return;
+          }
+        }
+      } catch {
+        // ElevenLabs unavailable — fall through to local drop
+      }
+    }
+
     const dropVibe = prepared?.nextSong.vibe ?? selectedVibe;
     const forcedDropSelection = FORCE_DROP_TEST_MODE
       ? getForcedTestDropCandidate(dropVibe, recentDropIdsRef.current)
@@ -2794,24 +2834,15 @@ export default function RadioPlayer() {
                       : `Live on FlowSoundz Radio`;
                     track("share_track_click", { title: title ?? null, artist: artist ?? null });
 
-                    // Award Vibe Points for sharing (fire-and-forget)
-                    void fetch("/api/share/award", { method: "POST" }).then(async (res) => {
-                      if (res.ok) {
-                        const data = (await res.json()) as { ok: boolean; balance: number | null };
-                        if (data.ok && data.balance !== null) {
-                          setShareCopied(true);
-                          setTimeout(() => setShareCopied(false), 2500);
-                        }
-                      }
-                    });
+                    // Show feedback immediately; award points in background
+                    setShareCopied(true);
+                    setTimeout(() => setShareCopied(false), 2500);
+                    void fetch("/api/share/award", { method: "POST" }).catch(() => undefined);
 
                     if (navigator.share) {
                       void navigator.share({ title: shareText, url }).catch(() => {});
                     } else {
-                      void navigator.clipboard.writeText(`${shareText} 🎧 ${url}`).then(() => {
-                        setShareCopied(true);
-                        setTimeout(() => setShareCopied(false), 2500);
-                      });
+                      void navigator.clipboard.writeText(`${shareText} 🎧 ${url}`).catch(() => undefined);
                     }
                   }}
                   disabled={!currentSong}
