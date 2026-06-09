@@ -1,7 +1,25 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { ChatMessage } from "@/lib/chatStore";
+import type { ChatMessage, ChatRole } from "@/lib/chatStore";
+
+const ROLE_BADGE: Record<ChatRole, { label: string; className: string } | null> = {
+  ADMIN:    { label: "ADMIN",    className: "border-[#ef4444]/40 text-[#fca5a5] bg-[#ef4444]/10" },
+  ARTIST:   { label: "ARTIST",  className: "border-[#00E5FF]/40 text-[#00E5FF] bg-[#00E5FF]/10" },
+  VAULT:    { label: "VAULT",   className: "border-[#8B5CF6]/40 text-[#c4b5fd] bg-[#8B5CF6]/10" },
+  INSIDER:  { label: "INSIDER", className: "border-[#22c55e]/30 text-[#86efac] bg-[#22c55e]/08" },
+  LISTENER: null,
+};
+
+function RoleBadge({ role }: { role: ChatRole }) {
+  const badge = ROLE_BADGE[role];
+  if (!badge) return null;
+  return (
+    <span className={`rounded-full border px-1.5 py-0 text-[8px] font-bold tracking-widest ${badge.className}`}>
+      {badge.label}
+    </span>
+  );
+}
 
 const POLL_MS = 2500;
 const NAME_KEY = "fsz-chat-name";
@@ -163,10 +181,11 @@ export function LiveChat({ currentTrackTitle, onClose }: Props) {
             <div className="flex flex-col gap-3">
               {messages.map((msg) => (
                 <div key={msg.id} className="flex flex-col gap-0.5">
-                  <div className="flex items-baseline gap-2">
+                  <div className="flex items-center gap-1.5">
                     <span className="text-[11px] font-semibold text-cyan-300/80">
                       {msg.displayName}
                     </span>
+                    <RoleBadge role={msg.role} />
                     {msg.trackTitle && (
                       <span className="truncate text-[10px] text-slate-600">
                         on &ldquo;{msg.trackTitle}&rdquo;

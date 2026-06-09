@@ -1,11 +1,23 @@
 import type { NextRequest } from "next/server";
-import { getMessages, sendMessage } from "@/lib/chatStore";
+import { getMessages, sendMessage, type ChatRole } from "@/lib/chatStore";
+import { auth } from "@/auth";
+import type { Session } from "next-auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export function GET() {
   return Response.json({ messages: getMessages(50) });
+}
+
+function resolveRole(session: Session | null): ChatRole {
+  if (!session?.user) return "LISTENER";
+  const u = session.user as { isAdmin?: boolean; role?: string; tier?: string };
+  if (u.isAdmin) return "ADMIN";
+  if (u.role === "ARTIST") return "ARTIST";
+  if (u.tier === "VAULT") return "VAULT";
+  if (u.tier === "INSIDER") return "INSIDER";
+  return "LISTENER";
 }
 
 export async function POST(request: NextRequest) {
@@ -21,11 +33,15 @@ export async function POST(request: NextRequest) {
     request.headers.get("x-real-ip") ??
     "unknown";
 
+  const session = await auth();
+  const role = resolveRole(session);
+
   const result = sendMessage({
     ip,
     displayName: typeof body.displayName === "string" ? body.displayName : "",
     text: typeof body.text === "string" ? body.text : "",
     trackTitle: typeof body.trackTitle === "string" ? body.trackTitle : null,
+    role,
   });
 
   if (!result.ok) {

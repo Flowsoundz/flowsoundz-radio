@@ -1,9 +1,12 @@
+export type ChatRole = "ADMIN" | "ARTIST" | "VAULT" | "INSIDER" | "LISTENER";
+
 export type ChatMessage = {
   id: string;
   createdAt: string;
   displayName: string;
   text: string;
   trackTitle: string | null;
+  role: ChatRole;
 };
 
 // Module-level store — persists across requests on the same Fluid Compute instance.
@@ -28,6 +31,7 @@ export function sendMessage(input: {
   displayName: string;
   text: string;
   trackTitle: string | null;
+  role?: ChatRole;
 }): SendResult {
   const now = Date.now();
   const last = lastSentAt.get(input.ip) ?? 0;
@@ -47,6 +51,7 @@ export function sendMessage(input: {
     displayName: name,
     text,
     trackTitle: input.trackTitle?.trim().slice(0, 80) ?? null,
+    role: input.role ?? "LISTENER",
   };
 
   messages.push(message);
