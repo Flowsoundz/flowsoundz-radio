@@ -29,6 +29,14 @@ const isVercel = Boolean(process.env.VERCEL);
 const nextConfig: NextConfig = {
   distDir: process.env.NEXT_DIST_DIR || (isVercel ? ".next" : ".next-runtime"),
   outputFileTracingRoot: path.resolve(__dirname),
+  serverExternalPackages: [
+    "@anthropic-ai/sdk",
+    "@prisma/client",
+    "prisma",
+    "nodemailer",
+    "sharp",
+    "openai",
+  ],
   turbopack: {
     root: path.resolve(__dirname),
   },
