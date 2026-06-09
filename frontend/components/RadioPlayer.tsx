@@ -1467,6 +1467,8 @@ export default function RadioPlayer() {
     nextIndex: number;
   }) {
     const playbackToken = dropPlaybackTokenRef.current + 1;
+    dropPlaybackTokenRef.current = playbackToken;
+
     setActiveDropLabel(label);
     setIsDropPlaying(true);
     setShouldPlay(false);
@@ -1479,19 +1481,54 @@ export default function RadioPlayer() {
     }
 
     clearTransitionAudioStopTimer(transitionAudioStopTimerRef);
-    void volume;
-    void playbackRate;
-    debugLog(`[RadioPlayer] ${mode} transition bypassed`, {
-      nextIndex,
-      src,
-      playbackToken,
-      reason: "global_single_playback_engine",
-    });
-    transitionAudioStopTimerRef.current = window.setTimeout(() => {
+
+    const transitionAudio = dropAudioRef.current;
+
+    const finishTransition = () => {
+      if (dropPlaybackTokenRef.current !== playbackToken) return;
       setIsDropPlaying(false);
       setActiveDropLabel("");
       moveToTrack(nextIndex);
-    }, 90);
+    };
+
+    if (!transitionAudio || !src) {
+      transitionAudioStopTimerRef.current = window.setTimeout(finishTransition, 90);
+      return;
+    }
+
+    transitionAudio.pause();
+    transitionAudio.volume = Math.min(Math.max(volume, 0), 1);
+    transitionAudio.playbackRate = playbackRate;
+    transitionAudio.src = src;
+    transitionAudio.currentTime = 0;
+
+    const cleanup = () => {
+      transitionAudio.removeEventListener("ended", onEnded);
+      transitionAudio.removeEventListener("error", onError);
+      clearTransitionAudioStopTimer(transitionAudioStopTimerRef);
+    };
+
+    const onEnded = () => { cleanup(); finishTransition(); };
+    const onError = () => { cleanup(); finishTransition(); };
+
+    transitionAudio.addEventListener("ended", onEnded);
+    transitionAudio.addEventListener("error", onError);
+
+    // Safety timeout — clips should be well under 60s
+    transitionAudioStopTimerRef.current = window.setTimeout(() => {
+      cleanup();
+      transitionAudio.pause();
+      finishTransition();
+    }, 60_000);
+
+    debugLog(`[RadioPlayer] ${mode} transition playing`, { nextIndex, src, volume, playbackRate });
+
+    try {
+      await transitionAudio.play();
+    } catch {
+      cleanup();
+      finishTransition();
+    }
   }
 
   async function playNarrationBed(src: string, nextIndex: number) {
@@ -2111,6 +2148,10 @@ export default function RadioPlayer() {
         } as CSSProperties
       }
     >
+      {/* Hidden audio elements for transition clips (narration + drops) */}
+      <audio ref={dropAudioRef} preload="none" style={{ display: "none" }} />
+      <audio ref={transitionBedAudioRef} preload="none" style={{ display: "none" }} />
+
       <div
         className={`pointer-events-none absolute inset-0 overflow-hidden transition-opacity duration-700 ${
           ambientCoverActive ? "opacity-100" : "opacity-0"
