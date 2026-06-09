@@ -60,6 +60,7 @@ import {
 } from "@/lib/visualizerModes";
 import type Hls from "hls.js";
 import { getLyrics } from "@/lib/lyrics";
+import { useVibePoints } from "@/lib/useVibePoints";
 import { isSpecialNarrationMoment } from "@/lib/radioContext";
 
 const VisualizerModal = dynamic(
@@ -482,6 +483,7 @@ export default function RadioPlayer() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
+  const { balance: vibeBalance, boost: boostTrack } = useVibePoints(isPlaying);
   const [isDropPlaying, setIsDropPlaying] = useState(false);
   const [activeDropLabel, setActiveDropLabel] = useState("");
   const [songsUntilDrop, setSongsUntilDrop] = useState(3);
@@ -2587,6 +2589,16 @@ export default function RadioPlayer() {
                     className={`pointer-events-auto state-fade rounded-full border px-3 py-1 text-xs font-medium transition ${showLyrics ? "border-[#8B5CF6]/40 bg-[#8B5CF6]/15 text-[#c4b5fd]" : "border-white/8 bg-white/5 text-[#CBD5E1] hover:border-[#8B5CF6]/25 hover:text-[#F8FAFC]"}`}
                   >
                     {showLyrics ? "Hide Lyrics" : "Lyrics"}
+                  </button>
+                ) : null}
+                {currentSong && !isDropPlaying && vibeBalance !== null ? (
+                  <button
+                    type="button"
+                    onClick={() => void boostTrack(currentSong.id)}
+                    className="pointer-events-auto state-fade flex items-center gap-1.5 rounded-full border border-[#00E5FF]/20 bg-[#00E5FF]/08 px-3 py-1 text-xs font-medium text-[#00E5FF] transition hover:bg-[#00E5FF]/15"
+                    title="Spend 50 Vibe Points to boost this track"
+                  >
+                    ⚡ Boost · {vibeBalance} pts
                   </button>
                 ) : null}
                 {currentSong && !isDropPlaying ? (

@@ -31,8 +31,10 @@ model User {
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
 
-  accounts Account[]
-  sessions Session[]
+  accounts         Account[]
+  sessions         Session[]
+  vibePoints       VibePoints?
+  vibeTransactions VibeTransaction[] @relation("UserVibeTransactions")
 
   @@map("users")
 }
@@ -495,6 +497,47 @@ model ReleaseSubmission {
   @@index([status])
   @@index([createdAt])
   @@map("release_submissions")
+}
+
+enum VibeReason {
+  LISTEN_5MIN
+  VOTE
+  SHARE
+  QUEUE_BOOST
+}
+
+model VibePoints {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  balance   Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("vibe_points")
+}
+
+model VibeTransaction {
+  id        String     @id @default(cuid())
+  userId    String
+  delta     Int
+  reason    VibeReason
+  createdAt DateTime   @default(now())
+
+  user      User       @relation("UserVibeTransactions", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("vibe_transactions")
+}
+
+model QueueBoost {
+  id        String   @id @default(cuid())
+  trackId   String   @unique
+  score     Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@index([score])
+  @@map("queue_boosts")
 }
 
 model RadioSession {
