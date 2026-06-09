@@ -88,33 +88,43 @@ export async function POST(req: Request) {
     }
   }
 
-  const script = await generateScript({ trackTitle, artist, vibe, lang, listenerCount });
+  let script: string;
+  try {
+    script = await generateScript({ trackTitle, artist, vibe, lang, listenerCount });
+  } catch (err) {
+    console.error("[dj-drop] Claude script error:", err);
+    return Response.json({ error: "Script generation failed." }, { status: 502 });
+  }
 
-  const ttsRes = await fetch(
-    `https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}`,
-    {
-      method: "POST",
-      headers: {
-        "xi-api-key": ELEVENLABS_API_KEY,
-        "Content-Type": "application/json",
-        Accept: "audio/mpeg",
+  let ttsRes: Response;
+  try {
+    ttsRes = await fetch(
+      `https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}`,
+      {
+        method: "POST",
+        headers: {
+          "xi-api-key": ELEVENLABS_API_KEY,
+          "Content-Type": "application/json",
+          Accept: "audio/mpeg",
+        },
+        body: JSON.stringify({
+          text: script,
+          model_id: "eleven_turbo_v2",
+          voice_settings: { stability: 0.45, similarity_boost: 0.75, style: 0.3, use_speaker_boost: true },
+        }),
       },
-      body: JSON.stringify({
-        text: script,
-        model_id: "eleven_turbo_v2",
-        voice_settings: { stability: 0.45, similarity_boost: 0.75, style: 0.3, use_speaker_boost: true },
-      }),
-    },
-  );
+    );
+  } catch (err) {
+    console.error("[dj-drop] ElevenLabs fetch error:", err);
+    return Response.json({ error: "TTS request failed." }, { status: 502 });
+  }
 
   if (!ttsRes.ok) {
     const err = await ttsRes.text();
-    console.error("[dj-drop] ElevenLabs error:", err);
-    return Response.json({ error: "TTS generation failed." }, { status: 502 });
+    console.error("[dj-drop] ElevenLabs error:", ttsRes.status, err);
+    return Response.json({ error: "TTS generation failed.", detail: err }, { status: 502 });
   }
 
-  // Stream audio directly back to client as base64 data URL
-  // (avoids needing R2/S3 for MVP — client plays it directly)
   const audioBuffer = await ttsRes.arrayBuffer();
   const base64 = Buffer.from(audioBuffer).toString("base64");
   const dataUrl = `data:audio/mpeg;base64,${base64}`;
