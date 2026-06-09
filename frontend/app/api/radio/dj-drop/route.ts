@@ -25,6 +25,13 @@ Mix both languages. Keep it to 1-2 punchy sentences MAX. No hashtags. No emojis.
 Sound like a real bilingual DJ on air.`,
 };
 
+function templateScript(trackTitle: string, artist: string, vibe: string, lang: Lang): string {
+  const hype = ["Fuego puro", "Eso es lo que es", "We don't stop", "FlowSoundz all day"][Math.floor(Math.random() * 4)];
+  if (lang === "es") return `${hype} — "${trackTitle}" de ${artist} en tu cara. Esto es FlowSoundz Radio.`;
+  if (lang === "spanglish") return `${hype} — you're locked in with FlowSoundz Radio. "${trackTitle}" by ${artist}, vibe: ${vibe}. Let's go.`;
+  return `You're locked in with FlowSoundz Radio. Up next — "${trackTitle}" by ${artist}. Let it ride.`;
+}
+
 async function generateScript(context: {
   trackTitle: string;
   artist: string;
@@ -32,8 +39,13 @@ async function generateScript(context: {
   lang: Lang;
   listenerCount?: number;
 }): Promise<string> {
-  const client = new Anthropic();
   const { trackTitle, artist, vibe, lang, listenerCount } = context;
+
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return templateScript(trackTitle, artist, vibe, lang);
+  }
+
+  const client = new Anthropic();
 
   const userPrompt =
     lang === "es"
