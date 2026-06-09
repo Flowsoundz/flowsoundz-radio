@@ -16,7 +16,6 @@ import {
   reorderQueueByLocalSignals,
 } from "@/lib/radioQueueTuning";
 import {
-  DEFAULT_USER_TIER,
   canUserTierAccessTrack,
   isTrackFeatured,
   isTrackInMembersEarlyWindow,

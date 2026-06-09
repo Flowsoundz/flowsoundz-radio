@@ -5,7 +5,7 @@ const DEMO_TIER = process.env.NEXT_PUBLIC_DEMO_TIER;
 export const DEFAULT_USER_TIER: UserTier =
   DEMO_TIER === "listener" || DEMO_TIER === "insider" || DEMO_TIER === "vault"
     ? DEMO_TIER
-    : "vault";
+    : "listener";
 
 const TIER_RANK: Record<UserTier, number> = {
   listener: 0,
