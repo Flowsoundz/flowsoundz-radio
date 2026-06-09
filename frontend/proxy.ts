@@ -31,13 +31,23 @@ async function isValidStreamToken(secret: string, token: string): Promise<boolea
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Launch mode: gate /radio and /audio/* behind INSIDER/VAULT tier
-  if (LAUNCH_MODE && (pathname.startsWith("/radio") || pathname.startsWith("/audio/"))) {
-    const jwtToken = await getToken({ req, secret: process.env.AUTH_SECRET });
-    const tier = (jwtToken as { tier?: string } | null)?.tier ?? "";
+  // Resolve session once — used by maintenance bypass, launch gate, and admin checks
+  const token = await getToken({ req, secret: process.env.AUTH_SECRET });
+  const isAuthed = Boolean(token);
+  const isAdmin = ADMIN_EMAIL ? token?.email === ADMIN_EMAIL : false;
+
+  // Maintenance / coming-soon mode — admin always gets through, /signin allowed so admin can log in
+  if (MAINTENANCE && !isAdmin && !pathname.startsWith("/api") && !pathname.startsWith("/signin")) {
+    if (pathname !== "/coming-soon") {
+      return NextResponse.redirect(new URL("/coming-soon", req.url));
+    }
+  }
+
+  // Launch mode: gate /radio and /audio/* behind INSIDER/VAULT tier (admin bypasses)
+  if (LAUNCH_MODE && !isAdmin && (pathname.startsWith("/radio") || pathname.startsWith("/audio/"))) {
+    const tier = (token as { tier?: string } | null)?.tier ?? "";
     const hasAccess = tier === "INSIDER" || tier === "VAULT";
     if (!hasAccess) {
-      // Audio requests: block outright. Page requests: redirect to homepage (waitlist).
       if (pathname.startsWith("/audio/")) {
         return new NextResponse("Early access only.", { status: 403 });
       }
@@ -49,24 +59,13 @@ export async function proxy(req: NextRequest) {
   if (pathname.startsWith("/audio/")) {
     const secret = process.env.AUTH_SECRET;
     if (secret) {
-      const token = req.cookies.get(STREAM_COOKIE)?.value ?? "";
-      if (!(await isValidStreamToken(secret, token))) {
+      const streamToken = req.cookies.get(STREAM_COOKIE)?.value ?? "";
+      if (!(await isValidStreamToken(secret, streamToken))) {
         return new NextResponse("Stream access denied.", { status: 403 });
       }
     }
     return NextResponse.next();
   }
-
-  // Maintenance gate — allow admin and API through so Vercel deploy hooks still work
-  if (MAINTENANCE && !pathname.startsWith("/admin") && !pathname.startsWith("/api")) {
-    if (pathname !== "/coming-soon") {
-      return NextResponse.redirect(new URL("/coming-soon", req.url));
-    }
-  }
-
-  const token = await getToken({ req, secret: process.env.AUTH_SECRET });
-  const isAuthed = Boolean(token);
-  const isAdmin = ADMIN_EMAIL ? token?.email === ADMIN_EMAIL : false;
 
   if (pathname.startsWith("/admin")) {
     if (!isAuthed) {
