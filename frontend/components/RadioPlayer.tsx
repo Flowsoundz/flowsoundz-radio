@@ -61,6 +61,7 @@ import {
 import type Hls from "hls.js";
 import { getLyrics } from "@/lib/lyrics";
 import { useVibePoints } from "@/lib/useVibePoints";
+import { useUserTier } from "@/lib/useUserTier";
 import { isSpecialNarrationMoment } from "@/lib/radioContext";
 
 const VisualizerModal = dynamic(
@@ -427,8 +428,11 @@ export default function RadioPlayer() {
     setCurrentTrack,
     togglePlaybackRef,
     skipTrackRef,
+    requestOnDemandRef,
+    setPlaybackMode,
+    duckMain,
   } = useGlobalAudioRefs();
-  const { isReady: isAudioReady } = useGlobalAudioState();
+  const { isReady: isAudioReady, playbackMode } = useGlobalAudioState();
   const pathname = usePathname();
   const isFullView = pathname === "/radio";
   const sectionRef = useRef<HTMLElement | null>(null);
@@ -454,6 +458,7 @@ export default function RadioPlayer() {
   const isSkippingRef = useRef(false);
   const isPlayingRef = useRef(false);
   const isDropPlayingRef = useRef(false);
+  const playbackModeRef = useRef<"live" | "on-demand">("live");
   const currentSongRef = useRef<Song | null>(null);
   const currentTrackIdRef = useRef<string | null>(null);
   const playbackSessionTrackIdRef = useRef<string | null>(null);
@@ -504,7 +509,7 @@ export default function RadioPlayer() {
   const [preparedEvent, setPreparedEvent] = useState<PreparedStationEvent | null>(null);
   const [nextBroadcastTime] = useState(getInitialBroadcastReturnWindow);
   const songsUntilDropRef = useRef(songsUntilDrop);
-  const currentUserTier = DEFAULT_USER_TIER;
+  const { tier: currentUserTier } = useUserTier();
 
   const defaultCoverUrl = getDefaultCoverUrl();
   const currentSong = queue[currentIndex] ?? null;
@@ -886,6 +891,10 @@ export default function RadioPlayer() {
   useEffect(() => {
     isDropPlayingRef.current = isDropPlaying;
   }, [isDropPlaying]);
+
+  useEffect(() => {
+    playbackModeRef.current = playbackMode;
+  }, [playbackMode]);
 
   useEffect(() => {
     if (!isPlaying) {
@@ -1668,6 +1677,13 @@ export default function RadioPlayer() {
   function executeStationEvent(prepared?: PreparedStationEvent | null) {
     const nextIndex = prepared?.nextIndex ?? getNextTrackIndex(queue, currentIndex);
 
+    // On-demand tracks play directly — no DJ drops or narration. Resume live after.
+    if (playbackModeRef.current === "on-demand") {
+      setPlaybackMode("live");
+      moveToTrack(nextIndex);
+      return;
+    }
+
     if (prepared?.transitionAudioMode === "narration") {
       debugLog("[RadioPlayer] routing through narration", {
         nextIndex,
@@ -2037,6 +2053,27 @@ export default function RadioPlayer() {
       if (skipTrackRef.current === skipToNextTrack) {
         skipTrackRef.current = null;
       }
+    };
+  });
+
+  // On-demand: insert song immediately after current position and jump to it
+  const currentIndexRef = useRef(currentIndex);
+  currentIndexRef.current = currentIndex;
+
+  useEffect(() => {
+    requestOnDemandRef.current = (song: Song) => {
+      setPlaybackMode("on-demand");
+      setQueue((prev) => {
+        const next = [...prev];
+        const insertAt = currentIndexRef.current + 1;
+        next.splice(insertAt, 0, { ...song, is_playable: true });
+        return next;
+      });
+      setCurrentIndex((prev) => prev + 1);
+      setShouldPlay(true);
+    };
+    return () => {
+      requestOnDemandRef.current = null;
     };
   });
 
@@ -2465,9 +2502,21 @@ export default function RadioPlayer() {
             <div className="state-fade flex flex-col gap-4 rounded-[1.4rem] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.015))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.26em] text-[#CBD5E1]/55">
-                    {archivePlaybackMode ? "Continuous Mix" : archiveStandbyMode ? "FlowSoundz" : "Now Playing"}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs font-semibold uppercase tracking-[0.26em] text-[#CBD5E1]/55">
+                      {archivePlaybackMode ? "Continuous Mix" : archiveStandbyMode ? "FlowSoundz" : "Now Playing"}
+                    </p>
+                    {playbackMode === "on-demand" ? (
+                      <span className="rounded-full border border-[#00E5FF]/30 bg-[#00E5FF]/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-[#00E5FF]">
+                        On Demand
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 rounded-full border border-[#FF2DA6]/25 bg-[#FF2DA6]/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-[#FF2DA6]">
+                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#FF2DA6]" />
+                        Live
+                      </span>
+                    )}
+                  </div>
                   <h2
                     className={`mt-3 text-3xl font-semibold leading-tight text-[#F8FAFC] sm:text-4xl ${
                       currentSong || isDropPlaying ? "" : "waiting-copy"

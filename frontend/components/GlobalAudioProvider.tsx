@@ -12,6 +12,9 @@ import {
   type ReactNode,
 } from "react";
 import { resetPlaybackController } from "@/lib/playbackController";
+import type { Song } from "@/lib/types";
+
+export type PlaybackMode = "live" | "on-demand";
 
 type CurrentTrack = {
   id: string;
@@ -28,12 +31,15 @@ type GlobalAudioContextValue = {
   audioContextRef: MutableRefObject<AudioContext | null>;
   togglePlaybackRef: MutableRefObject<(() => void) | null>;
   skipTrackRef: MutableRefObject<(() => Promise<void> | void) | null>;
+  requestOnDemandRef: MutableRefObject<((song: Song) => void) | null>;
   setCurrentTrack: (track: CurrentTrack | null) => void;
+  setPlaybackMode: (mode: PlaybackMode) => void;
   duckMain: (gain: number, durationSec?: number) => void;
   isReady: boolean;
   isPlaying: boolean;
   hasStartedPlayback: boolean;
   currentTrack: CurrentTrack | null;
+  playbackMode: PlaybackMode;
 };
 
 type GlobalAudioRefsContextValue = {
@@ -43,7 +49,9 @@ type GlobalAudioRefsContextValue = {
   audioContextRef: MutableRefObject<AudioContext | null>;
   togglePlaybackRef: MutableRefObject<(() => void) | null>;
   skipTrackRef: MutableRefObject<(() => Promise<void> | void) | null>;
+  requestOnDemandRef: MutableRefObject<((song: Song) => void) | null>;
   setCurrentTrack: (track: CurrentTrack | null) => void;
+  setPlaybackMode: (mode: PlaybackMode) => void;
   duckMain: (gain: number, durationSec?: number) => void;
 };
 
@@ -52,6 +60,7 @@ type GlobalAudioStateContextValue = {
   isPlaying: boolean;
   hasStartedPlayback: boolean;
   currentTrack: CurrentTrack | null;
+  playbackMode: PlaybackMode;
 };
 
 const AudioRefsContextGlobal = createContext<GlobalAudioRefsContextValue | null>(null);
@@ -77,7 +86,9 @@ export function GlobalAudioProvider({ children }: { children: ReactNode }) {
   const duckGainRef = useRef<GainNode | null>(null);
   const togglePlaybackRef = useRef<(() => void) | null>(null);
   const skipTrackRef = useRef<(() => Promise<void> | void) | null>(null);
+  const requestOnDemandRef = useRef<((song: Song) => void) | null>(null);
   const [isReady, setIsReady] = useState(false);
+  const [playbackMode, setPlaybackMode] = useState<PlaybackMode>("live");
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasStartedPlayback, setHasStartedPlayback] = useState(false);
   const [currentTrack, setCurrentTrack] = useState<CurrentTrack | null>(null);
@@ -281,10 +292,12 @@ export function GlobalAudioProvider({ children }: { children: ReactNode }) {
       audioContextRef,
       togglePlaybackRef,
       skipTrackRef,
+      requestOnDemandRef,
       setCurrentTrack,
+      setPlaybackMode,
       duckMain,
     }),
-    [duckMain],
+    [duckMain, setPlaybackMode],
   );
 
   const stateValue = useMemo<GlobalAudioStateContextValue>(
@@ -293,8 +306,9 @@ export function GlobalAudioProvider({ children }: { children: ReactNode }) {
       isPlaying,
       hasStartedPlayback,
       currentTrack,
+      playbackMode,
     }),
-    [currentTrack, hasStartedPlayback, isPlaying, isReady],
+    [currentTrack, hasStartedPlayback, isPlaying, isReady, playbackMode],
   );
 
   return (

@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  DEFAULT_USER_TIER,
   canUserTierAccessTrack,
   isTrackFeatured,
   isTrackInMembersEarlyWindow,
@@ -12,7 +11,8 @@ import { CoverArt } from "@/components/CoverArt";
 import { getCoverUrl } from "@/lib/api";
 import { slugifyArtistName } from "@/lib/artists";
 import { formatDuration, formatVibeLabel } from "@/lib/format";
-import { useGlobalAudioState } from "@/components/GlobalAudioProvider";
+import { useGlobalAudioRefs, useGlobalAudioState } from "@/components/GlobalAudioProvider";
+import { useUserTier } from "@/lib/useUserTier";
 import type { Song } from "@/lib/types";
 
 type SongGridProps = {
@@ -22,8 +22,10 @@ type SongGridProps = {
 };
 
 export function SongGrid({ songs, isLoading, error }: SongGridProps) {
-  const currentUserTier = DEFAULT_USER_TIER;
+  const { tier: currentUserTier } = useUserTier();
+  const { requestOnDemandRef } = useGlobalAudioRefs();
   const { currentTrack, isPlaying } = useGlobalAudioState();
+  const canOnDemand = currentUserTier === "insider" || currentUserTier === "vault";
 
   if (error) {
     return (
@@ -114,19 +116,40 @@ export function SongGrid({ songs, isLoading, error }: SongGridProps) {
                   </div>
                 </div>
               ) : null}
-              {/* Play button overlay — accessible + ready tracks only */}
+              {/* Play overlay — on-demand for paid tiers, radio link for free */}
               {canAccess && isReady && !isNowPlaying ? (
-                <Link
-                  href={`/radio?song=${song.id}`}
-                  className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
-                  aria-label={`Play ${song.title} on radio`}
-                >
-                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/15 backdrop-blur-sm ring-1 ring-white/30 transition-transform duration-150 group-hover:scale-105">
-                    <svg className="h-6 w-6 translate-x-0.5 text-white" viewBox="0 0 24 24" fill="currentColor">
-                      <polygon points="5,3 19,12 5,21" />
-                    </svg>
-                  </div>
-                </Link>
+                canOnDemand ? (
+                  <button
+                    type="button"
+                    onClick={() => requestOnDemandRef.current?.(song)}
+                    className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/40 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+                    aria-label={`Play ${song.title} now`}
+                  >
+                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/15 backdrop-blur-sm ring-1 ring-white/30 transition-transform duration-150 group-hover:scale-105">
+                      <svg className="h-6 w-6 translate-x-0.5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                        <polygon points="5,3 19,12 5,21" />
+                      </svg>
+                    </div>
+                    <span className="rounded-full border border-[#00E5FF]/40 bg-[#00E5FF]/15 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[#00E5FF] backdrop-blur-sm">
+                      Play Now
+                    </span>
+                  </button>
+                ) : (
+                  <Link
+                    href="/radio"
+                    className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/40 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+                    aria-label={`Listen on FlowSoundz Radio`}
+                  >
+                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/15 backdrop-blur-sm ring-1 ring-white/30 transition-transform duration-150 group-hover:scale-105">
+                      <svg className="h-6 w-6 translate-x-0.5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                        <polygon points="5,3 19,12 5,21" />
+                      </svg>
+                    </div>
+                    <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-white backdrop-blur-sm">
+                      🔴 Tune In
+                    </span>
+                  </Link>
+                )
               ) : null}
               {!canAccess ? (
                 <div className="absolute inset-0 flex items-center justify-center bg-[#050816]/58">
@@ -209,15 +232,26 @@ export function SongGrid({ songs, isLoading, error }: SongGridProps) {
                 <span>{formatDuration(song.duration_sec ?? 0)}</span>
               </div>
               {canAccess && isReady && !song.curated_fallback ? (
+                canOnDemand ? (
+                  <button
+                    type="button"
+                    onClick={() => requestOnDemandRef.current?.(song)}
+                    className="state-fade flex w-full items-center justify-center gap-1.5 rounded-full border border-[#00E5FF]/20 bg-[#00E5FF]/08 py-2 text-xs font-semibold text-[#00E5FF] transition hover:border-[#00E5FF]/40 hover:bg-[#00E5FF]/14"
+                  >
+                    <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor">
+                      <polygon points="5,3 19,12 5,21" />
+                    </svg>
+                    Play Now
+                  </button>
+                ) : (
                 <Link
-                  href={`/radio?song=${song.id}`}
-                  className="state-fade flex w-full items-center justify-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] py-2 text-xs font-semibold text-white/60 transition hover:border-[#00E5FF]/30 hover:bg-[#00E5FF]/8 hover:text-[#00E5FF]"
+                  href="/radio"
+                  className="state-fade flex w-full items-center justify-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] py-2 text-xs font-semibold text-white/60 transition hover:border-white/20 hover:text-white/80"
                 >
-                  <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor">
-                    <polygon points="5,3 19,12 5,21" />
-                  </svg>
-                  Play on Radio
+                  <span className="h-2 w-2 rounded-full bg-[#FF2DA6] shadow-[0_0_6px_rgba(255,45,166,0.7)]" />
+                  Tune In — Live Radio
                 </Link>
+                )
               ) : song.curated_fallback ? (
                 <div className="state-fade flex w-full items-center justify-center gap-1.5 rounded-full border border-cyan-300/14 bg-cyan-300/[0.06] py-2 text-xs font-semibold uppercase tracking-[0.18em] text-cyan-100/85">
                   Curated archive preview
