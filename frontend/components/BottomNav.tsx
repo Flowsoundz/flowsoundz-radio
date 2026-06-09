@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 
-const CORE_TABS = [
+const STATIC_TABS = [
   {
     href: "/radio",
     label: "Radio",
@@ -28,19 +28,15 @@ const CORE_TABS = [
       </svg>
     ),
   },
-  {
-    href: "/artist/dashboard",
-    label: "Creator",
-    matchPrefixes: ["/artist"],
-    icon: (
-      <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M9 18V5l12-2v13" />
-        <circle cx="6" cy="18" r="3" />
-        <circle cx="18" cy="16" r="3" />
-      </svg>
-    ),
-  },
 ] as const;
+
+const CREATOR_ICON = (
+  <svg aria-hidden="true" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 18V5l12-2v13" />
+    <circle cx="6" cy="18" r="3" />
+    <circle cx="18" cy="16" r="3" />
+  </svg>
+);
 
 const MORE_LINKS = [
   { href: "/for-artists", label: "For Artists" },
@@ -57,6 +53,10 @@ export default function BottomNav() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { data: session } = useSession();
 
+  const isArtist = (session?.user as { role?: string } | undefined)?.role === "ARTIST";
+  const creatorHref = isArtist ? "/artist/dashboard" : "/for-artists";
+  const creatorMatchPrefixes = ["/artist", "/for-artists"];
+
   function isActive(href: string, matchPrefixes?: readonly string[]) {
     if (href === "/") return pathname === "/";
     if (matchPrefixes) return matchPrefixes.some((p) => pathname.startsWith(p));
@@ -64,6 +64,7 @@ export default function BottomNav() {
   }
 
   const moreIsActive = MORE_LINKS.some((l) => pathname.startsWith(l.href));
+  const creatorActive = creatorMatchPrefixes.some((p) => pathname.startsWith(p));
 
   return (
     <>
@@ -96,7 +97,7 @@ export default function BottomNav() {
                 onClick={() => setDrawerOpen(false)}
                 className={`flex min-h-12 items-center justify-center rounded-2xl border px-4 text-sm font-semibold transition ${
                   pathname.startsWith(link.href)
-                    ? "border-[#00e5ff]/25 bg-[#00e5ff]/10 text-white"
+                    ? "border-[#00FF88]/25 bg-[#00FF88]/10 text-white"
                     : "border-white/8 bg-white/[0.03] text-slate-300 hover:border-white/14 hover:text-white"
                 }`}
               >
@@ -115,7 +116,7 @@ export default function BottomNav() {
               <Link
                 href="/signin"
                 onClick={() => setDrawerOpen(false)}
-                className="flex min-h-12 items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-400/[0.07] px-4 text-sm font-semibold text-cyan-300 transition hover:bg-cyan-400/[0.12]"
+                className="flex min-h-12 items-center justify-center rounded-2xl border border-[#FF2DA6]/25 bg-[#FF2DA6]/[0.07] px-4 text-sm font-semibold text-[#FF2DA6] transition hover:bg-[#FF2DA6]/[0.13]"
               >
                 Sign in
               </Link>
@@ -127,16 +128,14 @@ export default function BottomNav() {
       {/* Bottom tab bar */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/8 bg-[#050816]/90 backdrop-blur-2xl">
         <div className="mx-auto grid max-w-lg grid-cols-4 px-2 pb-safe pt-1">
-          {CORE_TABS.map((tab) => {
+          {STATIC_TABS.map((tab) => {
             const active = isActive(tab.href, "matchPrefixes" in tab ? tab.matchPrefixes : undefined);
             return (
               <Link
                 key={tab.href}
                 href={tab.href}
                 className={`flex flex-col items-center gap-1 rounded-2xl px-2 py-2 text-[10px] font-semibold transition ${
-                  active
-                    ? "text-[#00e5ff]"
-                    : "text-slate-400 hover:text-slate-200"
+                  active ? "text-[#00e5ff]" : "text-slate-400 hover:text-slate-200"
                 }`}
                 aria-current={active ? "page" : undefined}
               >
@@ -147,6 +146,20 @@ export default function BottomNav() {
               </Link>
             );
           })}
+
+          {/* Creator tab — routes to dashboard for artists, for-artists page for others */}
+          <Link
+            href={creatorHref}
+            className={`flex flex-col items-center gap-1 rounded-2xl px-2 py-2 text-[10px] font-semibold transition ${
+              creatorActive ? "text-[#00FF88]" : "text-slate-400 hover:text-slate-200"
+            }`}
+            aria-current={creatorActive ? "page" : undefined}
+          >
+            <span className={creatorActive ? "drop-shadow-[0_0_8px_rgba(0,255,136,0.6)]" : ""}>
+              {CREATOR_ICON}
+            </span>
+            <span className="uppercase tracking-[0.14em]">Creator</span>
+          </Link>
 
           {/* More tab */}
           <button

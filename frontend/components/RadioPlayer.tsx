@@ -130,9 +130,6 @@ const AUTO_NEXT_FADE_BUFFER_MS = 80;
 const NARRATION_TRANSITION_PROBABILITY = 0.3;
 const MAX_RECENT_DROP_HISTORY = 5;
 const MAX_RECENT_BED_HISTORY = 3;
-const LIVE_LISTENER_MIN = 20;
-const LIVE_LISTENER_MAX = 150;
-const LIVE_LISTENER_UPDATE_MS = 30_000;
 const TRACKS_TODAY_STORAGE_KEY = "flowsoundz-tracks-today";
 const RADIO_PLAYER_STATE_STORAGE_KEY = "flowsoundz-radio-player-state";
 const RADIO_BACKEND_ERROR =
@@ -495,7 +492,6 @@ export default function RadioPlayer() {
   const [error, setError] = useState("");
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [liveListeners, setLiveListeners] = useState(1247);
   const [tracksToday, setTracksToday] = useState(0);
   const [shareCopied, setShareCopied] = useState(false);
   const [visualizerAnalyser, setVisualizerAnalyser] =
@@ -656,19 +652,6 @@ export default function RadioPlayer() {
     );
   }, []);
 
-  useEffect(() => {
-    const interval = window.setInterval(() => {
-      setLiveListeners((current) => {
-        const step = Math.floor(Math.random() * 121) - 60;
-        return Math.min(
-          LIVE_LISTENER_MAX,
-          Math.max(LIVE_LISTENER_MIN, current + step),
-        );
-      });
-    }, LIVE_LISTENER_UPDATE_MS);
-
-    return () => window.clearInterval(interval);
-  }, []);
 
   useEffect(() => {
     if (!currentSong?.id || isDropPlaying || countedTrackIdRef.current === currentSong.id) {
@@ -2264,11 +2247,16 @@ export default function RadioPlayer() {
             className="relative w-full overflow-hidden rounded-[1.8rem]"
             style={{ height: "clamp(220px, 28vw, 360px)" }}
           >
-            <VisualizerCanvasThree
-              isPlaying={isPlaying}
-              isActive={isFullView}
-              className="absolute inset-0 h-full w-full"
-            />
+            <div
+              className="absolute inset-0 transition-opacity duration-700"
+              style={{ opacity: isPlaying ? 1 : 0.28 }}
+            >
+              <VisualizerCanvasThree
+                isPlaying={isPlaying}
+                isActive={isFullView}
+                className="h-full w-full"
+              />
+            </div>
             <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
               <Image
                 src="/FSRLogo.svg"
@@ -2284,7 +2272,7 @@ export default function RadioPlayer() {
               />
             </div>
             <div className="pointer-events-none absolute inset-0 rounded-[1.8rem] shadow-[inset_0_0_60px_rgba(0,229,255,0.05),inset_0_0_28px_rgba(124,77,255,0.04)]" />
-            <div className="pointer-events-auto absolute right-3 top-3 z-20">
+            <div className="pointer-events-auto absolute right-3 top-3 z-20 hidden sm:flex">
               <AuthButton />
             </div>
           </div>
@@ -2357,7 +2345,7 @@ export default function RadioPlayer() {
                   onClick={() => void handleVibeSelect(vibe)}
                   className={`vibe-chip state-fade min-h-12 rounded-full px-5 text-sm font-semibold ${
                     isActive
-                      ? "bg-[linear-gradient(90deg,#00E5FF_0%,#8B5CF6_55%,#FF2DA6_100%)] text-[#050816] shadow-[0_0_24px_rgba(139,92,246,0.22)]"
+                      ? "bg-[linear-gradient(90deg,#00E5FF_0%,#00FF88_50%,#FF2DA6_100%)] text-[#050816] shadow-[0_0_24px_rgba(0,255,136,0.25)]"
                       : "border border-white/8 bg-[#111827]/88 text-[#CBD5E1] hover:border-white/12 hover:bg-[#111827]"
                   }`}
                 >
@@ -2369,14 +2357,14 @@ export default function RadioPlayer() {
           {/* Station stats */}
           <div className="mt-4 flex flex-wrap gap-3 sm:gap-5">
             <div className="flex min-w-0 items-center gap-2 rounded-full border border-white/8 bg-white/5 px-3 py-1.5">
-              <svg className="h-3.5 w-3.5 text-[#00E5FF]/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-              <span className="text-[11px] text-[#CBD5E1]/40">Live Listeners</span>
+              <svg className="h-3.5 w-3.5 text-[#00FF88]/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+              <span className="text-[11px] text-[#CBD5E1]/40">Queued Tracks</span>
               <span className="text-[11px] font-semibold text-[#CBD5E1]/65">
-                {liveListeners.toLocaleString()}
+                {queue.filter((s) => s.is_playable).length}
               </span>
             </div>
             <div className="flex min-w-0 items-center gap-2 rounded-full border border-white/8 bg-white/5 px-3 py-1.5">
-              <svg className="h-3.5 w-3.5 text-[#8B5CF6]/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+              <svg className="h-3.5 w-3.5 text-[#FF2DA6]/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
               <span className="text-[11px] text-[#CBD5E1]/40">Tracks Today</span>
               <span className="text-[11px] font-semibold text-[#CBD5E1]/65">
                 {tracksToday.toLocaleString()}
