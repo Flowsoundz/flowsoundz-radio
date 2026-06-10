@@ -42,13 +42,14 @@ export default async function AnalyticsPage() {
     redirect("/signin?next=/artist/analytics");
   }
 
-  // Fetch songs with queue preferences, request counts, and share events in parallel
+  // Fetch songs with queue preferences, request counts, share events, and milestones in parallel
   const [songs, requestCounts, shareEvents] = await Promise.all([
     prisma.song.findMany({
       orderBy: [{ isFeatured: "desc" }, { createdAt: "desc" }],
       include: {
         artist: { select: { name: true, slug: true } },
         queuePreferences: true,
+        milestones: { where: { isActive: true }, orderBy: { sortOrder: "asc" } },
       },
     }),
     prisma.songRequest.groupBy({
@@ -267,6 +268,47 @@ export default async function AnalyticsPage() {
           )}
         </div>
       </section>
+
+      {/* Milestone tracker */}
+      {(() => {
+        const withMilestones = songs.filter((s) => s.milestones.length > 0);
+        if (withMilestones.length === 0) return null;
+        return (
+          <section className="mt-6 rounded-[1.8rem] border border-white/8 bg-[#0B1020]/80 overflow-hidden">
+            <div className="px-6 py-4 border-b border-white/[0.05]">
+              <h2 className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">Milestone Tracker</h2>
+            </div>
+            <div className="divide-y divide-white/[0.04]">
+              {withMilestones.map((song) =>
+                song.milestones.map((m) => {
+                  const pct = Math.min(Math.round((m.currentCount / m.goalTarget) * 100), 100);
+                  const done = m.currentCount >= m.goalTarget;
+                  return (
+                    <div key={m.id} className="flex flex-col gap-2 px-6 py-4 sm:flex-row sm:items-center sm:gap-6">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-white truncate">{song.title}</p>
+                        <p className="text-xs text-slate-400 mt-0.5">{m.rewardTitle}</p>
+                      </div>
+                      <div className="flex-1 flex items-center gap-3">
+                        <div className="relative flex-1 h-2 overflow-hidden rounded-full bg-white/[0.06]">
+                          <div
+                            className={`absolute inset-y-0 left-0 rounded-full transition-all ${done ? "bg-emerald-400" : "bg-[linear-gradient(90deg,#7c4dff,#ff2da6)]"}`}
+                            style={{ width: `${Math.max(pct, 3)}%` }}
+                          />
+                        </div>
+                        <span className="shrink-0 text-xs tabular-nums text-slate-400">
+                          {m.currentCount.toLocaleString()} / {m.goalTarget.toLocaleString()}
+                        </span>
+                        {done && <span className="text-xs text-emerald-400 font-semibold">✓ Unlocked</span>}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </section>
+        );
+      })()}
 
       {/* Legend */}
       <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1.5 text-[11px] text-slate-500">

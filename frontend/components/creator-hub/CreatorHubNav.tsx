@@ -5,11 +5,16 @@ import { usePathname } from "next/navigation";
 
 const STEPS = [
   { href: "/artist/dashboard", label: "Dashboard", short: "Hub" },
+  { href: "/artist/profile", label: "Profile", short: "Profile" },
+  { href: "/artist/kit", label: "Release Kit", short: "Kit" },
   { href: "/artist/create", label: "Create", short: "Create" },
+  { href: "/artist/releases", label: "Schedule", short: "Sched." },
   { href: "/artist/distribution", label: "Distribution", short: "Dist." },
   { href: "/artist/rights", label: "Rights", short: "Rights" },
   { href: "/artist/video", label: "Video", short: "Video" },
   { href: "/artist/submit", label: "Submit", short: "Submit" },
+  { href: "/artist/submissions", label: "My Tracks", short: "Tracks" },
+  { href: "/artist/analytics", label: "Analytics", short: "Stats" },
 ] as const;
 
 export function CreatorHubNav() {

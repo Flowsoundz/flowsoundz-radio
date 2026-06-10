@@ -274,6 +274,7 @@ export async function POST(request: NextRequest) {
       promotion_permission_confirmed: promotionPermissionConfirmed,
       removal_policy_confirmed: removalPolicyConfirmed,
       notes: notes || null,
+      artist_feedback: null,
       promo,
     });
 

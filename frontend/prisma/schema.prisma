@@ -369,13 +369,14 @@ model ArtistSubmission {
 }
 
 model SubmissionReview {
-  id            String                 @id @default(cuid())
-  submissionId  String
-  status        ArtistSubmissionStatus
-  internalNotes String?
-  reviewedBy    String?
-  reviewedAt    DateTime?
-  createdAt     DateTime               @default(now())
+  id              String                 @id @default(cuid())
+  submissionId    String
+  status          ArtistSubmissionStatus
+  internalNotes   String?
+  artistFeedback  String?
+  reviewedBy      String?
+  reviewedAt      DateTime?
+  createdAt       DateTime               @default(now())
 
   submission ArtistSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
 

@@ -21,6 +21,7 @@ export type ArtistSubmissionRecord = {
   promo_updated_at: string | null;
   status: ArtistSubmissionStatus;
   internal_notes: string | null;
+  artist_feedback: string | null;
   artist_name: string;
   contact_name: string;
   email: string;
@@ -162,6 +163,7 @@ function mapPrismaSubmission(
     promo_updated_at: submission.promoAssets?.updatedAt.toISOString() ?? null,
     status: fromPrismaStatus(submission.status),
     internal_notes: latestReview?.internalNotes ?? null,
+    artist_feedback: latestReview?.artistFeedback ?? null,
     artist_name: submission.artistName,
     contact_name: submission.contactName,
     email: submission.email,

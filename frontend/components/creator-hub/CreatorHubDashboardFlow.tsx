@@ -625,13 +625,24 @@ export function CreatorHubDashboardFlow({
           </div>
 
           <div className="glass-card rounded-[1.8rem] p-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200/75">
-              Coming next
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-300/75">
+              Now live in the Hub
             </p>
-            <div className="mt-3 space-y-3 text-sm leading-6 text-slate-300">
-              <p>Automated LUFS / mastering presets for radio-friendly polish.</p>
-              <p>AI provenance and metadata helpers for distributor-safe documentation.</p>
-              <p>Creator analytics once releases begin generating real station-side data.</p>
+            <div className="mt-3 space-y-2.5">
+              {[
+                { href: "/artist/profile", label: "Profile editor", desc: "Bio, social links, tip destinations" },
+                { href: "/artist/kit", label: "AI Release Kit", desc: "Full promo + hooks + video prompt" },
+                { href: "/artist/releases", label: "Release scheduler", desc: "Members early + public dates per track" },
+                { href: "/artist/analytics", label: "Track analytics", desc: "Plays, skips, requests, milestones" },
+              ].map(({ href, label, desc }) => (
+                <Link key={href} href={href} className="flex items-start gap-2 rounded-[1rem] border border-white/6 bg-white/[0.02] px-3 py-2.5 transition hover:border-white/12 hover:bg-white/[0.04]">
+                  <span className="mt-0.5 text-[10px] text-emerald-400">✓</span>
+                  <div>
+                    <p className="text-xs font-semibold text-white">{label}</p>
+                    <p className="text-[11px] text-slate-400">{desc}</p>
+                  </div>
+                </Link>
+              ))}
             </div>
           </div>
         </div>

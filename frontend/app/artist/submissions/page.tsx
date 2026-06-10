@@ -13,6 +13,7 @@ type Submission = {
   song_title: string;
   genre: string;
   vibe: string;
+  artist_feedback?: string | null;
 };
 
 const STATUS_CONFIG = {
@@ -123,7 +124,7 @@ export default function MySubmissionsPage() {
             return (
               <div
                 key={s.submission_id}
-                className="flex flex-col gap-3 rounded-[1.4rem] border border-white/8 bg-[#0B1020]/80 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
+                className="flex flex-col gap-3 rounded-[1.4rem] border border-white/8 bg-[#0B1020]/80 px-5 py-4"
               >
                 <div className="flex flex-col gap-1">
                   <p className="font-semibold text-white leading-snug">
@@ -141,7 +142,7 @@ export default function MySubmissionsPage() {
                       : ""}
                   </p>
                 </div>
-                <div className="shrink-0">
+                <div className="flex flex-col items-end gap-2 shrink-0">
                   <span
                     className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${cfg.cls}`}
                   >
@@ -149,6 +150,12 @@ export default function MySubmissionsPage() {
                     {cfg.label}
                   </span>
                 </div>
+                {s.artist_feedback ? (
+                  <div className="rounded-[1rem] border border-[#7c4dff]/20 bg-[#7c4dff]/[0.06] px-4 py-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#a78bfa] mb-1">Feedback from FlowSoundz</p>
+                    <p className="text-sm leading-6 text-slate-200">{s.artist_feedback}</p>
+                  </div>
+                ) : null}
               </div>
             );
           })}
