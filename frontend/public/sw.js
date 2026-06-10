@@ -1,4 +1,37 @@
-const STATIC_CACHE = "flowsoundz-static-v3";
+const STATIC_CACHE = "flowsoundz-static-v4";
+
+self.addEventListener("push", (event) => {
+  if (!event.data) return;
+  let data = {};
+  try { data = event.data.json(); } catch { return; }
+  const { title = "FlowSoundz Radio", body = "", url = "/radio", icon, badge } = data;
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      icon: icon ?? "/brand/flowsoundz-fr-appicon-dark.png",
+      badge: badge ?? "/brand/flowsoundz-fr-icon-dark.png",
+      data: { url },
+      vibrate: [100, 50, 100],
+    }),
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url ?? "/radio";
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((windowClients) => {
+      for (const client of windowClients) {
+        if (client.url.includes(self.location.origin) && "focus" in client) {
+          client.navigate(url);
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) return clients.openWindow(url);
+    }),
+  );
+});
+
 const APP_SHELL = ["/", "/radio", "/songs", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {

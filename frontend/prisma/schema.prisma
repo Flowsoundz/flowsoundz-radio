@@ -35,7 +35,8 @@ model User {
   accounts         Account[]
   sessions         Session[]
   vibePoints       VibePoints?
-  vibeTransactions VibeTransaction[] @relation("UserVibeTransactions")
+  vibeTransactions  VibeTransaction[]  @relation("UserVibeTransactions")
+  pushSubscriptions PushSubscription[]
 
   @@map("users")
 }
@@ -557,4 +558,18 @@ model RadioSession {
   @@index([currentSongId])
   @@index([lastSeenAt])
   @@map("radio_sessions")
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userId    String?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@map("push_subscriptions")
 }

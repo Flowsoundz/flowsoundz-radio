@@ -64,6 +64,7 @@ import { useUserTier } from "@/lib/useUserTier";
 import { isSpecialNarrationMoment } from "@/lib/radioContext";
 import { ExplicitToggle } from "@/components/ExplicitToggle";
 import { useListenerSession } from "@/lib/useListenerSession";
+import { PushBell } from "@/components/PushBell";
 
 const VisualizerModal = dynamic(
   () =>
@@ -2744,6 +2745,7 @@ export default function RadioPlayer() {
                         : "Live mix"}
                 </span>
                 <ExplicitToggle />
+                <PushBell />
               </div>
 
               <div>
