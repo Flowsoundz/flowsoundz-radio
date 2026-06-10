@@ -6,6 +6,7 @@ import { DevLocalhostGuard } from "@/components/DevLocalhostGuard";
 import { GlobalAudioProvider } from "@/components/GlobalAudioProvider";
 import { MiniPlayer } from "@/components/MiniPlayer";
 import { PwaRegistrar } from "@/components/PwaRegistrar";
+import { InstallPrompt } from "@/components/InstallPrompt";
 import RadioPlayer from "@/components/RadioPlayer";
 import { SessionProvider } from "next-auth/react";
 import { auth } from "@/auth";
@@ -103,6 +104,7 @@ export default async function RootLayout({
             {children}
             <MiniPlayer />
             <CookieBanner />
+            <InstallPrompt />
           </GlobalAudioProvider>
         </SessionProvider>
       </body>

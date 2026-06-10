@@ -2235,6 +2235,47 @@ export default function RadioPlayer() {
     } catch {}
   }, [currentSong, isPlaying]);
 
+  // Media Session — lock-screen widget with album art + controls
+  useEffect(() => {
+    if (!("mediaSession" in navigator)) return;
+    if (!currentSong) {
+      navigator.mediaSession.playbackState = "none";
+      return;
+    }
+    const artwork: MediaImage[] = [];
+    const cover = getCoverUrl(currentSong);
+    if (cover && typeof cover === "string") {
+      artwork.push({ src: cover, sizes: "512x512", type: "image/jpeg" });
+    }
+    artwork.push({ src: "/brand/flowsoundz-fr-appicon-dark.png", sizes: "1254x1254", type: "image/png" });
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: currentSong.title,
+      artist: currentSong.artist,
+      album: "FlowSoundz Radio",
+      artwork,
+    });
+    navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
+  }, [currentSong, isPlaying]);
+
+  // Wire Media Session action handlers (stable refs — safe outside the metadata effect)
+  useEffect(() => {
+    if (!("mediaSession" in navigator)) return;
+    const handlers: [MediaSessionAction, MediaSessionActionHandler][] = [
+      ["play", () => togglePlaybackRef.current?.()],
+      ["pause", () => togglePlaybackRef.current?.()],
+      ["nexttrack", () => { void skipToNextTrackRef.current?.("user"); }],
+      ["stop", () => togglePlaybackRef.current?.()],
+    ];
+    for (const [action, handler] of handlers) {
+      try { navigator.mediaSession.setActionHandler(action, handler); } catch { /* unsupported action */ }
+    }
+    return () => {
+      for (const [action] of handlers) {
+        try { navigator.mediaSession.setActionHandler(action, null); } catch { /**/ }
+      }
+    };
+  }, []);
+
   const upcomingSongs = currentSong
     ? Array.from({ length: Math.max(queue.length - 1, 0) }, (_, offset) => {
         return queue[(currentIndex + offset + 1) % queue.length];
