@@ -3041,7 +3041,9 @@ export default function RadioPlayer() {
                         ? "Drop"
                         : isPlaying
                           ? "Live"
-                          : "Paused"}
+                          : hasStartedPlayback
+                            ? "Paused"
+                            : "Tap Play to Tune In"}
                 </span>
               </div>
 
