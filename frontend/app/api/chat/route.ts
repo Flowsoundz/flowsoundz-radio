@@ -6,8 +6,11 @@ import type { Session } from "next-auth";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export function GET() {
-  return Response.json({ messages: getMessages(50) });
+export async function GET(request: NextRequest) {
+  const since = request.nextUrl.searchParams.get("since");
+  const sinceDate = since ? new Date(since) : undefined;
+  const messages = await getMessages(50, sinceDate);
+  return Response.json({ messages });
 }
 
 function resolveRole(session: Session | null): ChatRole {
@@ -36,7 +39,7 @@ export async function POST(request: NextRequest) {
   const session = await auth();
   const role = resolveRole(session);
 
-  const result = sendMessage({
+  const result = await sendMessage({
     ip,
     displayName: typeof body.displayName === "string" ? body.displayName : "",
     text: typeof body.text === "string" ? body.text : "",

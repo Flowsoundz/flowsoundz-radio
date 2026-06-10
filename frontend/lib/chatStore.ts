@@ -1,3 +1,5 @@
+import { prisma } from "@/lib/prisma";
+
 export type ChatRole = "ADMIN" | "ARTIST" | "VAULT" | "INSIDER" | "LISTENER";
 
 export type ChatMessage = {
@@ -9,30 +11,39 @@ export type ChatMessage = {
   role: ChatRole;
 };
 
-// Module-level store — persists across requests on the same Fluid Compute instance.
-// Ephemeral by design for MVP; cap keeps memory bounded.
 const MAX_MESSAGES = 200;
-const messages: ChatMessage[] = [];
-
-// Rate limit: one message per IP per 5 seconds
-const lastSentAt = new Map<string, number>();
 const RATE_LIMIT_MS = 5_000;
 
-export function getMessages(limit = 50): ChatMessage[] {
-  return messages.slice(-limit);
+// In-memory rate limit only (fine for serverless — limits per instance, good enough)
+const lastSentAt = new Map<string, number>();
+
+export async function getMessages(limit = 50, since?: Date): Promise<ChatMessage[]> {
+  const rows = await prisma.chatMessage.findMany({
+    where: since ? { createdAt: { gt: since } } : undefined,
+    orderBy: { createdAt: "asc" },
+    take: limit,
+  });
+  return rows.map((r) => ({
+    id: r.id,
+    createdAt: r.createdAt.toISOString(),
+    displayName: r.displayName,
+    text: r.text,
+    trackTitle: r.trackTitle ?? null,
+    role: r.role as ChatRole,
+  }));
 }
 
 export type SendResult =
   | { ok: true; message: ChatMessage }
   | { ok: false; error: string };
 
-export function sendMessage(input: {
+export async function sendMessage(input: {
   ip: string;
   displayName: string;
   text: string;
   trackTitle: string | null;
   role?: ChatRole;
-}): SendResult {
+}): Promise<SendResult> {
   const now = Date.now();
   const last = lastSentAt.get(input.ip) ?? 0;
   if (now - last < RATE_LIMIT_MS) {
@@ -45,17 +56,38 @@ export function sendMessage(input: {
 
   lastSentAt.set(input.ip, now);
 
-  const message: ChatMessage = {
-    id: `msg_${now.toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
-    createdAt: new Date(now).toISOString(),
-    displayName: name,
-    text,
-    trackTitle: input.trackTitle?.trim().slice(0, 80) ?? null,
-    role: input.role ?? "LISTENER",
+  // Keep the table bounded
+  const count = await prisma.chatMessage.count();
+  if (count >= MAX_MESSAGES) {
+    const oldest = await prisma.chatMessage.findMany({
+      orderBy: { createdAt: "asc" },
+      take: 20,
+      select: { id: true },
+    });
+    await prisma.chatMessage.deleteMany({
+      where: { id: { in: oldest.map((m) => m.id) } },
+    });
+  }
+
+  const row = await prisma.chatMessage.create({
+    data: {
+      displayName: name,
+      text,
+      trackTitle: input.trackTitle?.trim().slice(0, 80) ?? null,
+      role: input.role ?? "LISTENER",
+      ip: input.ip,
+    },
+  });
+
+  return {
+    ok: true,
+    message: {
+      id: row.id,
+      createdAt: row.createdAt.toISOString(),
+      displayName: row.displayName,
+      text: row.text,
+      trackTitle: row.trackTitle ?? null,
+      role: row.role as ChatRole,
+    },
   };
-
-  messages.push(message);
-  if (messages.length > MAX_MESSAGES) messages.splice(0, messages.length - MAX_MESSAGES);
-
-  return { ok: true, message };
 }

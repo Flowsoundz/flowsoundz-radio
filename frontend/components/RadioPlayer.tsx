@@ -506,6 +506,8 @@ export default function RadioPlayer() {
   const [tracksToday, setTracksToday] = useState(0);
   const [shareCopied, setShareCopied] = useState(false);
   const [showShareCard, setShowShareCard] = useState(false);
+  const [chatUnread, setChatUnread] = useState(0);
+  const lastChatOpenRef = useRef<number>(Date.now());
   const [visualizerAnalyser, setVisualizerAnalyser] =
     useState<AnalyserNode | null>(null);
   const [visualizerMode, setVisualizerMode] =
@@ -637,6 +639,21 @@ export default function RadioPlayer() {
       clearTransitionAudioStopTimer(transitionAudioStopTimerRef);
     };
   }, []);
+
+  useEffect(() => {
+    if (showChat) return;
+    const id = setInterval(async () => {
+      try {
+        const since = new Date(lastChatOpenRef.current).toISOString();
+        const res = await fetch(`/api/chat?since=${encodeURIComponent(since)}`);
+        if (res.ok) {
+          const data = (await res.json()) as { messages: unknown[] };
+          setChatUnread(data.messages.length);
+        }
+      } catch { /* ignore */ }
+    }, 8000);
+    return () => clearInterval(id);
+  }, [showChat]);
 
   useEffect(() => {
     if (sharedAnalyserRef.current) {
@@ -2437,12 +2454,22 @@ export default function RadioPlayer() {
             </div>
             <button
               type="button"
-              onClick={() => setShowChat(true)}
-              className="flex min-w-0 items-center gap-2 rounded-full border border-white/8 bg-white/5 px-3 py-1.5 transition hover:border-white/14 hover:bg-white/8"
+              onClick={() => {
+                setShowChat(true);
+                setChatUnread(0);
+                lastChatOpenRef.current = Date.now();
+              }}
+              className="relative flex min-w-0 items-center gap-2 rounded-full border border-white/8 bg-white/5 px-3 py-1.5 transition hover:border-white/14 hover:bg-white/8"
             >
               <svg className="h-3.5 w-3.5 text-[#00E5FF]/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
               <span className="text-[11px] text-[#CBD5E1]/40">Chat</span>
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              {chatUnread > 0 ? (
+                <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-[#FF2DA6] px-1 text-[9px] font-bold text-white">
+                  {chatUnread > 9 ? "9+" : chatUnread}
+                </span>
+              ) : (
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              )}
             </button>
           </div>
         </div>

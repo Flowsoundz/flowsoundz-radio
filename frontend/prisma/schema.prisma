@@ -560,6 +560,19 @@ model RadioSession {
   @@map("radio_sessions")
 }
 
+model ChatMessage {
+  id          String   @id @default(cuid())
+  displayName String
+  text        String
+  trackTitle  String?
+  role        String   @default("LISTENER")
+  ip          String
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("chat_messages")
+}
+
 model PushSubscription {
   id        String   @id @default(cuid())
   endpoint  String   @unique
