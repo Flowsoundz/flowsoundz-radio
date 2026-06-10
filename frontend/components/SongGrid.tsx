@@ -190,7 +190,11 @@ export function SongGrid({ songs, isLoading, error }: SongGridProps) {
                 ) : null}
               </div>
               <div>
-                <h2 className="text-xl font-semibold text-white">{song.title}</h2>
+                <h2 className="text-xl font-semibold text-white">
+                  {song.slug ? (
+                    <Link href={`/songs/${song.slug}`} className="hover:text-cyan-200 transition">{song.title}</Link>
+                  ) : song.title}
+                </h2>
                 <p className="mt-1 text-sm text-slate-300">
                   <Link
                     href={`/artists/${slugifyArtistName(song.artist)}`}

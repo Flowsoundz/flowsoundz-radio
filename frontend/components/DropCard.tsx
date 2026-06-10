@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { MembershipUpgradeSheet } from "@/components/MembershipUpgradeSheet";
+import { NotifyDropButton } from "@/components/NotifyDropButton";
 
 type DropCardProps = {
   id: string;
@@ -122,7 +123,10 @@ export function DropCard({
                 >
                   Listen Now →
                 </Link>
-              ) : isLocked ? (
+              ) : !isLocked && (
+                <NotifyDropButton songId={id} songTitle={title} />
+              )}
+              {isLocked ? (
                 <button
                   type="button"
                   onClick={() => setShowUpgrade(true)}

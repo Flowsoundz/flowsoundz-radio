@@ -15,6 +15,7 @@ const VIBE_COLOR: Record<string, string> = {
 
 type SongResult = {
   id: string;
+  slug: string;
   title: string;
   artist: string;
   artistSlug: string;
@@ -147,9 +148,10 @@ export default function SearchPage() {
             {songs.map((s) => {
               const vibeKey = s.vibe.toUpperCase().replace(" ", "_");
               return (
-                <div
+                <Link
                   key={s.id}
-                  className="flex items-center gap-3 rounded-[1.4rem] border border-white/8 bg-[#0B1020]/80 px-4 py-3"
+                  href={`/songs/${s.slug}`}
+                  className="flex items-center gap-3 rounded-[1.4rem] border border-white/8 bg-[#0B1020]/80 px-4 py-3 transition hover:border-white/14"
                 >
                   {s.coverUrl ? (
                     <img src={s.coverUrl} alt={s.title} className="h-10 w-10 shrink-0 rounded-xl object-cover" />
@@ -178,7 +180,7 @@ export default function SearchPage() {
                       <span className="text-[10px] tabular-nums text-slate-600">{s.playCount}</span>
                     )}
                   </div>
-                </div>
+                </Link>
               );
             })}
           </div>

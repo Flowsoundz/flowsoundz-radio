@@ -44,6 +44,7 @@ export async function GET(req: NextRequest) {
   return Response.json({
     songs: songs.map((s) => ({
       id: s.id,
+      slug: s.slug,
       title: s.title,
       artist: s.artist.name,
       artistSlug: s.artist.slug,

@@ -45,6 +45,7 @@ model User {
   pushSubscriptions PushSubscription[]
   favorites        SongFavorite[]
   labelManagers    LabelManager[]
+  artistFollows    ArtistFollow[]
 
   @@map("users")
 }
@@ -191,6 +192,7 @@ model Artist {
   analyticsEvents   AnalyticsEvent[]
   payouts           ArtistPayout[]
   labelLinks        LabelArtist[]
+  followers         ArtistFollow[]
 
   @@map("artists")
 }
@@ -240,6 +242,7 @@ model Song {
   queuePreferences  QueuePreference?
   radioSessions     RadioSession[]
   favorites         SongFavorite[]
+  dropNotifies      DropNotify[]
 
   @@index([artistId])
   @@index([vibe])
@@ -625,6 +628,41 @@ model PushSubscription {
 
   @@index([userId])
   @@map("push_subscriptions")
+}
+
+// ─── Artist Follow ────────────────────────────────────────────────────────────
+
+model ArtistFollow {
+  id        String   @id @default(cuid())
+  artistId  String
+  userId    String?
+  ip        String
+  createdAt DateTime @default(now())
+
+  artist Artist @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@unique([artistId, ip])
+  @@index([artistId])
+  @@index([userId])
+  @@map("artist_follows")
+}
+
+// ─── Drop Notify ──────────────────────────────────────────────────────────────
+
+model DropNotify {
+  id         String    @id @default(cuid())
+  songId     String
+  endpoint   String
+  ip         String
+  notifiedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  song Song @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  @@unique([songId, endpoint])
+  @@index([songId])
+  @@map("drop_notifies")
 }
 
 // ─── Revenue Share ────────────────────────────────────────────────────────────

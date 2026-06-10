@@ -3,6 +3,7 @@ export type StationMode = "live" | "playable_archive" | "maintenance";
 
 export type Song = {
   id: string;
+  slug?: string;
   title: string;
   artist: string;
   album?: string;

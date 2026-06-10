@@ -149,6 +149,7 @@ function mapPrismaSong(
 
   return {
     id: song.id,
+    slug: song.slug,
     title: song.title,
     artist: artist.name,
     album: song.album ?? undefined,
