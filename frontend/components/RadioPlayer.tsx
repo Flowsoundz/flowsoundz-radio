@@ -103,6 +103,14 @@ const LiveChat = dynamic(
   { ssr: false },
 );
 
+const ShareCardModal = dynamic(
+  () =>
+    import("@/components/ShareCardModal").then((module) => ({
+      default: module.ShareCardModal,
+    })),
+  { ssr: false },
+);
+
 const AuthButton = dynamic(
   () => import("@/components/AuthButton").then((m) => ({ default: m.AuthButton })),
   { ssr: false },
@@ -496,6 +504,7 @@ export default function RadioPlayer() {
   const [duration, setDuration] = useState(0);
   const [tracksToday, setTracksToday] = useState(0);
   const [shareCopied, setShareCopied] = useState(false);
+  const [showShareCard, setShowShareCard] = useState(false);
   const [visualizerAnalyser, setVisualizerAnalyser] =
     useState<AnalyserNode | null>(null);
   const [visualizerMode, setVisualizerMode] =
@@ -2834,43 +2843,19 @@ export default function RadioPlayer() {
                 <button
                   type="button"
                   onClick={() => {
-                    const song = currentSong;
-                    const title = song?.title;
-                    const artist = song?.artist;
-                    const url = song?.id
-                      ? `${window.location.origin}/radio?song=${song.id}`
-                      : `${window.location.origin}/radio`;
-                    const shareText = title && artist
-                      ? `Listening to "${title}" by ${artist} on FlowSoundz Radio`
-                      : `Live on FlowSoundz Radio`;
-                    track("share_track_click", { title: title ?? null, artist: artist ?? null });
-
-                    // Show feedback immediately; award points in background
-                    setShareCopied(true);
-                    setTimeout(() => setShareCopied(false), 2500);
-                    void fetch("/api/share/award", { method: "POST" }).catch(() => undefined);
-
-                    if (navigator.share) {
-                      void navigator.share({ title: shareText, url }).catch(() => {});
-                    } else {
-                      void navigator.clipboard.writeText(`${shareText} 🎧 ${url}`).catch(() => undefined);
+                    if (currentSong) {
+                      track("share_track_click", { title: currentSong.title ?? null, artist: currentSong.artist ?? null });
+                      setShowShareCard(true);
                     }
                   }}
                   disabled={!currentSong}
                   className="min-h-16 rounded-full border border-white/8 bg-[#111827] px-4 text-base font-semibold text-[#F8FAFC] transition hover:border-[#00e5ff]/25 hover:bg-[#111827]/90 disabled:cursor-not-allowed disabled:opacity-40"
                   title="Share — earn 25 Vibe Points"
                 >
-                  {shareCopied ? (
-                    <span className="flex items-center gap-2 text-[#00e5ff]">
-                      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                      +25 pts
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-2">
-                      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-                      Share
-                    </span>
-                  )}
+                  <span className="flex items-center gap-2">
+                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                    Share
+                  </span>
                 </button>
               </div>
             </div>
@@ -3126,6 +3111,13 @@ export default function RadioPlayer() {
         <LiveChat
           currentTrackTitle={currentSong?.title ?? null}
           onClose={() => setShowChat(false)}
+        />
+      )}
+
+      {showShareCard && currentSong && (
+        <ShareCardModal
+          song={currentSong}
+          onClose={() => setShowShareCard(false)}
         />
       )}
     </section>
