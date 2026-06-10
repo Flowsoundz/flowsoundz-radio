@@ -117,9 +117,17 @@ export async function getSongs(): Promise<Song[]> {
 }
 
 export async function getQueue(vibe?: string): Promise<Song[]> {
-  const url = vibe
-    ? `/api/queue?vibe=${encodeURIComponent(vibe)}`
-    : "/api/queue";
+  const allowExplicit =
+    typeof window !== "undefined"
+      ? localStorage.getItem("fsr-allow-explicit") !== "false"
+      : true;
+
+  const params = new URLSearchParams();
+  if (vibe) params.set("vibe", encodeURIComponent(vibe));
+  if (!allowExplicit) params.set("allowExplicit", "false");
+  const qs = params.toString() ? `?${params.toString()}` : "";
+
+  const url = `/api/queue${qs}`;
 
   try {
     const res = await fetch(url, { cache: "no-store" });
@@ -134,9 +142,12 @@ export async function getQueue(vibe?: string): Promise<Song[]> {
   }
 
   try {
-    const backendUrl = vibe
+    const backendBase = vibe
       ? `${API_BASE}/queue?vibe=${encodeURIComponent(vibe)}`
       : `${API_BASE}/queue`;
+    const backendUrl = !allowExplicit
+      ? `${backendBase}${vibe ? "&" : "?"}allowExplicit=false`
+      : backendBase;
     const res = await fetch(backendUrl, { cache: "no-store" });
     if (process.env.NODE_ENV === "development") {
       console.log("[RadioPlayer] queue response", {

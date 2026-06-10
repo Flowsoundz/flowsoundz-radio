@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import BottomNav from "@/components/BottomNav";
+import { SupportBanner } from "@/components/SupportBanner";
 import { HomepageCtaGroup } from "@/components/HomepageCtaGroup";
 import { HomepageSocialProof } from "@/components/HomepageSocialProof";
 import NowPlayingWidget from "@/components/NowPlayingWidget";
@@ -334,6 +335,11 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* ── Support Banner ── */}
+      <div className="mx-auto max-w-7xl px-4 pb-8 sm:px-6">
+        <SupportBanner />
+      </div>
 
       {/* ── Footer ── */}
       <footer className="border-t border-white/[0.06] px-4 py-8 sm:px-6">

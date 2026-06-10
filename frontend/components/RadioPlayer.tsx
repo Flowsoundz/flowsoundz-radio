@@ -62,6 +62,7 @@ import { getLyrics } from "@/lib/lyrics";
 import { useVibePoints } from "@/lib/useVibePoints";
 import { useUserTier } from "@/lib/useUserTier";
 import { isSpecialNarrationMoment } from "@/lib/radioContext";
+import { ExplicitToggle } from "@/components/ExplicitToggle";
 
 const VisualizerModal = dynamic(
   () =>
@@ -2724,6 +2725,7 @@ export default function RadioPlayer() {
                           ).padStart(2, "0")}`
                         : "Live mix"}
                 </span>
+                <ExplicitToggle />
               </div>
 
               <div>
