@@ -65,6 +65,7 @@ import { isSpecialNarrationMoment } from "@/lib/radioContext";
 import { ExplicitToggle } from "@/components/ExplicitToggle";
 import { useListenerSession } from "@/lib/useListenerSession";
 import { PushBell } from "@/components/PushBell";
+import { NowOnAir } from "@/components/NowOnAir";
 
 const VisualizerModal = dynamic(
   () =>
@@ -2354,9 +2355,12 @@ export default function RadioPlayer() {
           <div className="rounded-[1.7rem] border border-white/8 bg-[radial-gradient(circle_at_top_left,rgba(0,229,255,0.16),transparent_34%),radial-gradient(circle_at_top_right,rgba(255,45,166,0.14),transparent_30%),linear-gradient(135deg,#111827_0%,#0B1020_62%,#050816_100%)] p-5 shadow-[0_0_40px_rgba(0,229,255,0.06)]">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <div className="live-badge inline-flex items-center gap-2 rounded-full border border-[#FF2DA6]/25 bg-[linear-gradient(90deg,rgba(255,45,166,0.16),rgba(139,92,246,0.16),rgba(0,229,255,0.12))] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.28em] text-[#F8FAFC] shadow-[0_0_18px_rgba(255,45,166,0.1)]">
-                  <span className="live-dot h-2.5 w-2.5 rounded-full bg-[#FF2DA6] shadow-[0_0_12px_rgba(255,45,166,0.75)]" />
-                  Live Radio
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="live-badge inline-flex items-center gap-2 rounded-full border border-[#FF2DA6]/25 bg-[linear-gradient(90deg,rgba(255,45,166,0.16),rgba(139,92,246,0.16),rgba(0,229,255,0.12))] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.28em] text-[#F8FAFC] shadow-[0_0_18px_rgba(255,45,166,0.1)]">
+                    <span className="live-dot h-2.5 w-2.5 rounded-full bg-[#FF2DA6] shadow-[0_0_12px_rgba(255,45,166,0.75)]" />
+                    Live Radio
+                  </div>
+                  <NowOnAir />
                 </div>
                 <p className="mt-4 text-xs font-semibold uppercase tracking-[0.3em] text-[#CBD5E1]/70">
                   FlowSoundz Radio

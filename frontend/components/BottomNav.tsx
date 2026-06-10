@@ -47,6 +47,7 @@ const MORE_LINKS = [
   { href: "/privacy", label: "Privacy" },
   { href: "/terms", label: "Terms" },
   { href: "/support", label: "Support" },
+  { href: "/schedule", label: "Schedule" },
 ] as const;
 
 export default function BottomNav() {
