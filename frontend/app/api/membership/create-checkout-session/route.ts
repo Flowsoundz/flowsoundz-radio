@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid tier." }, { status: 400 });
   }
 
-  const origin = req.headers.get("origin") ?? process.env.NEXT_PUBLIC_SITE_URL ?? "https://frontend-snowy-nine-47.vercel.app";
+  const origin = req.headers.get("origin") ?? process.env.NEXT_PUBLIC_SITE_URL ?? "https://flowsoundzradio.com";
 
   // Dev bypass — no Stripe key
   if (!process.env.STRIPE_SECRET_KEY) {

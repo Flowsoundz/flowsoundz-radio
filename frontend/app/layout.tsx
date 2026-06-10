@@ -8,6 +8,7 @@ import { MiniPlayer } from "@/components/MiniPlayer";
 import { PwaRegistrar } from "@/components/PwaRegistrar";
 import RadioPlayer from "@/components/RadioPlayer";
 import { SessionProvider } from "next-auth/react";
+import { auth } from "@/auth";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -81,11 +82,12 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await auth();
   return (
     <html
       lang="en"
@@ -93,7 +95,7 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full bg-[var(--page-bg)] text-white antialiased">
-        <SessionProvider>
+        <SessionProvider session={session}>
           <GlobalAudioProvider>
             <DevLocalhostGuard />
             <PwaRegistrar />

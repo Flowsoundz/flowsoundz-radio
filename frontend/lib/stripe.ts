@@ -11,7 +11,7 @@ export async function createPromoCheckoutSession(
   const origin =
     typeof window !== "undefined"
       ? window.location.origin
-      : "https://flowsoundzradio.vercel.app";
+      : "https://flowsoundzradio.com";
 
   const response = await fetch("/api/promo/create-checkout-session", {
     method: "POST",

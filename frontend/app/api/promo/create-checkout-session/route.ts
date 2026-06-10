@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
       mockBody = {};
     }
     const mockTier = str(mockBody.package_tier) || "basic";
-    const mockOrigin = str(mockBody.origin) || request.headers.get("origin") || "http://localhost:3001";
+    const mockOrigin = str(mockBody.origin) || request.headers.get("origin") || "https://flowsoundzradio.com";
     const mockArtist = str(mockBody.artist_name);
     const mockSong = str(mockBody.song_title);
 
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "Invalid package tier." }, { status: 422 });
   }
 
-  const origin = str(body.origin) || request.headers.get("origin") || "https://flowsoundzradio.vercel.app";
+  const origin = str(body.origin) || request.headers.get("origin") || "https://flowsoundzradio.com";
   const pkg = PACKAGES[tier];
   const artistName = str(body.artist_name);
   const songTitle = str(body.song_title);

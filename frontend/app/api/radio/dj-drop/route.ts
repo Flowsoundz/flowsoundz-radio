@@ -32,6 +32,57 @@ function templateScript(trackTitle: string, artist: string, vibe: string, lang: 
   return `You're locked in with FlowSoundz Radio. Up next — "${trackTitle}" by ${artist}. Let it ride.`;
 }
 
+async function generateWithClaude(system: string, userPrompt: string): Promise<string> {
+  const client = new Anthropic();
+  const msg = await client.messages.create({
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 100,
+    system,
+    messages: [{ role: "user", content: userPrompt }],
+  });
+  return (msg.content[0] as { text: string }).text.trim();
+}
+
+async function generateWithOpenAI(system: string, userPrompt: string): Promise<string> {
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      max_tokens: 100,
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: userPrompt },
+      ],
+    }),
+  });
+  if (!res.ok) throw new Error(`OpenAI ${res.status}`);
+  const data = (await res.json()) as { choices: { message: { content: string } }[] };
+  return data.choices[0].message.content.trim();
+}
+
+async function generateWithGemini(system: string, userPrompt: string): Promise<string> {
+  const key = process.env.GEMINI_API_KEY ?? process.env.GOOGLE_AI_API_KEY ?? process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: system }] },
+        contents: [{ parts: [{ text: userPrompt }] }],
+        generationConfig: { maxOutputTokens: 100 },
+      }),
+    },
+  );
+  if (!res.ok) throw new Error(`Gemini ${res.status}`);
+  const data = (await res.json()) as { candidates: { content: { parts: { text: string }[] } }[] };
+  return data.candidates[0].content.parts[0].text.trim();
+}
+
 async function generateScript(context: {
   trackTitle: string;
   artist: string;
@@ -41,25 +92,31 @@ async function generateScript(context: {
 }): Promise<string> {
   const { trackTitle, artist, vibe, lang, listenerCount } = context;
 
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return templateScript(trackTitle, artist, vibe, lang);
-  }
-
-  const client = new Anthropic();
-
+  const system = SYSTEM_PROMPTS[lang];
   const userPrompt =
     lang === "es"
       ? `Presenta "${trackTitle}" de ${artist}. Vibe: ${vibe}.${listenerCount ? ` ${listenerCount} personas están escuchando ahora.` : ""} Dale candela.`
       : `Introduce "${trackTitle}" by ${artist}. Vibe: ${vibe}.${listenerCount ? ` ${listenerCount} people are listening right now.` : ""} Make it hit.`;
 
-  const msg = await client.messages.create({
-    model: "claude-haiku-4-5-20251001",
-    max_tokens: 100,
-    system: SYSTEM_PROMPTS[lang],
-    messages: [{ role: "user", content: userPrompt }],
-  });
+  if (process.env.ANTHROPIC_API_KEY) {
+    try { return await generateWithClaude(system, userPrompt); } catch (e) {
+      console.warn("[dj-drop] Claude failed, trying OpenAI:", e);
+    }
+  }
 
-  return (msg.content[0] as { text: string }).text.trim();
+  if (process.env.OPENAI_API_KEY) {
+    try { return await generateWithOpenAI(system, userPrompt); } catch (e) {
+      console.warn("[dj-drop] OpenAI failed, trying Gemini:", e);
+    }
+  }
+
+  if (process.env.GEMINI_API_KEY ?? process.env.GOOGLE_AI_API_KEY ?? process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+    try { return await generateWithGemini(system, userPrompt); } catch (e) {
+      console.warn("[dj-drop] Gemini failed, using template:", e);
+    }
+  }
+
+  return templateScript(trackTitle, artist, vibe, lang);
 }
 
 // Simple in-memory cache — keyed by trackId so we don't regenerate on every play
