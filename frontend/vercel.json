@@ -9,7 +9,7 @@
     },
     {
       "path": "/api/cron/pregame-drops",
-      "schedule": "*/30 * * * *"
+      "schedule": "0 13 * * *"
     }
   ]
 }
