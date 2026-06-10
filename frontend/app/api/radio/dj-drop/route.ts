@@ -187,6 +187,10 @@ async function generateScript(context: {
 const dropCache = new Map<string, { url: string; ts: number }>();
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
+// Stored TTS audio is recycled this long before a fresh take is produced.
+// Each drop costs ElevenLabs credits at most ~once per week per track+lang.
+const AUDIO_REUSE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
 // Per-IP cooldown — this route can trigger an LLM call AND ElevenLabs TTS.
 // Legit clients call it at most twice per track (pre-warm + transition).
 const ipLastDropMs = new Map<string, number>();
@@ -243,6 +247,29 @@ export async function POST(req: Request) {
     }
   }
 
+  // Recycle persisted ElevenLabs audio FIRST — before any LLM call. Audio is
+  // reused for up to AUDIO_REUSE_TTL regardless of the 45-min script TTL, so
+  // each drop is paid for roughly once a week, not once per rotation cycle.
+  if (trackId) {
+    try {
+      const row = await prisma.djDropScript.findUnique({
+        where: { trackId_lang: { trackId, lang } },
+      });
+      const audioFresh =
+        row?.audioGeneratedAt &&
+        Date.now() - row.audioGeneratedAt.getTime() < AUDIO_REUSE_TTL_MS;
+      if (row?.audioData && row.audioVoiceId === ELEVENLABS_VOICE_ID && audioFresh) {
+        const dataUrl = `data:audio/mpeg;base64,${Buffer.from(row.audioData).toString("base64")}`;
+        dropCache.set(trackId, { url: dataUrl, ts: Date.now() });
+        return Response.json(
+          preWarm
+            ? { ok: true, preWarmed: true, audioCached: true }
+            : { url: dataUrl, script: row.script, cached: true },
+        );
+      }
+    } catch { /* fall through to generation */ }
+  }
+
   let script: string;
   try {
     script = await generateScript({ trackId, trackTitle, artist, vibe, lang, listenerCount, includeChatContext });
@@ -257,23 +284,6 @@ export async function POST(req: Request) {
   } catch (err) {
     console.error("[dj-drop] Claude script error (using template fallback):", err);
     script = templateScript(trackTitle, artist, vibe, lang);
-  }
-
-  // Reuse persisted ElevenLabs audio when the stored script + voice still
-  // match — survives cold starts, so TTS is paid for once per script, ever.
-  if (trackId) {
-    try {
-      const row = await prisma.djDropScript.findUnique({
-        where: { trackId_lang: { trackId, lang } },
-      });
-      if (row?.audioData && row.audioVoiceId === ELEVENLABS_VOICE_ID && row.script === script) {
-        const dataUrl = `data:audio/mpeg;base64,${Buffer.from(row.audioData).toString("base64")}`;
-        dropCache.set(trackId, { url: dataUrl, ts: Date.now() });
-        return Response.json(
-          preWarm ? { ok: true, preWarmed: true, audioCached: true } : { url: dataUrl, script, cached: true },
-        );
-      }
-    } catch { /* fall through to TTS */ }
   }
 
   // Pre-warm continues through TTS: generating the audio 45s ahead of the
