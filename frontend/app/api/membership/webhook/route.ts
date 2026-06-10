@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { sendMembershipWelcomeEmail } from "@/lib/mailer";
 
 export const runtime = "nodejs";
 
@@ -49,6 +50,7 @@ export async function POST(req: NextRequest) {
       const email = session.customer_email;
       if (email && TIER_MAP[tier]) {
         await prisma.user.update({ where: { email }, data: { tier: TIER_MAP[tier] } });
+        void sendMembershipWelcomeEmail({ email, tier: TIER_MAP[tier] }).catch(() => undefined);
       }
     }
 

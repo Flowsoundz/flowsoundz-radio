@@ -672,6 +672,60 @@ export async function sendArtistRejectionEmail(data: {
   });
 }
 
+export async function sendMembershipWelcomeEmail(data: {
+  email: string;
+  tier: "INSIDER" | "VAULT";
+}) {
+  const transporter = getTransporter();
+  if (!transporter) return;
+  const from = getNotifyEmail();
+  const siteUrl = getSiteUrl();
+  const tierLabel = data.tier === "VAULT" ? "Vault" : "Insider";
+  const tierColor = data.tier === "VAULT" ? "#d946ef" : "#00e5ff";
+  const tierPerks = data.tier === "VAULT"
+    ? ["Full Vault exclusive library", "Earliest entry to every drop window", "Deep production context + Behind the Mix"]
+    : ["Day One Access to new releases", "Behind the Mix creator notes", "Early Midnight Drop access"];
+
+  await transporter.sendMail({
+    from: `"FlowSoundz Radio" <${from}>`,
+    to: data.email,
+    subject: `Welcome to FlowSoundz ${tierLabel} — you're in`,
+    text: [
+      `Welcome to FlowSoundz ${tierLabel}.`,
+      ``,
+      `Your membership is active. Here's what you've unlocked:`,
+      tierPerks.map((p) => `  · ${p}`).join("\n"),
+      ``,
+      `Start listening: ${siteUrl}/radio`,
+      ``,
+      `Manage billing any time from the account menu.`,
+      ``,
+      `— FlowSoundz Radio`,
+    ].join("\n"),
+    html: `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#1e293b">
+        <div style="background:#07070f;padding:32px 28px;border-radius:12px 12px 0 0">
+          <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:${tierColor}">FlowSoundz Radio · ${tierLabel}</p>
+          <h1 style="margin:10px 0 4px;font-size:22px;color:#fff;font-weight:800">Welcome to ${tierLabel}</h1>
+          <p style="margin:0;font-size:14px;color:#94a3b8">Your membership is active.</p>
+        </div>
+        <div style="background:#f8fafc;padding:28px;border-radius:0 0 12px 12px;border:1px solid #e2e8f0;border-top:none">
+          <p style="font-size:14px;color:#334155;margin:0 0 20px">Here's what you've unlocked:</p>
+          <ul style="margin:0 0 24px;padding:0;list-style:none">
+            ${tierPerks.map((p) => `<li style="padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:14px;color:#1e293b"><span style="color:${tierColor};margin-right:8px">✓</span>${p}</li>`).join("")}
+          </ul>
+          <a href="${siteUrl}/radio" style="display:inline-block;background:linear-gradient(135deg,#00e5ff,#7c4dff);color:#fff;font-weight:700;font-size:14px;padding:14px 32px;border-radius:999px;text-decoration:none">
+            Start Listening →
+          </a>
+          <p style="margin-top:24px;font-size:12px;color:#94a3b8">
+            Cancel any time from the Account menu. Questions? Reply to this email.
+          </p>
+        </div>
+      </div>
+    `,
+  });
+}
+
 export async function sendFoundingMemberEmail(email: string, spotNumber: number) {
   const transporter = getTransporter();
   if (!transporter) return;

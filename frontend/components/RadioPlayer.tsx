@@ -118,6 +118,11 @@ const TipModal = dynamic(
   { ssr: false },
 );
 
+const MembershipUpgradeSheet = dynamic(
+  () => import("@/components/MembershipUpgradeSheet").then((m) => ({ default: m.MembershipUpgradeSheet })),
+  { ssr: false },
+);
+
 const AuthButton = dynamic(
   () => import("@/components/AuthButton").then((m) => ({ default: m.AuthButton })),
   { ssr: false },
@@ -513,6 +518,7 @@ export default function RadioPlayer() {
   const [shareCopied, setShareCopied] = useState(false);
   const [showShareCard, setShowShareCard] = useState(false);
   const [showTipModal, setShowTipModal] = useState(false);
+  const [showUpgradeSheet, setShowUpgradeSheet] = useState(false);
   const [favorited, setFavorited] = useState(false);
   const [favoriteCount, setFavoriteCount] = useState(0);
   const [chatUnread, setChatUnread] = useState(0);
@@ -2775,9 +2781,13 @@ export default function RadioPlayer() {
                   </span>
                 ) : null}
                 {currentSongIsLocked ? (
-                  <span className="state-fade rounded-full border border-amber-300/18 bg-amber-200/10 px-3 py-1 text-xs font-medium text-amber-100">
-                    Locked for Listener
-                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowUpgradeSheet(true)}
+                    className="pointer-events-auto state-fade flex items-center gap-1.5 rounded-full border border-amber-300/25 bg-amber-300/10 px-3 py-1 text-xs font-semibold text-amber-200 transition hover:border-amber-300/40 hover:bg-amber-300/18"
+                  >
+                    🔒 Members only — Unlock →
+                  </button>
                 ) : null}
                 <span className="state-fade rounded-full border border-white/8 bg-white/5 px-3 py-1 text-xs font-medium text-[#CBD5E1]">
                   {archivePlaybackMode
@@ -3121,13 +3131,23 @@ export default function RadioPlayer() {
                           </span>
                         ) : null}
                         {queueAccessLabel ? (
-                          <span className={`state-fade rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.22em] ${
-                            queueAccessLabel === "Vault"
-                              ? "border-[#00e5ff]/40 bg-[#00e5ff]/10 text-[#00e5ff] shadow-[0_0_8px_rgba(0,229,255,0.3)]"
-                              : "border-white/8 bg-white/5 text-[#CBD5E1]"
-                          }`}>
-                            {queueAccessLabel}
-                          </span>
+                          queueAccessLabel === "Vault" && !canUserTierAccessTrack(song, currentUserTier) ? (
+                            <button
+                              type="button"
+                              onClick={() => setShowUpgradeSheet(true)}
+                              className="pointer-events-auto state-fade rounded-full border border-amber-300/25 bg-amber-300/8 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-200 transition hover:border-amber-300/40"
+                            >
+                              🔒 Unlock
+                            </button>
+                          ) : (
+                            <span className={`state-fade rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.22em] ${
+                              queueAccessLabel === "Vault"
+                                ? "border-[#00e5ff]/40 bg-[#00e5ff]/10 text-[#00e5ff] shadow-[0_0_8px_rgba(0,229,255,0.3)]"
+                                : "border-white/8 bg-white/5 text-[#CBD5E1]"
+                            }`}>
+                              {queueAccessLabel}
+                            </span>
+                          )
                         ) : null}
                       </div>
                     </div>
@@ -3302,6 +3322,13 @@ export default function RadioPlayer() {
           artistName={currentSong.artist}
           songTitle={currentSong.title}
           onClose={() => setShowTipModal(false)}
+        />
+      )}
+      {showUpgradeSheet && currentSong && (
+        <MembershipUpgradeSheet
+          songTitle={currentSong.title}
+          songArtist={currentSong.artist}
+          onClose={() => setShowUpgradeSheet(false)}
         />
       )}
     </section>
