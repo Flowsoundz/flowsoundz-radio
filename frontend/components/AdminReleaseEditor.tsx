@@ -13,6 +13,7 @@ type AdminReleaseSong = Pick<
   | "public_release_at"
   | "is_featured"
   | "is_vault"
+  | "is_explicit"
   | "behind_the_mix_text"
 >;
 
@@ -57,6 +58,7 @@ export function AdminReleaseEditor({ songs }: AdminReleaseEditorProps) {
   );
   const [isFeatured, setIsFeatured] = useState(Boolean(songs[0]?.is_featured));
   const [isVault, setIsVault] = useState(Boolean(songs[0]?.is_vault));
+  const [isExplicit, setIsExplicit] = useState(Boolean(songs[0]?.is_explicit));
   const [behindTheMixText, setBehindTheMixText] = useState(
     songs[0]?.behind_the_mix_text ?? "",
   );
@@ -79,6 +81,7 @@ export function AdminReleaseEditor({ songs }: AdminReleaseEditorProps) {
     setPublicReleaseAt(toDateTimeLocalValue(song.public_release_at));
     setIsFeatured(Boolean(song.is_featured));
     setIsVault(Boolean(song.is_vault));
+    setIsExplicit(Boolean(song.is_explicit));
     setBehindTheMixText(song.behind_the_mix_text ?? "");
   }
 
@@ -108,6 +111,7 @@ export function AdminReleaseEditor({ songs }: AdminReleaseEditorProps) {
       formData.append("publicReleaseAt", toIsoStringOrEmpty(publicReleaseAt));
       formData.append("isFeatured", String(isFeatured));
       formData.append("isVault", String(isVault));
+      formData.append("isExplicit", String(isExplicit));
       formData.append("behindTheMixText", behindTheMixText);
 
       const response = await fetch("/api/admin/releases", {
@@ -211,7 +215,7 @@ export function AdminReleaseEditor({ songs }: AdminReleaseEditorProps) {
             />
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-3">
             <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/6 px-4 py-3 text-sm text-white">
               <input
                 type="checkbox"
@@ -227,6 +231,14 @@ export function AdminReleaseEditor({ songs }: AdminReleaseEditorProps) {
                 onChange={(event) => setIsVault(event.target.checked)}
               />
               Vault
+            </label>
+            <label className="flex items-center gap-3 rounded-2xl border border-[#FF2DA6]/30 bg-[#FF2DA6]/6 px-4 py-3 text-sm text-white">
+              <input
+                type="checkbox"
+                checked={isExplicit}
+                onChange={(event) => setIsExplicit(event.target.checked)}
+              />
+              Explicit
             </label>
           </div>
 

@@ -28,6 +28,7 @@ model User {
   image         String?
   role          UserRole   @default(LISTENER)
   tier          MemberTier @default(FREE)
+  allowExplicit Boolean    @default(true)
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
 
@@ -213,6 +214,7 @@ model Song {
   behindTheMixText String?
   youtubeUrl   String?
   localStream  Boolean   @default(false)
+  isExplicit   Boolean   @default(false)
   isAiGenerated Boolean  @default(false)
   aiPlatform   String?
   curatedFallback Boolean @default(false)

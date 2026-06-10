@@ -14,14 +14,18 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const vibe = searchParams.get("vibe");
+    const allowExplicit = searchParams.get("allowExplicit") !== "false";
     const snapshot = await readCatalogSnapshotFromStore();
     const baseSongs =
       snapshot.songs.length > 0 ? snapshot.songs : getStaticCatalog();
     const songs = baseSongs.map(normalizeStationSong);
-    const filtered =
+    const vibeFiltered =
       vibe && vibe !== "all"
         ? songs.filter((song) => song.vibe === vibe)
         : songs;
+    const filtered = allowExplicit
+      ? vibeFiltered
+      : vibeFiltered.filter((song) => !song.is_explicit);
 
     return NextResponse.json(reorderQueue(filtered), {
       headers: {

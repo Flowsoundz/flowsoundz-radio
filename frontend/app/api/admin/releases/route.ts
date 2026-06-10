@@ -23,6 +23,7 @@ async function saveReleaseSettings(request: Request) {
   const publicReleaseAtRaw = String(formData.get("publicReleaseAt") ?? "").trim();
   const isFeatured = String(formData.get("isFeatured") ?? "") === "true";
   const isVault = String(formData.get("isVault") ?? "") === "true";
+  const isExplicit = String(formData.get("isExplicit") ?? "") === "true";
   const behindTheMixTextRaw = String(formData.get("behindTheMixText") ?? "");
 
   if (!process.env.ADMIN_UPLOAD_PASSWORD) {
@@ -58,6 +59,7 @@ async function saveReleaseSettings(request: Request) {
         publicReleaseAt,
         isFeatured,
         isVault,
+        isExplicit,
         behindTheMixText,
       },
     });

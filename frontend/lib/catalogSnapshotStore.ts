@@ -179,6 +179,7 @@ function mapPrismaSong(
     behind_the_mix_text: song.behindTheMixText ?? null,
     youtube_url: song.youtubeUrl ?? null,
     local_stream: song.localStream,
+    is_explicit: song.isExplicit,
     is_ai_generated: song.isAiGenerated,
     ai_platform: song.aiPlatform ?? null,
     curated_fallback: song.curatedFallback,

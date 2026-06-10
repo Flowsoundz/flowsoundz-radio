@@ -32,6 +32,7 @@ export type Song = {
   behind_the_mix_text?: string | null;
   youtube_url?: string | null;
   local_stream?: boolean;
+  is_explicit?: boolean;
   producer?: string | null;
   lang?: "en" | "es" | "spanglish";
   is_ai_generated?: boolean;
