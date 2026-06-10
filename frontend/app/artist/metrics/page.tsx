@@ -119,6 +119,12 @@ export default async function ArtistMetricsPage() {
           Metrics
         </span>
         <Link
+          href="/artist/analytics"
+          className="rounded-full border border-white/10 px-3 py-1 text-xs text-slate-400 transition hover:border-white/20 hover:text-white"
+        >
+          Track Analytics →
+        </Link>
+        <Link
           href="/admin"
           className="ml-auto rounded-full border border-white/10 px-3 py-1 text-xs text-slate-400 transition hover:border-white/20 hover:text-white"
         >
