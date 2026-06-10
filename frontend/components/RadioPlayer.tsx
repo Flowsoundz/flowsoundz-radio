@@ -113,6 +113,11 @@ const ShareCardModal = dynamic(
   { ssr: false },
 );
 
+const TipModal = dynamic(
+  () => import("@/components/TipModal").then((m) => ({ default: m.TipModal })),
+  { ssr: false },
+);
+
 const AuthButton = dynamic(
   () => import("@/components/AuthButton").then((m) => ({ default: m.AuthButton })),
   { ssr: false },
@@ -507,6 +512,7 @@ export default function RadioPlayer() {
   const [tracksToday, setTracksToday] = useState(0);
   const [shareCopied, setShareCopied] = useState(false);
   const [showShareCard, setShowShareCard] = useState(false);
+  const [showTipModal, setShowTipModal] = useState(false);
   const [chatUnread, setChatUnread] = useState(0);
   const lastChatOpenRef = useRef<number>(Date.now());
   const [requestCounts, setRequestCounts] = useState<Record<string, number>>({});
@@ -2794,6 +2800,15 @@ export default function RadioPlayer() {
                     ⚡ Boost · {vibeBalance} pts
                   </button>
                 ) : null}
+                {currentSong && !isDropPlaying && currentArtistProfile?.slug ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowTipModal(true)}
+                    className="pointer-events-auto state-fade flex items-center gap-1.5 rounded-full border border-[#FF2DA6]/20 bg-[#FF2DA6]/08 px-3 py-1 text-xs font-medium text-[#FF2DA6] transition hover:bg-[#FF2DA6]/15"
+                  >
+                    💜 Tip
+                  </button>
+                ) : null}
                 {currentSong && !isDropPlaying ? (
                   <a
                     href={`https://open.spotify.com/search/${encodeURIComponent(`${currentSong.title} ${currentSong.artist}`)}`}
@@ -3236,6 +3251,14 @@ export default function RadioPlayer() {
         <ShareCardModal
           song={currentSong}
           onClose={() => setShowShareCard(false)}
+        />
+      )}
+      {showTipModal && currentSong && currentArtistProfile?.slug && (
+        <TipModal
+          artistSlug={currentArtistProfile?.slug}
+          artistName={currentSong.artist}
+          songTitle={currentSong.title}
+          onClose={() => setShowTipModal(false)}
         />
       )}
     </section>
