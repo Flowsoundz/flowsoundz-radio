@@ -69,6 +69,14 @@ export function AuthButton() {
             </div>
             <div className="my-1 border-t border-white/8" />
             <Link
+              href="/profile"
+              onClick={() => setOpen(false)}
+              className="flex w-full items-center gap-2 rounded-[1rem] px-3 py-2 text-xs text-slate-300 transition hover:bg-white/5 hover:text-white"
+            >
+              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              My Profile
+            </Link>
+            <Link
               href="/artist/metrics"
               onClick={() => setOpen(false)}
               className="flex w-full items-center gap-2 rounded-[1rem] px-3 py-2 text-xs text-slate-300 transition hover:bg-white/5 hover:text-white"

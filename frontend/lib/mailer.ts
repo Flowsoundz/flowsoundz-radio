@@ -720,3 +720,72 @@ export async function sendFoundingMemberEmail(email: string, spotNumber: number)
     `,
   });
 }
+
+export async function sendWeeklyDigest(data: {
+  recipients: string[];
+  topSongs: Array<{ title: string; artist: string; plays: number; vibe: string }>;
+  newSongsCount: number;
+  weekLabel: string;
+}) {
+  const transporter = getTransporter();
+  if (!transporter || data.recipients.length === 0) return { sent: 0, skipped: data.recipients.length };
+
+  const siteUrl = getSiteUrl();
+  const from = getNotifyEmail();
+
+  const songRows = data.topSongs
+    .map(
+      (s) =>
+        `<tr>
+          <td style="padding:10px 0;border-bottom:1px solid #e2e8f0">
+            <span style="font-size:14px;font-weight:600;color:#0f172a">${s.title}</span><br/>
+            <span style="font-size:12px;color:#64748b">${s.artist} · ${s.vibe}</span>
+          </td>
+          <td style="padding:10px 0;border-bottom:1px solid #e2e8f0;text-align:right;font-size:12px;color:#64748b;white-space:nowrap">
+            ${s.plays} plays
+          </td>
+        </tr>`,
+    )
+    .join("");
+
+  const html = `
+    <div style="font-family:sans-serif;max-width:600px;margin:0 auto;color:#1e293b">
+      <div style="background:linear-gradient(135deg,#07070f 0%,#0d1528 100%);padding:32px 28px;border-radius:12px 12px 0 0">
+        <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:#00e5ff">FlowSoundz Radio</p>
+        <h1 style="margin:10px 0 0;font-size:24px;color:#fff;font-weight:800">Weekly Pulse</h1>
+        <p style="margin:8px 0 0;font-size:14px;color:#94a3b8">${data.weekLabel}</p>
+      </div>
+      <div style="background:#f8fafc;padding:28px;border-radius:0 0 12px 12px;border:1px solid #e2e8f0;border-top:none">
+        ${data.newSongsCount > 0 ? `<p style="font-size:14px;color:#334155;margin:0 0 20px"><strong>${data.newSongsCount} new track${data.newSongsCount === 1 ? "" : "s"}</strong> added to the rotation this week.</p>` : ""}
+        <h2 style="font-size:13px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#64748b;margin:0 0 12px">Top Tracks This Week</h2>
+        <table style="width:100%;border-collapse:collapse">${songRows}</table>
+        <div style="margin-top:28px;text-align:center">
+          <a href="${siteUrl}/radio" style="display:inline-block;background:linear-gradient(135deg,#00e5ff,#7c4dff);color:#fff;font-weight:700;font-size:14px;padding:14px 32px;border-radius:999px;text-decoration:none">
+            Listen Now →
+          </a>
+        </div>
+        <p style="margin-top:24px;font-size:11px;color:#94a3b8;text-align:center">
+          You are receiving this because you are on the FlowSoundz list.
+        </p>
+      </div>
+    </div>
+  `;
+
+  let sent = 0;
+  for (const recipient of data.recipients) {
+    try {
+      await transporter.sendMail({
+        from: `"FlowSoundz Radio" <${from}>`,
+        to: recipient,
+        subject: `FlowSoundz Weekly Pulse — ${data.weekLabel}`,
+        html,
+        text: `FlowSoundz Weekly Pulse — ${data.weekLabel}\n\nTop tracks:\n${data.topSongs.map((s) => `${s.title} by ${s.artist} (${s.plays} plays)`).join("\n")}\n\nListen: ${siteUrl}/radio`,
+      });
+      sent++;
+    } catch {
+      // continue
+    }
+  }
+
+  return { sent, skipped: data.recipients.length - sent };
+}

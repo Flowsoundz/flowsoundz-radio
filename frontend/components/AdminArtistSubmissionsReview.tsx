@@ -72,6 +72,7 @@ export function AdminArtistSubmissionsReview({
     initial[0]?.status ?? "new",
   );
   const [notes, setNotes] = useState(initial[0]?.internal_notes ?? "");
+  const [feedback, setFeedback] = useState(initial[0]?.artist_feedback ?? "");
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -93,6 +94,7 @@ export function AdminArtistSubmissionsReview({
     setSelectedId(submission.submission_id);
     setStatus(submission.status);
     setNotes(submission.internal_notes ?? "");
+    setFeedback(submission.artist_feedback ?? "");
     setSaveStatus(null);
     setSaveError(null);
   }
@@ -120,6 +122,7 @@ export function AdminArtistSubmissionsReview({
       formData.append("submissionId", selectedId);
       formData.append("status", status);
       formData.append("internalNotes", notes);
+      formData.append("artistFeedback", feedback);
 
       const response = await fetch("/api/admin/artist-submissions", {
         method: "POST",
@@ -166,6 +169,7 @@ export function AdminArtistSubmissionsReview({
       formData.append("submissionId", selected.submission_id);
       formData.append("status", nextStatus);
       formData.append("internalNotes", notes);
+      formData.append("artistFeedback", feedback);
 
       const response = await fetch("/api/admin/artist-submissions", {
         method: "POST",
@@ -506,6 +510,22 @@ export function AdminArtistSubmissionsReview({
                     rows={4}
                     placeholder="Fit notes, follow-up actions, rotation decision..."
                     className="mt-2 w-full rounded-[1.4rem] border border-white/10 bg-white/6 px-4 py-3 text-sm text-white outline-none placeholder:text-[#CBD5E1]/35 focus:border-cyan-300/35"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-200">
+                    Artist-facing feedback
+                  </label>
+                  <p className="mt-1 text-xs text-[#CBD5E1]/55">
+                    Visible to the artist on their My Submissions page.
+                  </p>
+                  <textarea
+                    value={feedback}
+                    onChange={(event) => setFeedback(event.target.value)}
+                    rows={3}
+                    placeholder="What made this stand out, or what we&apos;d like to see improved..."
+                    className="mt-2 w-full rounded-[1.4rem] border border-[#7c4dff]/25 bg-[#7c4dff]/[0.05] px-4 py-3 text-sm text-white outline-none placeholder:text-[#CBD5E1]/35 focus:border-[#7c4dff]/50"
                   />
                 </div>
 

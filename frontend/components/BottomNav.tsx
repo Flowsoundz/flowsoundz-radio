@@ -39,6 +39,7 @@ const CREATOR_ICON = (
 );
 
 const MORE_LINKS = [
+  { href: "/profile", label: "My Profile" },
   { href: "/for-artists", label: "For Artists" },
   { href: "/membership", label: "Membership" },
   { href: "/visualizer", label: "Visualizer" },

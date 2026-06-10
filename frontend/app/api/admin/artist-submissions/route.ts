@@ -37,6 +37,8 @@ export async function POST(request: Request) {
   const status = String(formData.get("status") ?? "").trim() as ArtistSubmissionStatus;
   const internalNotesRaw = String(formData.get("internalNotes") ?? "").trim();
   const internalNotes = internalNotesRaw || null;
+  const artistFeedbackRaw = String(formData.get("artistFeedback") ?? "").trim();
+  const artistFeedback = artistFeedbackRaw || null;
 
   if (!process.env.ADMIN_UPLOAD_PASSWORD) {
     return NextResponse.json(
@@ -62,6 +64,7 @@ export async function POST(request: Request) {
       submissionId,
       status,
       internalNotes,
+      artistFeedback,
     });
 
     if (status === "approved") {

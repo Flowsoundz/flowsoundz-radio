@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { AppShell } from "@/components/AppShell";
+import { CopyEmbedCode } from "@/components/CopyEmbedCode";
 
 export const metadata: Metadata = {
   title: "Track Analytics — FlowSoundz Radio",
@@ -309,6 +310,29 @@ export default async function AnalyticsPage() {
           </section>
         );
       })()}
+
+      {/* Embed codes */}
+      {rows.length > 0 && (
+        <section className="mt-6 rounded-[1.8rem] border border-white/8 bg-[#0B1020]/80 overflow-hidden">
+          <div className="px-6 py-4 border-b border-white/[0.05]">
+            <h2 className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">Embed Codes</h2>
+            <p className="mt-1 text-xs text-slate-500">Paste into any website to let fans play your track inline.</p>
+          </div>
+          <div className="divide-y divide-white/[0.04]">
+            {rows.slice(0, 5).map((row) => {
+              const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://flowsoundzradio.com";
+              const embedUrl = `${siteUrl}/embed/${row.id}`;
+              const code = `<iframe src="${embedUrl}" width="100%" height="80" frameborder="0" allow="autoplay" style="border-radius:16px;overflow:hidden"></iframe>`;
+              return (
+                <div key={row.id} className="px-6 py-4">
+                  <p className="text-xs font-semibold text-white mb-2">{row.title}</p>
+                  <CopyEmbedCode code={code} />
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Legend */}
       <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1.5 text-[11px] text-slate-500">

@@ -120,6 +120,18 @@ export default async function AdminPage() {
       description:
         "Edit homepage copy, CTA buttons, value cards, and brand text without touching code.",
     },
+    {
+      href: "/admin/songs/new",
+      title: "Add Song",
+      description:
+        "Add a new song to the rotation catalog directly via Prisma — no media backend needed.",
+    },
+    {
+      href: "/admin/digest",
+      title: "Weekly Digest",
+      description:
+        "Preview and send the weekly pulse email to all waitlist subscribers and registered users.",
+    },
   ];
 
   const totalPending = pendingSubmissions + pendingPromo;

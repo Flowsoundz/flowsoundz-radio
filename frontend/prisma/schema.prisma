@@ -37,6 +37,7 @@ model User {
   vibePoints       VibePoints?
   vibeTransactions  VibeTransaction[]  @relation("UserVibeTransactions")
   pushSubscriptions PushSubscription[]
+  favorites        SongFavorite[]
 
   @@map("users")
 }
@@ -117,6 +118,7 @@ enum AnalyticsEventName {
   VISUALIZER_OPEN
   ARTIST_SUBMISSION_STARTED
   ARTIST_SUBMISSION_COMPLETED
+  SONG_FAVORITE
 }
 
 enum PackagingStatus {
@@ -228,6 +230,7 @@ model Song {
   analyticsEvents   AnalyticsEvent[]
   queuePreferences  QueuePreference?
   radioSessions     RadioSession[]
+  favorites         SongFavorite[]
 
   @@index([artistId])
   @@index([vibe])
@@ -570,6 +573,22 @@ model SongRequest {
   @@unique([songId, ip])
   @@index([songId])
   @@map("song_requests")
+}
+
+model SongFavorite {
+  id        String   @id @default(cuid())
+  songId    String
+  userId    String?
+  ip        String
+  createdAt DateTime @default(now())
+
+  song Song  @relation(fields: [songId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@unique([songId, ip])
+  @@index([songId])
+  @@index([userId])
+  @@map("song_favorites")
 }
 
 model ChatMessage {

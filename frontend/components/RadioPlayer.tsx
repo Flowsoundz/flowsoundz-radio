@@ -513,6 +513,8 @@ export default function RadioPlayer() {
   const [shareCopied, setShareCopied] = useState(false);
   const [showShareCard, setShowShareCard] = useState(false);
   const [showTipModal, setShowTipModal] = useState(false);
+  const [favorited, setFavorited] = useState(false);
+  const [favoriteCount, setFavoriteCount] = useState(0);
   const [chatUnread, setChatUnread] = useState(0);
   const lastChatOpenRef = useRef<number>(Date.now());
   const [requestCounts, setRequestCounts] = useState<Record<string, number>>({});
@@ -684,6 +686,17 @@ export default function RadioPlayer() {
       })
       .catch(() => { /* ignore */ });
   }, [queue, currentIndex]);
+
+  // Fetch favorite state when the current song changes
+  useEffect(() => {
+    if (!currentSong?.id) return;
+    void fetch(`/api/radio/favorite?songId=${encodeURIComponent(currentSong.id)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { favorited: boolean; count: number } | null) => {
+        if (data) { setFavorited(data.favorited); setFavoriteCount(data.count); }
+      })
+      .catch(() => { /* ignore */ });
+  }, [currentSong?.id]);
 
   // Fetch stream auth cookie on mount, refresh every 50 min to keep audio access alive.
   useEffect(() => {
@@ -2457,6 +2470,11 @@ export default function RadioPlayer() {
                     <p className="mt-1 text-[#CBD5E1]">
                       {preparedEvent.nextSong.artist}
                     </p>
+                    {preparedEvent.plan.djLine ? (
+                      <p className="mt-2 italic text-[#CBD5E1]/65 leading-4">
+                        &ldquo;{preparedEvent.plan.djLine}&rdquo;
+                      </p>
+                    ) : null}
                   </div>
                 ) : null}
               </div>
@@ -2807,6 +2825,31 @@ export default function RadioPlayer() {
                     className="pointer-events-auto state-fade flex items-center gap-1.5 rounded-full border border-[#FF2DA6]/20 bg-[#FF2DA6]/08 px-3 py-1 text-xs font-medium text-[#FF2DA6] transition hover:bg-[#FF2DA6]/15"
                   >
                     💜 Tip
+                  </button>
+                ) : null}
+                {currentSong && !isDropPlaying ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void fetch("/api/radio/favorite", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ songId: currentSong.id }),
+                      })
+                        .then((r) => (r.ok ? r.json() : null))
+                        .then((data: { favorited: boolean; count: number } | null) => {
+                          if (data) { setFavorited(data.favorited); setFavoriteCount(data.count); }
+                        })
+                        .catch(() => { /* ignore */ });
+                    }}
+                    className={`pointer-events-auto state-fade flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition ${
+                      favorited
+                        ? "border-rose-400/35 bg-rose-400/15 text-rose-300"
+                        : "border-white/12 bg-white/5 text-slate-400 hover:border-rose-400/25 hover:text-rose-300"
+                    }`}
+                    title={favorited ? "Remove from favorites" : "Save to favorites"}
+                  >
+                    {favorited ? "♥" : "♡"}{favoriteCount > 0 ? ` ${favoriteCount}` : ""}
                   </button>
                 ) : null}
                 {currentSong && !isDropPlaying ? (

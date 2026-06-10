@@ -320,6 +320,7 @@ export async function updateArtistSubmissionReview(input: {
   submissionId: string;
   status: ArtistSubmissionStatus;
   internalNotes: string | null;
+  artistFeedback?: string | null;
 }) {
   if (SHOULD_USE_PRISMA) {
     const submission = await prisma.artistSubmission.update({
@@ -330,6 +331,7 @@ export async function updateArtistSubmissionReview(input: {
           create: {
             status: toPrismaStatus(input.status),
             internalNotes: input.internalNotes,
+            artistFeedback: input.artistFeedback ?? null,
             reviewedAt: new Date(),
           },
         },
