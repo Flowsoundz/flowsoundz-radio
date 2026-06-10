@@ -91,6 +91,18 @@ export default async function ArtistDashboardPage() {
             >
               My Submissions
             </Link>
+            <Link
+              href="/artist/my-stats"
+              className="inline-flex min-h-11 items-center justify-center rounded-full border border-cyan-400/20 bg-cyan-400/[0.06] px-6 py-2.5 text-sm font-medium text-cyan-300 transition hover:border-cyan-400/35 hover:text-cyan-200"
+            >
+              My Stats
+            </Link>
+            <Link
+              href="/artist/drops"
+              className="inline-flex min-h-11 items-center justify-center rounded-full border border-fuchsia-400/20 bg-fuchsia-400/[0.06] px-6 py-2.5 text-sm font-medium text-fuchsia-300 transition hover:border-fuchsia-400/35 hover:text-fuchsia-200"
+            >
+              Schedule Drops
+            </Link>
           </div>
         </div>
       </div>
