@@ -216,29 +216,50 @@ export function PromoCheckoutPage() {
                 {
                   tier: "basic" as PromoTier,
                   name: "Basic Submission",
-                  description: "Your track into the review queue with artist details, vibe notes, and a manual listen from the FlowSoundz team.",
+                  description: "Your track into the review queue with a manual listen from the FlowSoundz team.",
                   price: "$15",
                   accent: "border-[#00E5FF]/20 bg-[#00E5FF]/10",
                   labelColor: "text-cyan-300",
                   btnClass: "bg-cyan-400/15 text-cyan-200 hover:bg-cyan-400/25",
+                  inclusions: [
+                    "Manual listen by FSR curation team",
+                    "Artist details & vibe notes reviewed",
+                    "Email decision within 48–72 hours",
+                    "Eligible for standard radio rotation",
+                  ],
                 },
                 {
                   tier: "featured" as PromoTier,
                   name: "Featured Consideration",
-                  description: "Priority review for standout records that may fit featured placement, homepage visibility, or curated station moments.",
+                  description: "Priority review for records that may fit featured placement, homepage, or curated station moments.",
                   price: "$45",
                   accent: "border-[#8B5CF6]/20 bg-[#8B5CF6]/12",
                   labelColor: "text-violet-300",
                   btnClass: "bg-violet-500/15 text-violet-200 hover:bg-violet-500/25",
+                  inclusions: [
+                    "Everything in Basic",
+                    "Priority queue — reviewed within 24 hours",
+                    "Homepage featured slot consideration",
+                    "Curated station placement review",
+                    "AI-generated promo kit (bio + social captions)",
+                  ],
                 },
                 {
                   tier: "sponsored" as PromoTier,
                   name: "Sponsored Rotation",
-                  description: "High-visibility promo lane for premium station presence, sponsored support, and elevated release visibility.",
+                  description: "Premium station presence, sponsored support, and elevated release visibility across FSR.",
                   price: "$95",
                   accent: "border-[#FF2DA6]/20 bg-[#FF2DA6]/10",
                   labelColor: "text-fuchsia-300",
                   btnClass: "bg-fuchsia-500/15 text-fuchsia-200 hover:bg-fuchsia-500/25",
+                  inclusions: [
+                    "Everything in Featured",
+                    "Guaranteed rotation for 7 days",
+                    "Sponsored placement badge on artist page",
+                    "Email blast to full subscriber list",
+                    "Weekly Digest feature inclusion",
+                    "Shareable social card generated",
+                  ],
                 },
               ] as const
             ).map((pkg) => (
@@ -253,7 +274,15 @@ export function PromoCheckoutPage() {
                   <span className="font-headline text-4xl leading-none text-[#F8FAFC]">{pkg.price}</span>
                   <span className="mb-0.5 text-sm text-[#CBD5E1]/60">/submission</span>
                 </div>
-                <p className="mt-3 flex-1 text-sm leading-6 text-[#CBD5E1]">{pkg.description}</p>
+                <p className="mt-3 text-sm leading-6 text-[#CBD5E1]">{pkg.description}</p>
+                <ul className="mt-4 flex-1 space-y-2">
+                  {pkg.inclusions.map((item) => (
+                    <li key={item} className="flex items-start gap-2 text-xs text-slate-300">
+                      <span className="mt-[3px] shrink-0 text-[10px] text-emerald-400">✓</span>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
                 <button
                   type="button"
                   disabled={checkoutLoading !== null}

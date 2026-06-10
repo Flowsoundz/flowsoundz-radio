@@ -11,7 +11,13 @@ datasource db {
 enum UserRole {
   LISTENER
   ARTIST
+  LABEL_MANAGER
   ADMIN
+}
+
+enum LabelTier {
+  STARTER
+  PRO
 }
 
 enum MemberTier {
@@ -38,6 +44,7 @@ model User {
   vibeTransactions  VibeTransaction[]  @relation("UserVibeTransactions")
   pushSubscriptions PushSubscription[]
   favorites        SongFavorite[]
+  labelManagers    LabelManager[]
 
   @@map("users")
 }
@@ -182,6 +189,8 @@ model Artist {
   supportLinks      ArtistSupportLink[]
   visualizerSessions ArtistVisualizerSession[]
   analyticsEvents   AnalyticsEvent[]
+  payouts           ArtistPayout[]
+  labelLinks        LabelArtist[]
 
   @@map("artists")
 }
@@ -616,4 +625,92 @@ model PushSubscription {
 
   @@index([userId])
   @@map("push_subscriptions")
+}
+
+// ─── Revenue Share ────────────────────────────────────────────────────────────
+
+model RevenuePool {
+  id           String   @id @default(cuid())
+  month        String   // "YYYY-MM"
+  totalRevenue Float    // gross subscription revenue that month (USD)
+  artistPool   Float    // amount reserved for artist payouts
+  distributed  Boolean  @default(false)
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  payouts ArtistPayout[]
+
+  @@unique([month])
+  @@map("revenue_pools")
+}
+
+model ArtistPayout {
+  id              String   @id @default(cuid())
+  poolId          String
+  artistId        String
+  month           String
+  playCount       Int
+  totalPlays      Int
+  playShare       Float
+  estimatedAmount Float
+  paid            Boolean  @default(false)
+  paidAt          DateTime?
+  createdAt       DateTime @default(now())
+
+  pool   RevenuePool @relation(fields: [poolId], references: [id], onDelete: Cascade)
+  artist Artist      @relation(fields: [artistId], references: [id], onDelete: Cascade)
+
+  @@unique([poolId, artistId])
+  @@index([artistId])
+  @@index([month])
+  @@map("artist_payouts")
+}
+
+// ─── Label / Agency ───────────────────────────────────────────────────────────
+
+model Label {
+  id               String    @id @default(cuid())
+  name             String
+  slug             String    @unique
+  email            String    @unique
+  tier             LabelTier @default(STARTER)
+  stripeCustomerId String?
+  maxArtists       Int       @default(5)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  managers LabelManager[]
+  artists  LabelArtist[]
+
+  @@map("labels")
+}
+
+model LabelManager {
+  id        String   @id @default(cuid())
+  labelId   String
+  userId    String
+  role      String   @default("OWNER")
+  createdAt DateTime @default(now())
+
+  label Label @relation(fields: [labelId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([labelId, userId])
+  @@index([userId])
+  @@map("label_managers")
+}
+
+model LabelArtist {
+  id        String   @id @default(cuid())
+  labelId   String
+  artistId  String
+  createdAt DateTime @default(now())
+
+  label  Label  @relation(fields: [labelId], references: [id], onDelete: Cascade)
+  artist Artist @relation(fields: [artistId], references: [id], onDelete: Cascade)
+
+  @@unique([labelId, artistId])
+  @@index([labelId])
+  @@map("label_artists")
 }

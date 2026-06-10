@@ -18,6 +18,7 @@ const SHELL_LINKS = [
   { href: "/artists", label: "Artists" },
   { href: "/search", label: "Search" },
   { href: "/drops", label: "Drops" },
+  { href: "/label/register", label: "Label" },
   { href: "/artist/dashboard", label: "Creator Hub" },
   { href: "/for-artists", label: "For Artists" },
 ] as const;

@@ -132,6 +132,12 @@ export default async function AdminPage() {
       description:
         "Preview and send the weekly pulse email to all waitlist subscribers and registered users.",
     },
+    {
+      href: "/admin/revenue",
+      title: "Revenue Share",
+      description:
+        "Set monthly subscription revenue pools and compute per-artist payouts based on play share.",
+    },
   ];
 
   const totalPending = pendingSubmissions + pendingPromo;

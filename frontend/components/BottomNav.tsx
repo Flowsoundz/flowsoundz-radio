@@ -42,6 +42,7 @@ const MORE_LINKS = [
   { href: "/profile", label: "My Profile" },
   { href: "/search", label: "Search" },
   { href: "/drops", label: "Drops" },
+  { href: "/label/register", label: "Label / Agency" },
   { href: "/for-artists", label: "For Artists" },
   { href: "/membership", label: "Membership" },
   { href: "/visualizer", label: "Visualizer" },

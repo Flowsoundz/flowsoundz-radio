@@ -98,6 +98,12 @@ export default async function ArtistDashboardPage() {
               My Stats
             </Link>
             <Link
+              href="/artist/earnings"
+              className="inline-flex min-h-11 items-center justify-center rounded-full border border-emerald-400/20 bg-emerald-400/[0.06] px-6 py-2.5 text-sm font-medium text-emerald-300 transition hover:border-emerald-400/35 hover:text-emerald-200"
+            >
+              My Earnings
+            </Link>
+            <Link
               href="/artist/drops"
               className="inline-flex min-h-11 items-center justify-center rounded-full border border-fuchsia-400/20 bg-fuchsia-400/[0.06] px-6 py-2.5 text-sm font-medium text-fuchsia-300 transition hover:border-fuchsia-400/35 hover:text-fuchsia-200"
             >
