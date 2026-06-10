@@ -63,6 +63,7 @@ import { useVibePoints } from "@/lib/useVibePoints";
 import { useUserTier } from "@/lib/useUserTier";
 import { isSpecialNarrationMoment } from "@/lib/radioContext";
 import { ExplicitToggle } from "@/components/ExplicitToggle";
+import { useListenerSession } from "@/lib/useListenerSession";
 
 const VisualizerModal = dynamic(
   () =>
@@ -509,6 +510,7 @@ export default function RadioPlayer() {
 
   const defaultCoverUrl = getDefaultCoverUrl();
   const currentSong = queue[currentIndex] ?? null;
+  const listenerCount = useListenerSession(currentSong?.id ?? null);
   const hasPlayableQueue = queue.some((song) => song.is_playable);
   const queueSnapshot = useMemo(() => getCatalogSnapshot(queue), [queue]);
   const stationMode = queueSnapshot.stationMode;
@@ -2397,6 +2399,13 @@ export default function RadioPlayer() {
           </div>
           {/* Station stats */}
           <div className="mt-4 flex flex-wrap gap-3 sm:gap-5">
+            {listenerCount !== null && (
+              <div className="flex min-w-0 items-center gap-2 rounded-full border border-[#00FF88]/20 bg-[#00FF88]/8 px-3 py-1.5">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#00FF88]" />
+                <span className="text-[11px] text-[#CBD5E1]/60">Listening now</span>
+                <span className="text-[11px] font-semibold text-[#00FF88]/90">{listenerCount}</span>
+              </div>
+            )}
             <div className="flex min-w-0 items-center gap-2 rounded-full border border-white/8 bg-white/5 px-3 py-1.5">
               <svg className="h-3.5 w-3.5 text-[#00FF88]/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
               <span className="text-[11px] text-[#CBD5E1]/40">Queued Tracks</span>
