@@ -490,6 +490,7 @@ export default function RadioPlayer() {
   >(async () => {});
   const handleTimeUpdateRef = useRef<() => void>(() => {});
   const handleLoadedMetadataRef = useRef<() => void>(() => {});
+  const resyncStationRef = useRef<() => void>(() => {});
   const lastCurrentTimeUiUpdateRef = useRef(0);
   const lastPersistedPlaybackKeyRef = useRef("");
   const smartNarrationAudioRef = useRef<string | null>(null);
@@ -2375,7 +2376,23 @@ export default function RadioPlayer() {
     skipToNextTrackRef.current = skipToNextTrack;
     handleTimeUpdateRef.current = handleTimeUpdate;
     handleLoadedMetadataRef.current = handleLoadedMetadata;
+    resyncStationRef.current = resyncStationAfterBackground;
   });
+
+  // Re-sync to the live broadcast when the tab/app returns to the foreground.
+  // Mobile browsers throttle timers while backgrounded, so this is what keeps
+  // phone listeners on the shared station after a lock/unlock.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") resyncStationRef.current();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("pageshow", onVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("pageshow", onVisible);
+    };
+  }, []);
 
   useEffect(() => {
     togglePlaybackRef.current = togglePlayback;
@@ -2460,6 +2477,31 @@ export default function RadioPlayer() {
     if (audio && Number.isFinite(audio.duration) && audio.duration > 0) {
       audio.currentTime = Math.min(entry.positionSec, Math.max(audio.duration - 1, 0));
       setCurrentTime(audio.currentTime);
+    }
+  }
+
+  // Mobile-critical: when the tab returns from the background (phone unlock,
+  // app switch) timers were throttled, so the player can be far behind the
+  // broadcast. Snap back to the live position — or rejoin via transition if the
+  // station moved to a different track while we were away. Respects user detach.
+  function resyncStationAfterBackground() {
+    if (!stationSyncedRef.current) return;
+    if (playbackModeRef.current !== "live") return;
+    if (isDropPlayingRef.current || transitionInFlightRef.current || isSkippingRef.current) return;
+    const entry = getStationClockNow();
+    if (!entry || entry.type !== "track") return;
+    lastDriftCheckMsRef.current = 0;
+    if (entry.song.id !== currentSong?.id) {
+      void queueTransitionToNextTrack("auto");
+      return;
+    }
+    const audio = audioRef.current;
+    if (audio && Number.isFinite(audio.duration) && audio.duration > 0) {
+      const drift = Math.abs(audio.currentTime - entry.positionSec);
+      if (drift > 3 && entry.positionSec < audio.duration - 1) {
+        audio.currentTime = entry.positionSec;
+        setCurrentTime(audio.currentTime);
+      }
     }
   }
 
