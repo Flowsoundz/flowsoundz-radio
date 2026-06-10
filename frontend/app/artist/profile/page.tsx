@@ -26,6 +26,7 @@ const SUPPORT_PLATFORMS = [
 type ArtistData = {
   name: string;
   bio: string | null;
+  payoutEmail: string | null;
   profile: { statement: string | null; rootsLabel: string | null } | null;
   socialLinks: { platform: string; url: string }[];
   supportLinks: { platform: string; label: string | null; url: string; isPrimary: boolean }[];
@@ -43,6 +44,7 @@ export default function ArtistProfilePage() {
   const [bio, setBio] = useState("");
   const [statement, setStatement] = useState("");
   const [rootsLabel, setRootsLabel] = useState("");
+  const [payoutEmail, setPayoutEmail] = useState("");
   const [socialLinks, setSocialLinks] = useState<Record<string, string>>({});
   const [supportLinks, setSupportLinks] = useState<Array<{ platform: string; label: string; url: string }>>([]);
 
@@ -56,6 +58,7 @@ export default function ArtistProfilePage() {
         setBio(a.bio ?? "");
         setStatement(a.profile?.statement ?? "");
         setRootsLabel(a.profile?.rootsLabel ?? "");
+        setPayoutEmail(a.payoutEmail ?? "");
         const sl: Record<string, string> = {};
         for (const link of a.socialLinks) sl[link.platform.toLowerCase()] = link.url;
         setSocialLinks(sl);
@@ -78,7 +81,7 @@ export default function ArtistProfilePage() {
       const res = await fetch("/api/artist/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, bio, statement, rootsLabel, socialLinks, supportLinks }),
+        body: JSON.stringify({ name, bio, statement, rootsLabel, payoutEmail, socialLinks, supportLinks }),
       });
       if (!res.ok) throw new Error("save_failed");
       setSaved(true);
@@ -197,6 +200,22 @@ export default function ArtistProfilePage() {
               <button type="button" onClick={() => removeSupportLink(i)} className="mt-2 text-slate-500 hover:text-red-400 transition text-lg leading-none">×</button>
             </div>
           ))}
+        </section>
+
+        {/* Payout */}
+        <section className="rounded-[1.8rem] border border-white/8 bg-[#0B1020]/80 p-6 space-y-4">
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">Earnings & Payout</h2>
+          <p className="text-xs text-slate-500">Where should we send your revenue share? We use PayPal for payouts.</p>
+          <Field label="PayPal Email">
+            <input
+              type="email"
+              value={payoutEmail}
+              onChange={(e) => setPayoutEmail(e.target.value)}
+              placeholder="your@paypal.com"
+              className={INPUT}
+            />
+          </Field>
+          <p className="text-[11px] text-slate-600">View your accumulated earnings on the <a href="/artist/earnings" className="text-[#00e5ff] hover:underline">Earnings page</a>.</p>
         </section>
 
         {/* Save */}

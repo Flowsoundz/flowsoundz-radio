@@ -62,6 +62,7 @@ type Props = {
   analyser?: AnalyserNode | null;
   className?: string;
   isActive?: boolean;
+  engagementMultiplier?: number;
 };
 
 export function VisualizerCanvasThree({
@@ -69,14 +70,17 @@ export function VisualizerCanvasThree({
   analyser = null,
   className,
   isActive = true,
+  engagementMultiplier = 1,
 }: Props) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const playRef      = useRef(isPlaying);
-  const analyserRef  = useRef(analyser);
-  const activeRef    = useRef(isActive);
-  useEffect(() => { playRef.current     = isPlaying; }, [isPlaying]);
-  useEffect(() => { analyserRef.current = analyser;  }, [analyser]);
-  useEffect(() => { activeRef.current   = isActive;  }, [isActive]);
+  const containerRef    = useRef<HTMLDivElement | null>(null);
+  const playRef         = useRef(isPlaying);
+  const analyserRef     = useRef(analyser);
+  const activeRef       = useRef(isActive);
+  const engagementRef   = useRef(engagementMultiplier);
+  useEffect(() => { playRef.current       = isPlaying; }, [isPlaying]);
+  useEffect(() => { analyserRef.current   = analyser;  }, [analyser]);
+  useEffect(() => { activeRef.current     = isActive;  }, [isActive]);
+  useEffect(() => { engagementRef.current = engagementMultiplier; }, [engagementMultiplier]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -239,9 +243,10 @@ export function VisualizerCanvasThree({
         for (let j = b2; j < b3; j++) rawHigh += freqData[j]!;  rawHigh /= (b3 - b2) * 255;
       }
 
-      sBass = sBass * 0.75 + rawBass * 0.25;
-      sMid  = sMid  * 0.65 + rawMid  * 0.35;
-      sHigh = sHigh * 0.55 + rawHigh * 0.45;
+      const eng = c01(engagementRef.current);
+      sBass = (sBass * 0.75 + rawBass * 0.25) * (0.7 + eng * 0.3);
+      sMid  = (sMid  * 0.65 + rawMid  * 0.35) * (0.7 + eng * 0.3);
+      sHigh = (sHigh * 0.55 + rawHigh * 0.45) * (0.8 + eng * 0.2);
       const delta = rawBass - prevRaw;
       if (delta > 0.10) beatFlash = c01(beatFlash + delta * 2.0);
       beatFlash *= 0.88;

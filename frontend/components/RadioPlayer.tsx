@@ -22,6 +22,7 @@ import {
 } from "@/lib/access";
 import { slugifyArtistName } from "@/lib/artists";
 import { getCatalogSnapshot } from "@/lib/catalogSnapshot";
+import { getStationNow, type StationNow } from "@/lib/stationClock";
 import { ArtistQuickPanel } from "@/components/ArtistQuickPanel";
 import { CoverArt } from "@/components/CoverArt";
 import {
@@ -450,7 +451,7 @@ export default function RadioPlayer() {
     setPlaybackMode,
     duckMain,
   } = useGlobalAudioRefs();
-  const { isReady: isAudioReady, playbackMode } = useGlobalAudioState();
+  const { isReady: isAudioReady, playbackMode, hasStartedPlayback } = useGlobalAudioState();
   const pathname = usePathname();
   const isFullView = pathname === "/radio";
   const sectionRef = useRef<HTMLElement | null>(null);
@@ -525,6 +526,9 @@ export default function RadioPlayer() {
   const lastChatOpenRef = useRef<number>(Date.now());
   const [requestCounts, setRequestCounts] = useState<Record<string, number>>({});
   const [requestedIds, setRequestedIds] = useState<Set<string>>(new Set());
+  const [currentHypeCount, setCurrentHypeCount] = useState(0);
+  const [boostScores, setBoostScores] = useState<Record<string, number>>({});
+  const boostedIds = useRef<Set<string>>(new Set());
   const [visualizerAnalyser, setVisualizerAnalyser] =
     useState<AnalyserNode | null>(null);
   const [visualizerMode, setVisualizerMode] =
@@ -534,6 +538,12 @@ export default function RadioPlayer() {
   const [recentlyPlayed, setRecentlyPlayed] = useState<PlayedSong[]>([]);
   const [preparedEvent, setPreparedEvent] = useState<PreparedStationEvent | null>(null);
   const [nextBroadcastTime] = useState(getInitialBroadcastReturnWindow);
+  // Station sync — when on, this client follows the shared broadcast clock
+  // (lib/stationClock) so every listener hears the same track at the same time.
+  const [stationSynced, setStationSynced] = useState(true);
+  const stationSyncedRef = useRef(true);
+  const clockSkewMsRef = useRef(0);
+  const lastDriftCheckMsRef = useRef(0);
   const songsUntilDropRef = useRef(songsUntilDrop);
   const { tier: currentUserTier } = useUserTier();
 
@@ -657,19 +667,39 @@ export default function RadioPlayer() {
     };
   }, []);
 
+  // SSE — replaces 8s polling for chat unread badge
   useEffect(() => {
     if (showChat) return;
-    const id = setInterval(async () => {
-      try {
-        const since = new Date(lastChatOpenRef.current).toISOString();
-        const res = await fetch(`/api/chat?since=${encodeURIComponent(since)}`);
-        if (res.ok) {
-          const data = (await res.json()) as { messages: unknown[] };
-          setChatUnread(data.messages.length);
-        }
-      } catch { /* ignore */ }
-    }, 8000);
-    return () => clearInterval(id);
+    let es: EventSource | null = null;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    let mounted = true;
+
+    function connect() {
+      if (!mounted) return;
+      es = new EventSource("/api/sse/station");
+
+      es.addEventListener("chat", (e) => {
+        const incoming = JSON.parse((e as MessageEvent).data) as { createdAt: string }[];
+        if (!mounted || showChat) return;
+        const newSince = incoming.filter(
+          (m) => new Date(m.createdAt).getTime() > lastChatOpenRef.current,
+        );
+        if (newSince.length) setChatUnread((n) => n + newSince.length);
+      });
+
+      es.onerror = () => {
+        es?.close();
+        es = null;
+        if (mounted) retryTimer = setTimeout(connect, 4000);
+      };
+    }
+
+    connect();
+    return () => {
+      mounted = false;
+      es?.close();
+      if (retryTimer) clearTimeout(retryTimer);
+    };
   }, [showChat]);
 
   useEffect(() => {
@@ -703,6 +733,52 @@ export default function RadioPlayer() {
       })
       .catch(() => { /* ignore */ });
   }, [currentSong?.id]);
+
+  // Fetch hype count for current song — drives visualizer engagement multiplier
+  useEffect(() => {
+    if (!currentSong?.id) { setCurrentHypeCount(0); return; }
+    void fetch(`/api/radio/vote?songId=${encodeURIComponent(currentSong.id)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { hypeCount?: number } | null) => setCurrentHypeCount(d?.hypeCount ?? 0))
+      .catch(() => undefined);
+  }, [currentSong?.id]);
+
+  // SSE — track boost score updates for queue cards
+  useEffect(() => {
+    let es: EventSource | null = null;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    let mounted = true;
+
+    function connect() {
+      if (!mounted) return;
+      es = new EventSource("/api/sse/station");
+
+      const applyBoosts = (data: unknown) => {
+        const boosts = data as { trackId: string; score: number }[];
+        if (!mounted) return;
+        setBoostScores(Object.fromEntries(boosts.map((b) => [b.trackId, b.score])));
+      };
+
+      es.addEventListener("init", (e) => {
+        const payload = JSON.parse((e as MessageEvent).data) as { boosts?: unknown };
+        if (payload.boosts) applyBoosts(payload.boosts);
+      });
+      es.addEventListener("boosts", (e) => applyBoosts(JSON.parse((e as MessageEvent).data)));
+
+      es.onerror = () => {
+        es?.close();
+        es = null;
+        if (mounted) retryTimer = setTimeout(connect, 4000);
+      };
+    }
+
+    connect();
+    return () => {
+      mounted = false;
+      es?.close();
+      if (retryTimer) clearTimeout(retryTimer);
+    };
+  }, []);
 
   // Fetch stream auth cookie on mount, refresh every 50 min to keep audio access alive.
   useEffect(() => {
@@ -958,6 +1034,33 @@ export default function RadioPlayer() {
   useEffect(() => {
     playbackModeRef.current = playbackMode;
   }, [playbackMode]);
+
+  useEffect(() => {
+    stationSyncedRef.current = stationSynced;
+  }, [stationSynced]);
+
+  // Clock-skew calibration — server time is the station authority. One round
+  // trip per vibe change; falls back to the device clock if the fetch fails.
+  useEffect(() => {
+    let cancelled = false;
+    async function calibrate() {
+      try {
+        const t0 = Date.now();
+        const res = await fetch(`/api/radio/station-now?vibe=${encodeURIComponent(selectedVibe)}`);
+        if (!res.ok) return;
+        const data = (await res.json()) as { serverNowMs?: number };
+        if (cancelled || typeof data.serverNowMs !== "number") return;
+        const rtt = Date.now() - t0;
+        clockSkewMsRef.current = data.serverNowMs + rtt / 2 - Date.now();
+      } catch {
+        // device clock fallback
+      }
+    }
+    void calibrate();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedVibe]);
 
   useEffect(() => {
     if (!isPlaying) {
@@ -1777,13 +1880,45 @@ export default function RadioPlayer() {
     });
   }
 
+  // The station's on-air state right now, on the skew-corrected shared clock.
+  function getStationClockNow(): StationNow | null {
+    if (queue.length === 0) return null;
+    return getStationNow(queue, selectedVibe, Date.now() + clockSkewMsRef.current);
+  }
+
+  // Which queue index the broadcast says should play next. Null when sync is
+  // off, the schedule is empty, or the scheduled track isn't in this queue —
+  // callers fall back to the personal-rotation getNextTrackIndex.
+  function getStationNextIndex(currentId?: string | null): number | null {
+    if (!stationSyncedRef.current) return null;
+    const entry = getStationClockNow();
+    if (!entry) return null;
+    let target = entry.type === "track" ? entry.song : entry.next;
+    if (target && currentId && target.id === currentId) {
+      // Client finished slightly ahead of the clock — don't replay; take next.
+      target = entry.type === "track" ? entry.next : null;
+    }
+    if (!target) return null;
+    const idx = queue.findIndex((song) => song.id === target.id);
+    return idx >= 0 ? idx : null;
+  }
+
   function executeStationEvent(prepared?: PreparedStationEvent | null) {
-    const nextIndex = prepared?.nextIndex ?? getNextTrackIndex(queue, currentIndex);
+    const stationIndex = getStationNextIndex(currentSong?.id);
+    const nextIndex = stationIndex ?? prepared?.nextIndex ?? getNextTrackIndex(queue, currentIndex);
 
     // On-demand tracks play directly — no DJ drops or narration. Resume live after.
     if (playbackModeRef.current === "on-demand") {
       setPlaybackMode("live");
       moveToTrack(nextIndex);
+      return;
+    }
+
+    // A prepared transition (drop/narration) was built for a specific track.
+    // If the broadcast clock points elsewhere, a drop introducing the wrong
+    // song is worse than no drop — go straight to the track.
+    if (prepared && stationIndex !== null && prepared.nextIndex !== stationIndex) {
+      moveToTrack(stationIndex);
       return;
     }
 
@@ -1825,7 +1960,7 @@ export default function RadioPlayer() {
 
     transitionInFlightRef.current = true;
 
-    const nextIndex = getNextTrackIndex(queue, currentIndex);
+    const nextIndex = getStationNextIndex(currentSong?.id) ?? getNextTrackIndex(queue, currentIndex);
     const nextPrepared =
       preparedEvent?.forSongId === currentSong?.id
         ? preparedEvent
@@ -1863,6 +1998,11 @@ export default function RadioPlayer() {
     isSkippingRef.current = true;
 
     try {
+      if (skipReason === "user" && stationSyncedRef.current) {
+        // You can't skip the broadcast — skipping moves you to your own rotation.
+        stationSyncedRef.current = false;
+        setStationSynced(false);
+      }
       if (skipReason === "user") {
         registerTrackSignal(currentSong, "skip");
         track("track_skip", {
@@ -2042,10 +2182,66 @@ export default function RadioPlayer() {
       lastCurrentTimeUiUpdateRef.current = now;
     }
 
+    // Station-sync drift correction — keep this client on the shared broadcast
+    // clock. Small drift gets reseeked in place; if the station has moved to a
+    // different track (e.g. after a long pause), rejoin via a normal transition.
+    if (
+      stationSyncedRef.current &&
+      playbackModeRef.current === "live" &&
+      !isDropPlaying &&
+      !transitionInFlightRef.current &&
+      now - lastDriftCheckMsRef.current >= 10_000
+    ) {
+      lastDriftCheckMsRef.current = now;
+      const entry = getStationClockNow();
+      if (entry?.type === "track" && currentSong) {
+        if (entry.song.id === currentSong.id) {
+          const drift = Math.abs(audio.currentTime - entry.positionSec);
+          if (
+            drift > 4 &&
+            Number.isFinite(audio.duration) &&
+            entry.positionSec < audio.duration - 1
+          ) {
+            audio.currentTime = entry.positionSec;
+          }
+        } else if (!isSkippingRef.current) {
+          void queueTransitionToNextTrack("auto");
+        }
+      }
+    }
+
     if (Number.isFinite(audio.duration) && audio.duration > 0) {
       setDuration((current) =>
         current !== audio.duration ? audio.duration : current,
       );
+
+      // Pre-warm DJ drop at 45s remaining: generates + DB-caches the script so the
+      // actual transition only needs to call ElevenLabs TTS, not the LLM.
+      if (
+        currentSong &&
+        !isDropPlaying &&
+        audio.duration - audio.currentTime <= 45 &&
+        audio.duration - audio.currentTime > 40 &&
+        queue.length > 1
+      ) {
+        const nextIdx = getStationNextIndex(currentSong.id) ?? getNextTrackIndex(queue, currentIndex);
+        const nextSong = queue[nextIdx];
+        if (nextSong) {
+          void fetch("/api/radio/dj-drop", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              trackId: nextSong.id,
+              trackTitle: nextSong.title,
+              artist: nextSong.artist,
+              vibe: nextSong.vibe ?? selectedVibe,
+              lang: "spanglish",
+              includeChatContext: true,
+              preWarm: true,
+            }),
+          }).catch(() => undefined);
+        }
+      }
 
       // Pre-fetch smart narration at 30s remaining for special moments
       if (
@@ -2055,7 +2251,7 @@ export default function RadioPlayer() {
         audio.duration - audio.currentTime > 25 &&
         queue.length > 1
       ) {
-        const nextIdx = getNextTrackIndex(queue, currentIndex);
+        const nextIdx = getStationNextIndex(currentSong.id) ?? getNextTrackIndex(queue, currentIndex);
         const nextSong = queue[nextIdx];
         if (nextSong && isSpecialNarrationMoment(songTransitionCountRef.current)) {
           const fetchKey = `${Math.floor(Date.now() / 3600000)}-${currentSong.id}-${nextSong.id}`;
@@ -2134,6 +2330,28 @@ export default function RadioPlayer() {
       pendingRestoreStateRef.current = null;
     }
 
+    // Station sync: joining a track already on air — seek to the broadcast
+    // position so this listener lines up with everyone else.
+    if (
+      stationSyncedRef.current &&
+      playbackModeRef.current === "live" &&
+      !pendingRestore &&
+      audio.currentTime < 2 &&
+      Number.isFinite(audio.duration) &&
+      audio.duration > 0
+    ) {
+      const entry = getStationClockNow();
+      if (
+        entry?.type === "track" &&
+        currentSong &&
+        entry.song.id === currentSong.id &&
+        entry.positionSec > 3
+      ) {
+        audio.currentTime = Math.min(entry.positionSec, Math.max(audio.duration - 1, 0));
+        setCurrentTime(audio.currentTime);
+      }
+    }
+
     if (Number.isFinite(audio.duration) && audio.duration > 0) {
       setDuration(audio.duration);
     }
@@ -2204,6 +2422,31 @@ export default function RadioPlayer() {
     const rect = e.currentTarget.getBoundingClientRect();
     const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
     audio.currentTime = ratio * audio.duration;
+    if (stationSyncedRef.current) {
+      // Manual seek leaves the shared broadcast position.
+      stationSyncedRef.current = false;
+      setStationSynced(false);
+    }
+  }
+
+  // Rejoin the shared broadcast: jump to whatever the station clock says is
+  // on air right now, at the live position.
+  function rejoinStation() {
+    stationSyncedRef.current = true;
+    setStationSynced(true);
+    lastDriftCheckMsRef.current = 0;
+    const entry = getStationClockNow();
+    if (!entry || entry.type !== "track") return;
+    if (entry.song.id !== currentSong?.id) {
+      const idx = queue.findIndex((song) => song.id === entry.song.id);
+      if (idx >= 0) moveToTrack(idx);
+      return;
+    }
+    const audio = audioRef.current;
+    if (audio && Number.isFinite(audio.duration) && audio.duration > 0) {
+      audio.currentTime = Math.min(entry.positionSec, Math.max(audio.duration - 1, 0));
+      setCurrentTime(audio.currentTime);
+    }
   }
 
   // Keyboard controls: Space = play/pause, ←/→ = seek ±10s, hold for continuous seek
@@ -2409,6 +2652,7 @@ export default function RadioPlayer() {
                 isPlaying={isPlaying}
                 isActive={isFullView}
                 className="h-full w-full"
+                engagementMultiplier={Math.min(1 + currentHypeCount * 0.04, 2.2)}
               />
             </div>
             <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
@@ -2444,6 +2688,36 @@ export default function RadioPlayer() {
                     Live Radio
                   </div>
                   <NowOnAir />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (stationSynced) {
+                        stationSyncedRef.current = false;
+                        setStationSynced(false);
+                      } else {
+                        rejoinStation();
+                      }
+                    }}
+                    className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] transition ${
+                      stationSynced
+                        ? "border-[#FF2DA6]/30 bg-[#FF2DA6]/10 text-[#FF2DA6]"
+                        : "border-[#00E5FF]/35 bg-[#00E5FF]/10 text-[#00E5FF] hover:bg-[#00E5FF]/18"
+                    }`}
+                    title={
+                      stationSynced
+                        ? "Synced with the broadcast — tap to switch to your own rotation"
+                        : "Rejoin the live broadcast"
+                    }
+                  >
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full ${
+                        stationSynced
+                          ? "bg-[#FF2DA6] shadow-[0_0_8px_rgba(255,45,166,0.8)]"
+                          : "bg-[#00E5FF]/60"
+                      }`}
+                    />
+                    {stationSynced ? "On Air · Synced" : "Rejoin Live"}
+                  </button>
                 </div>
                 <p className="mt-4 text-xs font-semibold uppercase tracking-[0.3em] text-[#CBD5E1]/70">
                   FlowSoundz Radio
@@ -2625,11 +2899,16 @@ export default function RadioPlayer() {
               <button
                 type="button"
                 onClick={() => {
+                  if (!hasStartedPlayback) {
+                    togglePlayback();
+                    track("listen_live_click", { source: "visualizer_strip" });
+                    return;
+                  }
                   setShowVisualizer(true);
                   track("visualizer_open", { source: "radio_player_hero" });
                 }}
                 className="group mt-2 w-full rounded-[0.85rem] border border-white/[0.06] bg-white/[0.025] px-1.5 pb-1.5 pt-2 transition hover:border-[#00e5ff]/25 hover:bg-[#00e5ff]/[0.05]"
-                title="Open visualizer"
+                title={hasStartedPlayback ? "Open visualizer" : "Tap to start listening"}
               >
                 <div className="relative h-8 w-full overflow-hidden rounded-[0.6rem]">
                   <svg
@@ -2652,7 +2931,7 @@ export default function RadioPlayer() {
                   </svg>
                 </div>
                 <p className="mt-1 text-center text-[10px] font-semibold uppercase tracking-[0.32em] text-[#00e5ff]/38 transition group-hover:text-[#00e5ff]/65">
-                  Visualizer
+                  {hasStartedPlayback ? "Visualizer" : "Tap to Listen Live"}
                 </p>
               </button>
               {currentSong?.youtube_url && (
@@ -2884,6 +3163,30 @@ export default function RadioPlayer() {
                     Apple Music
                   </a>
                 ) : null}
+                {currentSong && !isDropPlaying ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const url = currentSong.slug
+                        ? `${window.location.origin}/songs/${currentSong.slug}`
+                        : window.location.origin;
+                      const text = `Listening to "${currentSong.title}" by ${currentSong.artist} on FlowSoundz Radio`;
+                      if (typeof navigator !== "undefined" && navigator.share) {
+                        void navigator.share({ title: `${currentSong.title} — FlowSoundz`, text, url }).catch(() => {/* dismissed */});
+                      } else {
+                        void navigator.clipboard.writeText(`${text}\n${url}`).catch(() => {/* ignore */});
+                      }
+                    }}
+                    className="pointer-events-auto state-fade flex items-center gap-1.5 rounded-full border border-white/12 bg-white/5 px-3 py-1 text-xs font-medium text-slate-300 transition hover:border-white/20 hover:text-white"
+                    title="Share this track"
+                  >
+                    <svg viewBox="0 0 24 24" className="h-3 w-3 fill-none stroke-current" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                    </svg>
+                    Share
+                  </button>
+                ) : null}
                 <span className="state-fade rounded-full border border-white/8 bg-white/5 px-3 py-1 text-xs font-medium text-[#CBD5E1]">
                   {archivePlaybackMode
                     ? currentSong?.duration_sec
@@ -2983,7 +3286,9 @@ export default function RadioPlayer() {
                       ? "Broadcast offline"
                       : isPlaying
                         ? "Pause"
-                        : "Play"}
+                        : hasStartedPlayback
+                          ? "Play"
+                          : "Listen Live"}
                 </button>
                 <button
                   type="button"
@@ -3155,31 +3460,64 @@ export default function RadioPlayer() {
                       <span className="state-fade rounded-full border border-white/8 bg-white/5 px-3 py-1 text-xs font-medium text-[#CBD5E1]">
                         {formatVibeLabel(song.vibe ?? selectedVibe)}
                       </span>
-                      <button
-                        onClick={async () => {
-                          if (requestedIds.has(song.id)) return;
-                          try {
-                            const res = await fetch("/api/radio/request", {
-                              method: "POST",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({ songId: song.id }),
-                            });
-                            if (res.ok) {
-                              const data = (await res.json()) as { ok: boolean; count: number };
-                              setRequestedIds((prev) => new Set([...prev, song.id]));
-                              setRequestCounts((prev) => ({ ...prev, [song.id]: data.count }));
+                      <div className="flex items-center gap-1.5">
+                        {/* Request — free, one per IP per song */}
+                        <button
+                          onClick={async () => {
+                            if (requestedIds.has(song.id)) return;
+                            try {
+                              const res = await fetch("/api/radio/request", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ songId: song.id }),
+                              });
+                              if (res.ok) {
+                                const data = (await res.json()) as { ok: boolean; count: number };
+                                setRequestedIds((prev) => new Set([...prev, song.id]));
+                                setRequestCounts((prev) => ({ ...prev, [song.id]: data.count }));
+                              }
+                            } catch { /* ignore */ }
+                          }}
+                          className={`state-fade flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold transition ${
+                            requestedIds.has(song.id)
+                              ? "border-[#FF2DA6]/40 bg-[#FF2DA6]/15 text-[#FF2DA6] cursor-default"
+                              : "border-white/10 bg-white/5 text-[#CBD5E1] hover:border-[#FF2DA6]/40 hover:bg-[#FF2DA6]/10 hover:text-[#FF2DA6]"
+                          }`}
+                          title={requestedIds.has(song.id) ? "Requested" : "Request this song"}
+                        >
+                          🔥 {requestCounts[song.id] ?? 0}
+                        </button>
+                        {/* Queue Boost — spends 50 Vibe Points */}
+                        {vibeBalance !== null && (
+                          <button
+                            onClick={async () => {
+                              if (boostedIds.current.has(song.id)) return;
+                              const ok = await boostTrack(song.id);
+                              if (ok) {
+                                boostedIds.current.add(song.id);
+                                setBoostScores((prev) => ({
+                                  ...prev,
+                                  [song.id]: (prev[song.id] ?? 0) + 1,
+                                }));
+                              }
+                            }}
+                            className={`state-fade flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-semibold transition ${
+                              boostedIds.current.has(song.id)
+                                ? "border-[#00E5FF]/40 bg-[#00E5FF]/15 text-[#00E5FF] cursor-default"
+                                : "border-white/10 bg-white/5 text-[#CBD5E1] hover:border-[#00E5FF]/35 hover:bg-[#00E5FF]/10 hover:text-[#00E5FF]"
+                            }`}
+                            title={
+                              boostedIds.current.has(song.id)
+                                ? "Boosted!"
+                                : vibeBalance >= 50
+                                  ? "Boost this track (50 pts)"
+                                  : `Need 50 pts to boost (you have ${vibeBalance})`
                             }
-                          } catch { /* ignore */ }
-                        }}
-                        className={`state-fade flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-semibold transition ${
-                          requestedIds.has(song.id)
-                            ? "border-[#FF2DA6]/40 bg-[#FF2DA6]/15 text-[#FF2DA6] cursor-default"
-                            : "border-white/10 bg-white/5 text-[#CBD5E1] hover:border-[#FF2DA6]/40 hover:bg-[#FF2DA6]/10 hover:text-[#FF2DA6]"
-                        }`}
-                        title={requestedIds.has(song.id) ? "Requested" : "Request this song"}
-                      >
-                        🔥 {requestCounts[song.id] ?? 0}
-                      </button>
+                          >
+                            ⚡ {boostScores[song.id] ?? 0}
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );

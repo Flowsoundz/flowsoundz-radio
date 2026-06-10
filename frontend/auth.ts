@@ -13,7 +13,17 @@ if (process.env.VERCEL === "1") {
   delete process.env.NEXTAUTH_URL_INTERNAL;
 }
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL?.trim() ?? "";
+// Comma-separated list, e.g. "flowsoundzradio@gmail.com,adonyluisflorencio@gmail.com"
+const ADMIN_EMAILS = new Set(
+  (process.env.ADMIN_EMAIL ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean),
+);
+
+function isAdminEmail(email: string | null | undefined): boolean {
+  return Boolean(email && ADMIN_EMAILS.has(email.trim().toLowerCase()));
+}
 const GOOGLE_ENABLED = Boolean(
   (process.env.AUTH_GOOGLE_ID ?? process.env.GOOGLE_CLIENT_ID)?.trim() &&
   (process.env.AUTH_GOOGLE_SECRET ?? process.env.GOOGLE_CLIENT_SECRET)?.trim(),
@@ -55,12 +65,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.id = user.id;
         token.role = (user as { role?: string }).role ?? "LISTENER";
         token.tier = (user as { tier?: string }).tier ?? "FREE";
-        token.isAdmin = ADMIN_EMAIL ? user.email === ADMIN_EMAIL : false;
+        token.isAdmin = isAdminEmail(user.email);
       }
       token.id ??= token.sub;
       token.role ??= "LISTENER";
       token.tier ??= "FREE";
-      token.isAdmin ??= Boolean(ADMIN_EMAIL && token.email === ADMIN_EMAIL);
+      token.isAdmin ??= isAdminEmail(token.email);
       return token;
     },
     session({ session, token }) {
@@ -78,7 +88,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   events: {
     async createUser({ user }) {
-      if (ADMIN_EMAIL && user.email === ADMIN_EMAIL) {
+      if (isAdminEmail(user.email)) {
         await prisma.user.update({
           where: { id: user.id },
           data: { role: "ADMIN" },

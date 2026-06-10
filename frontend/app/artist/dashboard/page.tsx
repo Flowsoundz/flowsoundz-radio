@@ -109,6 +109,12 @@ export default async function ArtistDashboardPage() {
             >
               Schedule Drops
             </Link>
+            <Link
+              href="/artist/posts"
+              className="inline-flex min-h-11 items-center justify-center rounded-full border border-violet-400/20 bg-violet-400/[0.06] px-6 py-2.5 text-sm font-medium text-violet-300 transition hover:border-violet-400/35 hover:text-violet-200"
+            >
+              Post Update
+            </Link>
           </div>
         </div>
       </div>

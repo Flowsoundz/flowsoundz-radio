@@ -3,6 +3,10 @@ import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 
+// Per-IP rate limit: one vote per song, 500ms between any votes
+const ipLastVoteMs = new Map<string, number>();
+const VOTE_DEBOUNCE_MS = 500;
+
 // GET: fetch current vote counts for a song
 export async function GET(req: NextRequest) {
   const songId = req.nextUrl.searchParams.get("songId");
@@ -22,6 +26,18 @@ export async function GET(req: NextRequest) {
 
 // POST: record a hype or skip vote
 export async function POST(req: NextRequest) {
+  const ip =
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    req.headers.get("x-real-ip") ??
+    "unknown";
+
+  const now = Date.now();
+  const lastVote = ipLastVoteMs.get(ip) ?? 0;
+  if (now - lastVote < VOTE_DEBOUNCE_MS) {
+    return NextResponse.json({ error: "Too fast" }, { status: 429 });
+  }
+  ipLastVoteMs.set(ip, now);
+
   const body = await req.json() as { songId?: string; vote?: string };
   const { songId, vote } = body;
 

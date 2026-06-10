@@ -5,20 +5,35 @@ import { normalizeStationSong } from "@/lib/stationPlayback";
 import { prisma } from "@/lib/prisma";
 import type { Song } from "@/lib/types";
 
+// Each QueueBoost point = 3 request votes (lets community override organic demand)
+const BOOST_WEIGHT = 3;
+
 async function reorderQueue(songs: Song[]): Promise<Song[]> {
   const featured = songs.filter((song) => song.featured || song.is_featured);
   const rest = songs.filter((song) => !featured.includes(song));
 
-  // Sort non-featured songs by request count descending
   if (rest.length > 1) {
     const ids = rest.map((s) => s.id);
-    const counts = await prisma.songRequest.groupBy({
-      by: ["songId"],
-      where: { songId: { in: ids } },
-      _count: { songId: true },
+    const [requestRows, boostRows] = await Promise.all([
+      prisma.songRequest.groupBy({
+        by: ["songId"],
+        where: { songId: { in: ids } },
+        _count: { songId: true },
+      }),
+      prisma.queueBoost.findMany({
+        where: { trackId: { in: ids } },
+        select: { trackId: true, score: true },
+      }),
+    ]);
+
+    const requestMap = new Map(requestRows.map((r) => [r.songId, r._count.songId]));
+    const boostMap = new Map(boostRows.map((b) => [b.trackId, b.score]));
+
+    rest.sort((a, b) => {
+      const scoreA = (requestMap.get(a.id) ?? 0) + (boostMap.get(a.id) ?? 0) * BOOST_WEIGHT;
+      const scoreB = (requestMap.get(b.id) ?? 0) + (boostMap.get(b.id) ?? 0) * BOOST_WEIGHT;
+      return scoreB - scoreA;
     });
-    const countMap = new Map(counts.map((c) => [c.songId, c._count.songId]));
-    rest.sort((a, b) => (countMap.get(b.id) ?? 0) - (countMap.get(a.id) ?? 0));
   }
 
   return [...featured, ...rest];

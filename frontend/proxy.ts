@@ -1,7 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL?.trim() ?? "";
+// Comma-separated list, e.g. "flowsoundzradio@gmail.com,adonyluisflorencio@gmail.com"
+const ADMIN_EMAILS = new Set(
+  (process.env.ADMIN_EMAIL ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean),
+);
 const MAINTENANCE = process.env.MAINTENANCE_MODE === "true";
 const LAUNCH_MODE = process.env.LAUNCH_MODE === "true";
 const STREAM_WINDOW_MS = 50 * 60 * 1000;
@@ -34,10 +40,11 @@ export async function proxy(req: NextRequest) {
   // Resolve session once — used by maintenance bypass, launch gate, and admin checks
   const token = await getToken({ req, secret: process.env.AUTH_SECRET });
   const isAuthed = Boolean(token);
-  const isAdmin = ADMIN_EMAIL ? token?.email === ADMIN_EMAIL : false;
+  const isAdmin = Boolean(token?.email && ADMIN_EMAILS.has(token.email.trim().toLowerCase()));
 
-  // Maintenance / coming-soon mode — admin always gets through, /signin allowed so admin can log in
-  if (MAINTENANCE && !isAdmin && !pathname.startsWith("/api") && !pathname.startsWith("/signin")) {
+  // Maintenance / coming-soon mode — admin always gets through, /signin allowed so admin can log in.
+  // /embed stays open: those pages live inside iframes on third-party sites.
+  if (MAINTENANCE && !isAdmin && !pathname.startsWith("/api") && !pathname.startsWith("/signin") && !pathname.startsWith("/embed")) {
     if (pathname !== "/coming-soon") {
       return NextResponse.redirect(new URL("/coming-soon", req.url));
     }

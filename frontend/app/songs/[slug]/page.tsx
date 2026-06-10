@@ -6,9 +6,7 @@ import { AppShell } from "@/components/AppShell";
 import { prisma } from "@/lib/prisma";
 import { FollowButton } from "@/components/FollowButton";
 import { CopyEmbedCode } from "@/components/CopyEmbedCode";
-import dynamic from "next/dynamic";
-
-const FavoriteButton = dynamic(() => import("@/components/FavoriteButton"), { ssr: false });
+import FavoriteButton from "@/components/FavoriteButton";
 
 const VIBE_COLOR: Record<string, string> = {
   CHILL:      "border-cyan-400/25 bg-cyan-400/10 text-cyan-200",

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-export const runtime = "nodejs";
+export const runtime = "edge";
 
 const SYSTEM_PROMPT =
   "You are the AI DJ copywriter for FlowSoundz Radio, a discovery-first station for independent artists. Write one short transition line for live radio between songs. Tone should feel premium, natural, and on-brand. Keep it under 18 words. Avoid cliches, hashtags, emojis, and direct sales language. It should sound like a real host teasing the next moment, not marketing copy.";

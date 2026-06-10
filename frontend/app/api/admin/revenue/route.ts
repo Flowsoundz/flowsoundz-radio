@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
       orderBy: { month: "desc" },
       include: {
         payouts: {
-          include: { artist: { select: { name: true, slug: true } } },
+          include: { artist: { select: { name: true, slug: true, payoutEmail: true } } },
           orderBy: { estimatedAmount: "desc" },
         },
       },

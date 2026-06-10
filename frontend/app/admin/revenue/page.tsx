@@ -14,7 +14,7 @@ type Payout = {
   estimatedAmount: number;
   paid: boolean;
   paidAt: string | null;
-  artist: { name: string; slug: string };
+  artist: { name: string; slug: string; payoutEmail: string | null };
 };
 
 type Pool = {
@@ -162,9 +162,16 @@ export default function RevenueAdminPage() {
                 <div className="divide-y divide-white/[0.04]">
                   {pool.payouts.map((p) => (
                     <div key={p.id} className="flex flex-wrap items-center gap-3 px-6 py-3">
-                      <Link href={`/artists/${p.artist.slug}`} className="min-w-0 flex-1 text-sm font-semibold text-white hover:text-cyan-300 truncate">
-                        {p.artist.name}
-                      </Link>
+                      <div className="min-w-0 flex-1">
+                        <Link href={`/artists/${p.artist.slug}`} className="text-sm font-semibold text-white hover:text-cyan-300 truncate block">
+                          {p.artist.name}
+                        </Link>
+                        {p.artist.payoutEmail ? (
+                          <span className="text-[11px] text-slate-500">{p.artist.payoutEmail}</span>
+                        ) : (
+                          <span className="text-[11px] text-amber-500/70 italic">No payout email set</span>
+                        )}
+                      </div>
                       <span className="text-xs tabular-nums text-slate-400">{p.playCount.toLocaleString()} plays</span>
                       <span className="text-xs tabular-nums text-slate-400">{(p.playShare * 100).toFixed(1)}%</span>
                       <span className="text-xs font-bold tabular-nums text-emerald-300">${p.estimatedAmount.toFixed(2)}</span>

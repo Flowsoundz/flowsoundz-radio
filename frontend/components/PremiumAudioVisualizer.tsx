@@ -45,6 +45,7 @@ type Props = {
   showFrame?: boolean;
   showLogo?: boolean;
   isActive?: boolean;
+  engagementMultiplier?: number;
 };
 
 const LEFT_CORE = "#00e5ff";
@@ -437,6 +438,7 @@ export function PremiumAudioVisualizer({
   showFrame = true,
   showLogo = true,
   isActive = true,
+  engagementMultiplier = 1,
 }: Props) {
   const {
     audioRef: globalAudioRef,
@@ -449,6 +451,7 @@ export function PremiumAudioVisualizer({
   const analyserRef = useRef<AnalyserNode | null | undefined>(analyser);
   const playingRef = useRef<boolean>(isPlaying);
   const activeRef = useRef<boolean>(isActive);
+  const engagementRef = useRef<number>(engagementMultiplier);
 
   const resolveAudioElement = useCallback(() => {
     if (audioRef?.current) {
@@ -479,17 +482,10 @@ export function PremiumAudioVisualizer({
     );
   }, [audioRef, globalAudioRef]);
 
-  useEffect(() => {
-    analyserRef.current = analyser;
-  }, [analyser]);
-
-  useEffect(() => {
-    playingRef.current = isPlaying;
-  }, [isPlaying]);
-
-  useEffect(() => {
-    activeRef.current = isActive;
-  }, [isActive]);
+  useEffect(() => { analyserRef.current    = analyser;            }, [analyser]);
+  useEffect(() => { playingRef.current     = isPlaying;           }, [isPlaying]);
+  useEffect(() => { activeRef.current      = isActive;            }, [isActive]);
+  useEffect(() => { engagementRef.current  = engagementMultiplier;}, [engagementMultiplier]);
 
   useEffect(() => {
     const wrap = wrapRef.current;
@@ -665,18 +661,19 @@ export function PremiumAudioVisualizer({
         const highInstant = getFrequencyRangeAverage(data, sampleRate, fftSize, 800, 4200);
         const volumeInstant = clamp(bassInstant * 0.44 + lowMidInstant * 0.34 + highInstant * 0.22, 0, 1);
 
-        smoothBass = bassInstant > smoothBass
+        const eng = clamp(engagementRef.current, 1, 2.2);
+        smoothBass = (bassInstant > smoothBass
           ? lerp(smoothBass, bassInstant, 0.34)
-          : lerp(smoothBass, bassInstant, 0.12);
-        smoothMids = lowMidInstant > smoothMids
+          : lerp(smoothBass, bassInstant, 0.12)) * (0.6 + eng * 0.4);
+        smoothMids = (lowMidInstant > smoothMids
           ? lerp(smoothMids, lowMidInstant, 0.28)
-          : lerp(smoothMids, lowMidInstant, 0.1);
+          : lerp(smoothMids, lowMidInstant, 0.1)) * (0.7 + eng * 0.3);
         smoothHighs = highInstant > smoothHighs
           ? lerp(smoothHighs, highInstant, 0.24)
           : lerp(smoothHighs, highInstant, 0.09);
-        smoothVolume = volumeInstant > smoothVolume
+        smoothVolume = (volumeInstant > smoothVolume
           ? lerp(smoothVolume, volumeInstant, 0.26)
-          : lerp(smoothVolume, volumeInstant, 0.1);
+          : lerp(smoothVolume, volumeInstant, 0.1)) * (0.7 + eng * 0.3);
 
         const bassRise = bassInstant - lastBassInstant;
         const bassHit = bassInstant > 0.22 && bassRise > 0.065;

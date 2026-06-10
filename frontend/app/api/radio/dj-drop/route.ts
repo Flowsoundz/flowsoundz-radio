@@ -1,7 +1,11 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { prisma } from "@/lib/prisma";
+import { getMessages } from "@/lib/chatStore";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+const SCRIPT_CACHE_TTL_MS = 45 * 60 * 1000; // 45 minutes — refresh before a track plays again
 
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
 const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID ?? "21m00Tcm4TlvDq8ikWAM"; // default: Rachel
@@ -83,20 +87,52 @@ async function generateWithGemini(system: string, userPrompt: string): Promise<s
   return data.candidates[0].content.parts[0].text.trim();
 }
 
+async function getChatContext(): Promise<string> {
+  try {
+    const since = new Date(Date.now() - 10 * 60 * 1000); // last 10 minutes
+    const messages = await getMessages(5, since);
+    if (messages.length === 0) return "";
+    const lines = messages
+      .filter((m) => m.text.length > 2 && m.text.length < 80)
+      .slice(-3)
+      .map((m) => `"${m.text}"`)
+      .join(", ");
+    return lines ? ` Chat vibes right now: ${lines}.` : "";
+  } catch {
+    return "";
+  }
+}
+
 async function generateScript(context: {
+  trackId?: string | null;
   trackTitle: string;
   artist: string;
   vibe: string;
   lang: Lang;
   listenerCount?: number;
+  includeChatContext?: boolean;
 }): Promise<string> {
-  const { trackTitle, artist, vibe, lang, listenerCount } = context;
+  const { trackId, trackTitle, artist, vibe, lang, listenerCount, includeChatContext } = context;
+
+  // Check DB script cache first (survives cold starts)
+  if (trackId) {
+    try {
+      const cached = await prisma.djDropScript.findUnique({
+        where: { trackId_lang: { trackId, lang } },
+      });
+      if (cached && Date.now() - cached.generatedAt.getTime() < SCRIPT_CACHE_TTL_MS) {
+        return cached.script;
+      }
+    } catch { /* cache miss — generate fresh */ }
+  }
+
+  const chatContext = includeChatContext ? await getChatContext() : "";
 
   const system = SYSTEM_PROMPTS[lang];
   const userPrompt =
     lang === "es"
-      ? `Presenta "${trackTitle}" de ${artist}. Vibe: ${vibe}.${listenerCount ? ` ${listenerCount} personas están escuchando ahora.` : ""} Dale candela.`
-      : `Introduce "${trackTitle}" by ${artist}. Vibe: ${vibe}.${listenerCount ? ` ${listenerCount} people are listening right now.` : ""} Make it hit.`;
+      ? `Presenta "${trackTitle}" de ${artist}. Vibe: ${vibe}.${listenerCount ? ` ${listenerCount} personas están escuchando ahora.` : ""}${chatContext} Dale candela.`
+      : `Introduce "${trackTitle}" by ${artist}. Vibe: ${vibe}.${listenerCount ? ` ${listenerCount} people are listening right now.` : ""}${chatContext} Make it hit.`;
 
   if (process.env.ANTHROPIC_API_KEY) {
     try { return await generateWithClaude(system, userPrompt); } catch (e) {
@@ -116,17 +152,46 @@ async function generateScript(context: {
     }
   }
 
-  return templateScript(trackTitle, artist, vibe, lang);
+  const fallback = templateScript(trackTitle, artist, vibe, lang);
+
+  // Persist to DB so future cold starts skip the AI call
+  if (trackId) {
+    void prisma.djDropScript.upsert({
+      where: { trackId_lang: { trackId, lang } },
+      create: { trackId, lang, script: fallback },
+      update: { script: fallback, generatedAt: new Date() },
+    }).catch(() => undefined);
+  }
+
+  return fallback;
 }
 
 // Simple in-memory cache — keyed by trackId so we don't regenerate on every play
 const dropCache = new Map<string, { url: string; ts: number }>();
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
 
+// Per-IP cooldown — this route can trigger an LLM call AND ElevenLabs TTS.
+// Legit clients call it at most twice per track (pre-warm + transition).
+const ipLastDropMs = new Map<string, number>();
+const DROP_COOLDOWN_MS = 3_000;
+const MAX_TRACKED_IPS = 5_000;
+
 export async function POST(req: Request) {
   if (!ELEVENLABS_API_KEY) {
     return Response.json({ error: "ElevenLabs not configured." }, { status: 503 });
   }
+
+  const ip =
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    req.headers.get("x-real-ip") ??
+    "unknown";
+  const nowMs = Date.now();
+  const lastDrop = ipLastDropMs.get(ip) ?? 0;
+  if (nowMs - lastDrop < DROP_COOLDOWN_MS) {
+    return Response.json({ error: "Too many drop requests." }, { status: 429 });
+  }
+  if (ipLastDropMs.size > MAX_TRACKED_IPS) ipLastDropMs.clear();
+  ipLastDropMs.set(ip, nowMs);
 
   let body: {
     trackId?: unknown;
@@ -135,6 +200,8 @@ export async function POST(req: Request) {
     vibe?: unknown;
     lang?: unknown;
     listenerCount?: unknown;
+    includeChatContext?: unknown;
+    preWarm?: unknown;
   };
   try {
     body = (await req.json()) as typeof body;
@@ -148,8 +215,10 @@ export async function POST(req: Request) {
   const vibe = typeof body.vibe === "string" ? body.vibe : "chill";
   const lang: Lang = (["en", "es", "spanglish"].includes(body.lang as string) ? body.lang : "en") as Lang;
   const listenerCount = typeof body.listenerCount === "number" ? body.listenerCount : undefined;
+  const includeChatContext = Boolean(body.includeChatContext);
+  const preWarm = Boolean(body.preWarm); // if true, generate + cache but don't return audio
 
-  // Return cached drop for this track if fresh
+  // Return cached audio drop for this track if fresh
   if (trackId) {
     const cached = dropCache.get(trackId);
     if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
@@ -159,10 +228,23 @@ export async function POST(req: Request) {
 
   let script: string;
   try {
-    script = await generateScript({ trackTitle, artist, vibe, lang, listenerCount });
+    script = await generateScript({ trackId, trackTitle, artist, vibe, lang, listenerCount, includeChatContext });
+    // Persist fresh AI-generated script to DB
+    if (trackId) {
+      void prisma.djDropScript.upsert({
+        where: { trackId_lang: { trackId, lang } },
+        create: { trackId, lang, script },
+        update: { script, generatedAt: new Date() },
+      }).catch(() => undefined);
+    }
   } catch (err) {
     console.error("[dj-drop] Claude script error (using template fallback):", err);
     script = templateScript(trackTitle, artist, vibe, lang);
+  }
+
+  // Pre-warm mode: script is now cached in DB, skip TTS
+  if (preWarm) {
+    return Response.json({ ok: true, preWarmed: true });
   }
 
   let ttsRes: Response;

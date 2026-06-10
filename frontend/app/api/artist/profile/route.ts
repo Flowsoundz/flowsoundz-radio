@@ -34,6 +34,7 @@ export async function PATCH(request: NextRequest) {
     bio?: string;
     statement?: string;
     rootsLabel?: string;
+    payoutEmail?: string;
     socialLinks?: Record<string, string>;
     supportLinks?: Array<{ platform: string; label: string; url: string; isPrimary?: boolean }>;
   };
@@ -48,12 +49,13 @@ export async function PATCH(request: NextRequest) {
 
   await prisma.$transaction(async (tx) => {
     // Update core artist fields
-    if (body.name || body.bio) {
+    if (body.name || body.bio !== undefined || body.payoutEmail !== undefined) {
       await tx.artist.update({
         where: { id: artist.id },
         data: {
           ...(body.name ? { name: body.name.trim() } : {}),
           ...(body.bio !== undefined ? { bio: body.bio.trim() } : {}),
+          ...(body.payoutEmail !== undefined ? { payoutEmail: body.payoutEmail.trim() || null } : {}),
         },
       });
     }

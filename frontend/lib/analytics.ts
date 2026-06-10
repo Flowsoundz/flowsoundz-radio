@@ -8,6 +8,7 @@ type EventName =
   | "track_skip"
   | "track_complete"
   | "visualizer_open"
+  | "listen_live_click"
   | "artist_submission_started"
   | "artist_submission_completed";
 

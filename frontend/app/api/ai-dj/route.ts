@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 
-export const runtime = "nodejs";
+export const runtime = "edge";
 
 type Message = { role: "user" | "assistant"; content: string };
 
@@ -17,7 +17,29 @@ function getString(v: unknown) {
   return typeof v === "string" ? v.trim() : "";
 }
 
+// In-memory per-IP rate limit (per edge isolate — best effort, matches the
+// pattern in chatStore/vote). Each request hits Anthropic, so keep it tight.
+const ipLastRequestMs = new Map<string, number>();
+const REQUEST_COOLDOWN_MS = 3_000;
+const MAX_TRACKED_IPS = 5_000;
+
 export async function POST(request: NextRequest) {
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    request.headers.get("x-real-ip") ??
+    "unknown";
+
+  const now = Date.now();
+  const last = ipLastRequestMs.get(ip) ?? 0;
+  if (now - last < REQUEST_COOLDOWN_MS) {
+    return new Response(
+      JSON.stringify({ error: "Slow down — the DJ can only talk so fast." }),
+      { status: 429, headers: { "Content-Type": "application/json", "Retry-After": "3" } },
+    );
+  }
+  if (ipLastRequestMs.size > MAX_TRACKED_IPS) ipLastRequestMs.clear();
+  ipLastRequestMs.set(ip, now);
+
   const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
   if (!apiKey) {
     return new Response(

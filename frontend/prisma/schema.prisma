@@ -181,6 +181,7 @@ model Artist {
   artistType  String?
   email       String?
   socialLink  String?
+  payoutEmail String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -193,6 +194,7 @@ model Artist {
   payouts           ArtistPayout[]
   labelLinks        LabelArtist[]
   followers         ArtistFollow[]
+  posts             ArtistPost[]
 
   @@map("artists")
 }
@@ -751,4 +753,32 @@ model LabelArtist {
   @@unique([labelId, artistId])
   @@index([labelId])
   @@map("label_artists")
+}
+
+model ArtistPost {
+  id        String   @id @default(cuid())
+  artistId  String
+  body      String
+  imageUrl  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  artist Artist @relation(fields: [artistId], references: [id], onDelete: Cascade)
+
+  @@index([artistId])
+  @@map("artist_posts")
+}
+
+// Pre-generated DJ drop scripts — keyed by trackId + lang.
+// Caches the AI-written text so cold-start transitions only call ElevenLabs, not the LLM.
+model DjDropScript {
+  id          String   @id @default(cuid())
+  trackId     String
+  lang        String   @default("en")
+  script      String
+  generatedAt DateTime @default(now())
+
+  @@unique([trackId, lang])
+  @@index([generatedAt])
+  @@map("dj_drop_scripts")
 }

@@ -21,7 +21,6 @@ function RoleBadge({ role }: { role: ChatRole }) {
   );
 }
 
-const POLL_MS = 2500;
 const NAME_KEY = "fsz-chat-name";
 
 function timeAgo(iso: string): string {
@@ -56,27 +55,45 @@ export function LiveChat({ currentTrackTitle, onClose }: Props) {
     window.localStorage.setItem(NAME_KEY, n);
   }
 
-  // Polling
+  // SSE — real-time chat stream (auto-reconnects on disconnect)
   useEffect(() => {
+    let es: EventSource | null = null;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
     let mounted = true;
 
-    async function poll() {
-      try {
-        const res = await fetch("/api/chat");
-        const data = (await res.json()) as { messages?: ChatMessage[] };
-        if (mounted && data.messages) {
-          setMessages(data.messages);
-        }
-      } catch {
-        // silently retry
-      }
+    function connect() {
+      if (!mounted) return;
+      es = new EventSource("/api/sse/station");
+
+      es.addEventListener("init", (e) => {
+        const data = JSON.parse((e as MessageEvent).data) as {
+          messages?: ChatMessage[];
+        };
+        if (mounted && data.messages) setMessages(data.messages);
+      });
+
+      es.addEventListener("chat", (e) => {
+        const incoming = JSON.parse((e as MessageEvent).data) as ChatMessage[];
+        if (!mounted || !incoming.length) return;
+        setMessages((prev) => {
+          const ids = new Set(prev.map((m) => m.id));
+          const fresh = incoming.filter((m) => !ids.has(m.id));
+          return fresh.length ? [...prev, ...fresh] : prev;
+        });
+      });
+
+      es.onerror = () => {
+        es?.close();
+        es = null;
+        if (mounted) retryTimer = setTimeout(connect, 3000);
+      };
     }
 
-    void poll();
-    const id = window.setInterval(() => void poll(), POLL_MS);
+    connect();
     return () => {
       mounted = false;
-      window.clearInterval(id);
+      es?.close();
+      if (retryTimer) clearTimeout(retryTimer);
     };
   }, []);
 
