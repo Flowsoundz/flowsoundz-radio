@@ -544,6 +544,10 @@ export default function RadioPlayer() {
   const stationSyncedRef = useRef(true);
   const clockSkewMsRef = useRef(0);
   const lastDriftCheckMsRef = useRef(0);
+  // Crowd hype — recent Fire votes across all listeners (12s rolling window,
+  // pushed over SSE). >= 3 counts as a burst and lights up the room.
+  const [crowdHype, setCrowdHype] = useState(0);
+  const crowdHypeDecayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const songsUntilDropRef = useRef(songsUntilDrop);
   const { tier: currentUserTier } = useUserTier();
 
@@ -765,6 +769,15 @@ export default function RadioPlayer() {
       });
       es.addEventListener("boosts", (e) => applyBoosts(JSON.parse((e as MessageEvent).data)));
 
+      es.addEventListener("hype", (e) => {
+        if (!mounted) return;
+        const payload = JSON.parse((e as MessageEvent).data) as { recent?: number };
+        setCrowdHype(payload.recent ?? 0);
+        // Self-decay if the stream drops mid-burst — never strand the glow.
+        if (crowdHypeDecayRef.current) clearTimeout(crowdHypeDecayRef.current);
+        crowdHypeDecayRef.current = setTimeout(() => setCrowdHype(0), 20_000);
+      });
+
       es.onerror = () => {
         es?.close();
         es = null;
@@ -777,6 +790,7 @@ export default function RadioPlayer() {
       mounted = false;
       es?.close();
       if (retryTimer) clearTimeout(retryTimer);
+      if (crowdHypeDecayRef.current) clearTimeout(crowdHypeDecayRef.current);
     };
   }, []);
 
@@ -2652,7 +2666,10 @@ export default function RadioPlayer() {
                 isPlaying={isPlaying}
                 isActive={isFullView}
                 className="h-full w-full"
-                engagementMultiplier={Math.min(1 + currentHypeCount * 0.04, 2.2)}
+                engagementMultiplier={Math.min(
+                  1 + currentHypeCount * 0.04 + (crowdHype >= 3 ? 0.6 : crowdHype * 0.1),
+                  2.2,
+                )}
               />
             </div>
             <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
@@ -2678,7 +2695,13 @@ export default function RadioPlayer() {
 
         <div className="lg:grid lg:grid-cols-[1fr_360px] lg:items-start lg:gap-6">
         <div>
-        <div className="glass-card relative overflow-hidden rounded-[2rem] border border-white/8 bg-[#0B1020]/82 p-5 shadow-[0_24px_90px_rgba(0,0,0,0.42)]">
+        <div
+          className={`glass-card relative overflow-hidden rounded-[2rem] border bg-[#0B1020]/82 p-5 transition-all duration-700 ${
+            crowdHype >= 3
+              ? "border-[#FF2DA6]/35 shadow-[0_0_70px_rgba(255,45,166,0.32)]"
+              : "border-white/8 shadow-[0_24px_90px_rgba(0,0,0,0.42)]"
+          }`}
+        >
           <div className="rounded-[1.7rem] border border-white/8 bg-[radial-gradient(circle_at_top_left,rgba(0,229,255,0.16),transparent_34%),radial-gradient(circle_at_top_right,rgba(255,45,166,0.14),transparent_30%),linear-gradient(135deg,#111827_0%,#0B1020_62%,#050816_100%)] p-5 shadow-[0_0_40px_rgba(0,229,255,0.06)]">
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -2718,6 +2741,11 @@ export default function RadioPlayer() {
                     />
                     {stationSynced ? "On Air · Synced" : "Rejoin Live"}
                   </button>
+                  {crowdHype >= 3 ? (
+                    <span className="inline-flex animate-pulse items-center gap-1.5 rounded-full border border-[#FF2DA6]/40 bg-[#FF2DA6]/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-[#FF2DA6]">
+                      🔥 Crowd Surge · {crowdHype}
+                    </span>
+                  ) : null}
                 </div>
                 <p className="mt-4 text-xs font-semibold uppercase tracking-[0.3em] text-[#CBD5E1]/70">
                   FlowSoundz Radio

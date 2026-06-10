@@ -770,15 +770,32 @@ model ArtistPost {
 }
 
 // Pre-generated DJ drop scripts — keyed by trackId + lang.
-// Caches the AI-written text so cold-start transitions only call ElevenLabs, not the LLM.
+// Caches the AI-written text AND the ElevenLabs audio so transitions reuse
+// both: no LLM call, no TTS call. Audio is invalidated when the script or
+// voice changes (audioVoiceId mismatch or audioGeneratedAt < generatedAt).
 model DjDropScript {
-  id          String   @id @default(cuid())
-  trackId     String
-  lang        String   @default("en")
-  script      String
-  generatedAt DateTime @default(now())
+  id               String    @id @default(cuid())
+  trackId          String
+  lang             String    @default("en")
+  script           String
+  generatedAt      DateTime  @default(now())
+  audioData        Bytes?
+  audioVoiceId     String?
+  audioGeneratedAt DateTime?
 
   @@unique([trackId, lang])
   @@index([generatedAt])
   @@map("dj_drop_scripts")
+}
+
+// One row per 🔥 Fire vote — powers crowd hype-burst detection.
+// Counted over short rolling windows by SSE and the DJ prompt builder;
+// pruned opportunistically from the vote route.
+model HypeEvent {
+  id        String   @id @default(cuid())
+  songId    String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("hype_events")
 }

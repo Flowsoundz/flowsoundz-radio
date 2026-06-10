@@ -81,6 +81,17 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // Timestamped hype event — feeds crowd-burst detection (SSE) and Rico's
+    // prompt context. Fire-and-forget; opportunistic prune keeps the table tiny.
+    if (vote === "hype") {
+      void prisma.hypeEvent.create({ data: { songId } }).catch(() => undefined);
+      if (Math.random() < 0.05) {
+        void prisma.hypeEvent
+          .deleteMany({ where: { createdAt: { lt: new Date(Date.now() - 2 * 60 * 60 * 1000) } } })
+          .catch(() => undefined);
+      }
+    }
+
     return NextResponse.json({
       hypeCount: pref.hypeCount,
       rotationScore: pref.rotationScore,

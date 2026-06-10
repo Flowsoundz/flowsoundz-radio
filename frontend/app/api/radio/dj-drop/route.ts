@@ -103,6 +103,22 @@ async function getChatContext(): Promise<string> {
   }
 }
 
+// Crowd energy — recent Fire votes across all listeners. When the room is
+// surging, Rico acknowledges it on air.
+async function getHypeContext(): Promise<string> {
+  try {
+    const recent = await prisma.hypeEvent.count({
+      where: { createdAt: { gt: new Date(Date.now() - 90_000) } },
+    });
+    if (recent >= 3) {
+      return ` The crowd is going off — ${recent} fire reactions in the last minute. Acknowledge that energy.`;
+    }
+    return "";
+  } catch {
+    return "";
+  }
+}
+
 async function generateScript(context: {
   trackId?: string | null;
   trackTitle: string;
@@ -127,12 +143,13 @@ async function generateScript(context: {
   }
 
   const chatContext = includeChatContext ? await getChatContext() : "";
+  const hypeContext = includeChatContext ? await getHypeContext() : "";
 
   const system = SYSTEM_PROMPTS[lang];
   const userPrompt =
     lang === "es"
-      ? `Presenta "${trackTitle}" de ${artist}. Vibe: ${vibe}.${listenerCount ? ` ${listenerCount} personas están escuchando ahora.` : ""}${chatContext} Dale candela.`
-      : `Introduce "${trackTitle}" by ${artist}. Vibe: ${vibe}.${listenerCount ? ` ${listenerCount} people are listening right now.` : ""}${chatContext} Make it hit.`;
+      ? `Presenta "${trackTitle}" de ${artist}. Vibe: ${vibe}.${listenerCount ? ` ${listenerCount} personas están escuchando ahora.` : ""}${chatContext}${hypeContext} Dale candela.`
+      : `Introduce "${trackTitle}" by ${artist}. Vibe: ${vibe}.${listenerCount ? ` ${listenerCount} people are listening right now.` : ""}${chatContext}${hypeContext} Make it hit.`;
 
   if (process.env.ANTHROPIC_API_KEY) {
     try { return await generateWithClaude(system, userPrompt); } catch (e) {
@@ -242,10 +259,25 @@ export async function POST(req: Request) {
     script = templateScript(trackTitle, artist, vibe, lang);
   }
 
-  // Pre-warm mode: script is now cached in DB, skip TTS
-  if (preWarm) {
-    return Response.json({ ok: true, preWarmed: true });
+  // Reuse persisted ElevenLabs audio when the stored script + voice still
+  // match — survives cold starts, so TTS is paid for once per script, ever.
+  if (trackId) {
+    try {
+      const row = await prisma.djDropScript.findUnique({
+        where: { trackId_lang: { trackId, lang } },
+      });
+      if (row?.audioData && row.audioVoiceId === ELEVENLABS_VOICE_ID && row.script === script) {
+        const dataUrl = `data:audio/mpeg;base64,${Buffer.from(row.audioData).toString("base64")}`;
+        dropCache.set(trackId, { url: dataUrl, ts: Date.now() });
+        return Response.json(
+          preWarm ? { ok: true, preWarmed: true, audioCached: true } : { url: dataUrl, script, cached: true },
+        );
+      }
+    } catch { /* fall through to TTS */ }
   }
+
+  // Pre-warm continues through TTS: generating the audio 45s ahead of the
+  // transition and persisting it means the actual transition is instant.
 
   let ttsRes: Response;
   try {
@@ -282,6 +314,29 @@ export async function POST(req: Request) {
 
   if (trackId) {
     dropCache.set(trackId, { url: dataUrl, ts: Date.now() });
+    // Persist the audio alongside the exact script it voices, keyed to the
+    // current voice — any future request for this drop skips ElevenLabs.
+    void prisma.djDropScript.upsert({
+      where: { trackId_lang: { trackId, lang } },
+      create: {
+        trackId,
+        lang,
+        script,
+        audioData: Buffer.from(audioBuffer),
+        audioVoiceId: ELEVENLABS_VOICE_ID,
+        audioGeneratedAt: new Date(),
+      },
+      update: {
+        script,
+        audioData: Buffer.from(audioBuffer),
+        audioVoiceId: ELEVENLABS_VOICE_ID,
+        audioGeneratedAt: new Date(),
+      },
+    }).catch(() => undefined);
+  }
+
+  if (preWarm) {
+    return Response.json({ ok: true, preWarmed: true, audioCached: true });
   }
 
   return Response.json({ url: dataUrl, script, cached: false });

@@ -10,6 +10,9 @@ const MAX_LIFETIME_MS = 55_000;
 const CHAT_POLL_MS = 2_000;
 const BOOST_POLL_MS = 10_000;
 const HEARTBEAT_MS = 25_000;
+const HYPE_POLL_MS = 4_000;
+// Fire votes inside this rolling window count toward a crowd burst.
+const HYPE_WINDOW_MS = 12_000;
 
 export async function GET() {
   const encoder = new TextEncoder();
@@ -74,6 +77,22 @@ export async function GET() {
           send("boosts", boosts);
         } catch { cleanup(); }
       }, BOOST_POLL_MS));
+
+      // ── Crowd hype every 4s — recent Fire votes in a 12s rolling window ──
+      let lastHypeSent = -1;
+      timers.push(setInterval(async () => {
+        if (closed) return;
+        try {
+          const recent = await prisma.hypeEvent.count({
+            where: { createdAt: { gt: new Date(Date.now() - HYPE_WINDOW_MS) } },
+          });
+          // Only send on change — keeps the wire quiet when the room is calm.
+          if (recent !== lastHypeSent) {
+            lastHypeSent = recent;
+            send("hype", { recent });
+          }
+        } catch { cleanup(); }
+      }, HYPE_POLL_MS));
 
       // ── Heartbeat every 25s — keeps proxies from closing the connection ──
       timers.push(setInterval(() => {
