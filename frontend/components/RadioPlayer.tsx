@@ -509,6 +509,8 @@ export default function RadioPlayer() {
   const [showShareCard, setShowShareCard] = useState(false);
   const [chatUnread, setChatUnread] = useState(0);
   const lastChatOpenRef = useRef<number>(Date.now());
+  const [requestCounts, setRequestCounts] = useState<Record<string, number>>({});
+  const [requestedIds, setRequestedIds] = useState<Set<string>>(new Set());
   const [visualizerAnalyser, setVisualizerAnalyser] =
     useState<AnalyserNode | null>(null);
   const [visualizerMode, setVisualizerMode] =
@@ -661,6 +663,21 @@ export default function RadioPlayer() {
       setVisualizerAnalyser(sharedAnalyserRef.current);
     }
   }, [isAudioReady, sharedAnalyserRef]);
+
+  // Fetch request counts whenever the queue changes
+  useEffect(() => {
+    const ids = queue
+      .filter((_, i) => i !== currentIndex)
+      .slice(0, 20)
+      .map((s) => s.id);
+    if (ids.length === 0) return;
+    void fetch(`/api/radio/request?ids=${encodeURIComponent(ids.join(","))}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: Record<string, number> | null) => {
+        if (data) setRequestCounts(data);
+      })
+      .catch(() => { /* ignore */ });
+  }, [queue, currentIndex]);
 
   // Fetch stream auth cookie on mount, refresh every 50 min to keep audio access alive.
   useEffect(() => {
@@ -3015,9 +3032,36 @@ export default function RadioPlayer() {
                         ) : null}
                       </div>
                     </div>
-                    <span className="state-fade relative rounded-full border border-white/8 bg-white/5 px-3 py-1 text-xs font-medium text-[#CBD5E1]">
-                      {formatVibeLabel(song.vibe ?? selectedVibe)}
-                    </span>
+                    <div className="relative flex flex-col items-end gap-2">
+                      <span className="state-fade rounded-full border border-white/8 bg-white/5 px-3 py-1 text-xs font-medium text-[#CBD5E1]">
+                        {formatVibeLabel(song.vibe ?? selectedVibe)}
+                      </span>
+                      <button
+                        onClick={async () => {
+                          if (requestedIds.has(song.id)) return;
+                          try {
+                            const res = await fetch("/api/radio/request", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ songId: song.id }),
+                            });
+                            if (res.ok) {
+                              const data = (await res.json()) as { ok: boolean; count: number };
+                              setRequestedIds((prev) => new Set([...prev, song.id]));
+                              setRequestCounts((prev) => ({ ...prev, [song.id]: data.count }));
+                            }
+                          } catch { /* ignore */ }
+                        }}
+                        className={`state-fade flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-semibold transition ${
+                          requestedIds.has(song.id)
+                            ? "border-[#FF2DA6]/40 bg-[#FF2DA6]/15 text-[#FF2DA6] cursor-default"
+                            : "border-white/10 bg-white/5 text-[#CBD5E1] hover:border-[#FF2DA6]/40 hover:bg-[#FF2DA6]/10 hover:text-[#FF2DA6]"
+                        }`}
+                        title={requestedIds.has(song.id) ? "Requested" : "Request this song"}
+                      >
+                        🔥 {requestCounts[song.id] ?? 0}
+                      </button>
+                    </div>
                   </div>
                 );
               })

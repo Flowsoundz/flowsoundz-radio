@@ -2,11 +2,25 @@ import { NextResponse } from "next/server";
 import { readCatalogSnapshotFromStore } from "@/lib/catalogSnapshotStore";
 import { getStaticCatalog } from "@/lib/staticCatalog";
 import { normalizeStationSong } from "@/lib/stationPlayback";
+import { prisma } from "@/lib/prisma";
 import type { Song } from "@/lib/types";
 
-function reorderQueue(songs: Song[]) {
+async function reorderQueue(songs: Song[]): Promise<Song[]> {
   const featured = songs.filter((song) => song.featured || song.is_featured);
   const rest = songs.filter((song) => !featured.includes(song));
+
+  // Sort non-featured songs by request count descending
+  if (rest.length > 1) {
+    const ids = rest.map((s) => s.id);
+    const counts = await prisma.songRequest.groupBy({
+      by: ["songId"],
+      where: { songId: { in: ids } },
+      _count: { songId: true },
+    });
+    const countMap = new Map(counts.map((c) => [c.songId, c._count.songId]));
+    rest.sort((a, b) => (countMap.get(b.id) ?? 0) - (countMap.get(a.id) ?? 0));
+  }
+
   return [...featured, ...rest];
 }
 
@@ -27,7 +41,7 @@ export async function GET(request: Request) {
       ? vibeFiltered
       : vibeFiltered.filter((song) => !song.is_explicit);
 
-    return NextResponse.json(reorderQueue(filtered), {
+    return NextResponse.json(await reorderQueue(filtered), {
       headers: {
         "Cache-Control": "no-store",
       },

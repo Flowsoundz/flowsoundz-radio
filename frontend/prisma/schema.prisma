@@ -560,6 +560,17 @@ model RadioSession {
   @@map("radio_sessions")
 }
 
+model SongRequest {
+  id        String   @id @default(cuid())
+  songId    String
+  ip        String
+  createdAt DateTime @default(now())
+
+  @@unique([songId, ip])
+  @@index([songId])
+  @@map("song_requests")
+}
+
 model ChatMessage {
   id          String   @id @default(cuid())
   displayName String
