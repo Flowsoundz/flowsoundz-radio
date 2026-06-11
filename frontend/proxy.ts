@@ -42,16 +42,37 @@ export async function proxy(req: NextRequest) {
   const isAuthed = Boolean(token);
   const isAdmin = Boolean(token?.email && ADMIN_EMAILS.has(token.email.trim().toLowerCase()));
 
+  // Audio requested by the embed radio player. Those <audio> subresource requests
+  // are same-origin to the iframe document, so they carry its URL (/embed/radio)
+  // as Referer. A SameSite=Strict cookie never travels into a third-party iframe,
+  // so we trust this Referer for the embed (low-sensitivity anti-hotlink token)
+  // and let embed audio bypass maintenance, the launch gate, and the cookie check.
+  let isEmbedAudio = false;
+  if (pathname.startsWith("/audio/")) {
+    try {
+      isEmbedAudio = new URL(req.headers.get("referer") ?? "").pathname.startsWith("/embed");
+    } catch {
+      /* missing or malformed Referer — treat as non-embed */
+    }
+  }
+
   // Maintenance / coming-soon mode — admin always gets through, /signin allowed so admin can log in.
-  // /embed stays open: those pages live inside iframes on third-party sites.
-  if (MAINTENANCE && !isAdmin && !pathname.startsWith("/api") && !pathname.startsWith("/signin") && !pathname.startsWith("/embed")) {
+  // /embed stays open (iframes on third-party sites) and embed audio streams through.
+  if (
+    MAINTENANCE &&
+    !isAdmin &&
+    !isEmbedAudio &&
+    !pathname.startsWith("/api") &&
+    !pathname.startsWith("/signin") &&
+    !pathname.startsWith("/embed")
+  ) {
     if (pathname !== "/coming-soon") {
       return NextResponse.redirect(new URL("/coming-soon", req.url));
     }
   }
 
-  // Launch mode: gate /radio and /audio/* behind INSIDER/VAULT tier (admin bypasses)
-  if (LAUNCH_MODE && !isAdmin && (pathname.startsWith("/radio") || pathname.startsWith("/audio/"))) {
+  // Launch mode: gate /radio and /audio/* behind INSIDER/VAULT tier (admin + embed bypass)
+  if (LAUNCH_MODE && !isAdmin && !isEmbedAudio && (pathname.startsWith("/radio") || pathname.startsWith("/audio/"))) {
     const tier = (token as { tier?: string } | null)?.tier ?? "";
     const hasAccess = tier === "INSIDER" || tier === "VAULT";
     if (!hasAccess) {
@@ -62,8 +83,11 @@ export async function proxy(req: NextRequest) {
     }
   }
 
-  // Protect audio files — require a valid stream token cookie
+  // Protect audio files — require a valid stream token cookie (embed traffic exempt)
   if (pathname.startsWith("/audio/")) {
+    if (isEmbedAudio) {
+      return NextResponse.next();
+    }
     const secret = process.env.AUTH_SECRET;
     if (secret) {
       const streamToken = req.cookies.get(STREAM_COOKIE)?.value ?? "";
