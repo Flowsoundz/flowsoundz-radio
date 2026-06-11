@@ -37,8 +37,21 @@ async function isValidStreamToken(secret: string, token: string): Promise<boolea
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Resolve session once — used by maintenance bypass, launch gate, and admin checks
-  const token = await getToken({ req, secret: process.env.AUTH_SECRET });
+  // Resolve session once — used by maintenance bypass, launch gate, and admin checks.
+  // Auth.js v5 names the session cookie `__Secure-authjs.session-token` on HTTPS
+  // and `authjs.session-token` on HTTP, and encrypts it with the cookie name as
+  // the salt. getToken must be told the matching cookieName/salt/secureCookie or
+  // it returns null on production — making every signed-in admin look anonymous
+  // and bounce to /coming-soon. (This was the bug.)
+  const useSecureCookies = req.url.startsWith("https://");
+  const sessionCookieName = `${useSecureCookies ? "__Secure-" : ""}authjs.session-token`;
+  const token = await getToken({
+    req,
+    secret: process.env.AUTH_SECRET,
+    secureCookie: useSecureCookies,
+    cookieName: sessionCookieName,
+    salt: sessionCookieName,
+  });
   const isAuthed = Boolean(token);
   const isAdmin = Boolean(token?.email && ADMIN_EMAILS.has(token.email.trim().toLowerCase()));
 
