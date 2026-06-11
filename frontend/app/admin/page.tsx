@@ -97,6 +97,12 @@ export default async function AdminPage() {
         "Upload MP3/WAV files and write songs directly into the local catalog.",
     },
     {
+      href: "/admin/mastering",
+      title: "Mastering Queue",
+      description:
+        "Live status of the loudness-mastering pipeline — watch jobs process and retry failures.",
+    },
+    {
       href: "/admin/covers",
       title: "Cover Uploads",
       description:
