@@ -2,7 +2,7 @@ generator client {
   provider = "prisma-client-js"
   // native = local dev (mac); rhel = Vercel's Linux lambdas. Required for
   // prebuilt deploys (vercel build locally + deploy --prebuilt).
-  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+  binaryTargets = ["native", "rhel-openssl-3.0.x", "linux-arm64-openssl-3.0.x"]
 }
 
 datasource db {
