@@ -97,6 +97,19 @@ const nextConfig: NextConfig = {
     ];
   },
   outputFileTracingRoot: path.resolve(__dirname),
+  // Keep large static media OUT of serverless function bundles. These files
+  // still serve normally from /public as static assets — without this, the
+  // ~470MB of audio/covers gets traced into every lambda and blows the 245MB
+  // bundle limit, failing the deploy.
+  outputFileTracingExcludes: {
+    "*": [
+      "./public/audio/**",
+      "./public/archive/**",
+      "./public/covers/**",
+      "./public/drops/**",
+      "./public/visuals/**",
+    ],
+  },
   serverExternalPackages: [
     "@anthropic-ai/sdk",
     "@prisma/client",
