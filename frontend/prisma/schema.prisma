@@ -212,6 +212,10 @@ model Song {
   audioFile    String?
   hlsUrl       String?
   publicAudioUrl String?
+  // Raw input for the mastering worker — a Suno/Udio export URL or an uploaded
+  // file. Worker loudness-normalizes it, fills publicAudioUrl + durationSec,
+  // and flips packagingStatus PENDING → PROCESSING → READY (or FAILED).
+  sourceAudioUrl String?
   packagingStatus PackagingStatus?
   packagingError String?
   coverUrl     String?
