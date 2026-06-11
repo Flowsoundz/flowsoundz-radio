@@ -86,3 +86,30 @@ export async function publishApprovedSubmission(
 
   return { ok: true, songId: song.id, alreadyPublished: false, verdict };
 }
+
+/**
+ * Auto-publish path for when the station grows past hand-review. No-op unless
+ * SUBMISSION_AUTO_APPROVE=1 AND the submission is spotless (passes every check
+ * with zero warnings — see evaluateSubmissionRequirements). When it fires it
+ * publishes the song and marks the submission APPROVED, no human in the loop.
+ * This is the seam an AI reviewer plugs into: replace the autoApprovable rule
+ * with a model verdict and this path starts clearing confident submissions.
+ */
+export async function autoPublishIfEligible(
+  submissionId: string,
+): Promise<{ autoPublished: boolean; songId?: string }> {
+  const sub = await prisma.artistSubmission.findUnique({ where: { id: submissionId } });
+  if (!sub || sub.publishedSongId) return { autoPublished: false };
+
+  const verdict = evaluateSubmissionRequirements(sub);
+  if (!verdict.autoApprovable) return { autoPublished: false };
+
+  const result = await publishApprovedSubmission(submissionId);
+  if (!result.ok) return { autoPublished: false };
+
+  await prisma.artistSubmission.update({
+    where: { id: submissionId },
+    data: { status: "APPROVED" },
+  });
+  return { autoPublished: true, songId: result.songId };
+}

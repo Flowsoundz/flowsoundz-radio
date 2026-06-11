@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import type { ArtistPromoOutput } from "@/lib/creatorHub/generators";
 import { createArtistSubmission } from "@/lib/artistSubmissionStore";
+import { autoPublishIfEligible } from "@/lib/publishSubmission";
 import {
   sendArtistSubmissionNotification,
   sendArtistSubmissionConfirmation,
@@ -277,6 +278,13 @@ export async function POST(request: NextRequest) {
       artist_feedback: null,
       promo,
     });
+
+    // Auto-publish path — no-op unless SUBMISSION_AUTO_APPROVE=1 and the
+    // submission is spotless. Fire-and-forget so the artist's response isn't
+    // held up by mastering enqueue.
+    if (process.env.SUBMISSION_AUTO_APPROVE === "1" && submission.submission_id) {
+      void autoPublishIfEligible(submission.submission_id).catch(() => undefined);
+    }
 
     return Response.json({ ...promo, submission_id: submission.submission_id });
   } catch {
