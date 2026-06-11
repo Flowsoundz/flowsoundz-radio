@@ -1,5 +1,6 @@
 import { AppShell } from "@/components/AppShell";
 import { AdminMusicUploader } from "@/components/AdminMusicUploader";
+import { AdminIngestPanel } from "@/components/AdminIngestPanel";
 import { readAdminCatalogSongs } from "@/lib/adminCatalog";
 import type { Song } from "@/lib/types";
 
@@ -64,6 +65,9 @@ export default async function AdminMusicPage() {
       title="Music Uploads"
       subtitle="Upload MP3 or WAV files, edit metadata, and write directly to the backend catalog used by the radio player."
     >
+      <div className="mb-6">
+        <AdminIngestPanel />
+      </div>
       {isConfigured ? (
         <AdminMusicUploader songs={songs} />
       ) : (
