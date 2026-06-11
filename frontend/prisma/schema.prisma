@@ -377,6 +377,9 @@ model ArtistSubmission {
   removalPolicyConfirmed Boolean         @default(false)
   notes          String?
   status         ArtistSubmissionStatus  @default(NEW)
+  // Set when an approved submission is published into the catalog as a Song —
+  // idempotency guard so re-approving never double-creates the master job.
+  publishedSongId String?
   createdAt      DateTime                @default(now())
   updatedAt      DateTime                @updatedAt
 

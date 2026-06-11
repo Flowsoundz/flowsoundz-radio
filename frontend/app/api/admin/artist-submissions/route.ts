@@ -8,6 +8,7 @@ import {
   sendArtistApprovalEmail,
   sendArtistRejectionEmail,
 } from "@/lib/mailer";
+import { publishApprovedSubmission } from "@/lib/publishSubmission";
 
 export const runtime = "nodejs";
 
@@ -39,6 +40,10 @@ export async function POST(request: Request) {
   const internalNotes = internalNotesRaw || null;
   const artistFeedbackRaw = String(formData.get("artistFeedback") ?? "").trim();
   const artistFeedback = artistFeedbackRaw || null;
+  // Optional: admin pastes the direct CDN audio URL when the submitted link
+  // was a share page (the resolvableAudio warning).
+  const overrideAudioUrlRaw = String(formData.get("overrideAudioUrl") ?? "").trim();
+  const overrideAudioUrl = overrideAudioUrlRaw || undefined;
 
   if (!process.env.ADMIN_UPLOAD_PASSWORD) {
     return NextResponse.json(
@@ -68,11 +73,33 @@ export async function POST(request: Request) {
     });
 
     if (status === "approved") {
+      // Approval is the gate that puts a track on air: run the requirements
+      // engine and, if it clears, hand the song to the mastering worker.
+      const published = await publishApprovedSubmission(submissionId, overrideAudioUrl);
+      if (!published.ok && published.reason === "blocked") {
+        return NextResponse.json(
+          {
+            error: "Submission does not meet requirements — cannot publish.",
+            blockingReasons: published.verdict.blockingReasons,
+            checks: published.verdict.checks,
+          },
+          { status: 422 },
+        );
+      }
+
       void sendArtistApprovalEmail({
         contactName: submission.contact_name,
         email: submission.email,
         artistName: submission.artist_name,
         songTitle: submission.song_title,
+      });
+
+      return NextResponse.json({
+        ok: true,
+        submission,
+        published: published.ok
+          ? { songId: published.songId, alreadyPublished: published.alreadyPublished }
+          : null,
       });
     } else if (status === "rejected") {
       void sendArtistRejectionEmail({

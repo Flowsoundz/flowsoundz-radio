@@ -5,10 +5,24 @@ import type {
   ArtistSubmissionRecord,
   ArtistSubmissionStatus,
 } from "@/lib/artistSubmissionStore";
+import { evaluateSubmissionRequirements } from "@/lib/submissionRequirements";
 
 type AdminArtistSubmissionsReviewProps = {
   submissions: ArtistSubmissionRecord[];
 };
+
+function verdictFor(s: ArtistSubmissionRecord) {
+  return evaluateSubmissionRequirements({
+    songTitle: s.song_title,
+    artistName: s.artist_name,
+    songLink: s.song_link,
+    vibe: s.vibe,
+    rightsConfirmed: s.rights_confirmed,
+    samplesConfirmed: s.samples_confirmed,
+    promotionPermissionConfirmed: s.promotion_permission_confirmed,
+    removalPolicyConfirmed: s.removal_policy_confirmed,
+  });
+}
 
 const STATUS_OPTIONS: Array<{
   value: ArtistSubmissionStatus;
@@ -76,9 +90,11 @@ export function AdminArtistSubmissionsReview({
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [overrideAudioUrl, setOverrideAudioUrl] = useState("");
 
   const selected =
     submissions.find((submission) => submission.submission_id === selectedId) ?? null;
+  const verdict = selected ? verdictFor(selected) : null;
   const filteredSubmissions = submissions.filter((submission) => {
     const matchesStatus =
       statusFilter === "all" ? true : submission.status === statusFilter;
@@ -170,17 +186,23 @@ export function AdminArtistSubmissionsReview({
       formData.append("status", nextStatus);
       formData.append("internalNotes", notes);
       formData.append("artistFeedback", feedback);
+      if (overrideAudioUrl.trim()) {
+        formData.append("overrideAudioUrl", overrideAudioUrl.trim());
+      }
 
       const response = await fetch("/api/admin/artist-submissions", {
         method: "POST",
         body: formData,
       });
       const data = (await response.json().catch(() => null)) as
-        | { error?: string; submission?: ArtistSubmissionRecord }
+        | { error?: string; submission?: ArtistSubmissionRecord; blockingReasons?: string[] }
         | null;
 
       if (!response.ok) {
-        throw new Error(data?.error ?? "Failed to save.");
+        const reasons = data?.blockingReasons?.length
+          ? ` — ${data.blockingReasons.join("; ")}`
+          : "";
+        throw new Error((data?.error ?? "Failed to save.") + reasons);
       }
 
       setSubmissions((current) =>
@@ -390,6 +412,57 @@ export function AdminArtistSubmissionsReview({
                   </div>
                 </div>
               </div>
+
+              {/* Publish requirements gate — auto-checked before a track can go on air */}
+              {verdict ? (
+                <div className={`rounded-[1.4rem] border px-4 py-3 ${
+                  verdict.passed
+                    ? "border-emerald-400/20 bg-emerald-400/[0.04]"
+                    : "border-rose-400/25 bg-rose-400/[0.05]"
+                }`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#CBD5E1]/55">
+                      Publish Requirements
+                    </p>
+                    <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                      verdict.passed
+                        ? "border border-emerald-400/30 bg-emerald-400/10 text-emerald-200"
+                        : "border border-rose-400/30 bg-rose-400/10 text-rose-200"
+                    }`}>
+                      {verdict.passed ? "Clear to approve" : "Blocked"}
+                    </span>
+                  </div>
+                  <ul className="mt-2 grid gap-1 sm:grid-cols-2">
+                    {verdict.checks.map((c) => (
+                      <li key={c.id} className="flex items-start gap-2 text-xs leading-5 text-[#CBD5E1]">
+                        <span className={
+                          c.ok ? "text-emerald-300" : c.severity === "block" ? "text-rose-300" : "text-amber-300"
+                        }>
+                          {c.ok ? "✓" : c.severity === "block" ? "✕" : "!"}
+                        </span>
+                        <span className={c.ok ? "" : "text-[#CBD5E1]/80"}>
+                          {c.label}
+                          {!c.ok && c.detail ? <span className="block text-[10px] text-[#CBD5E1]/45">{c.detail}</span> : null}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  {!verdict.checks.find((c) => c.id === "resolvableAudio")?.ok ? (
+                    <div className="mt-3">
+                      <label className="block text-[10px] font-semibold uppercase tracking-wider text-amber-200/70">
+                        Direct audio URL (paste the CDN file for mastering)
+                      </label>
+                      <input
+                        value={overrideAudioUrl}
+                        onChange={(e) => setOverrideAudioUrl(e.target.value)}
+                        placeholder="https://cdn1.suno.ai/....mp3"
+                        className="mt-1 w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-xs text-white placeholder:text-white/25 outline-none focus:border-amber-300/40"
+                        inputMode="url"
+                      />
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
 
               <div className="rounded-[1.4rem] border border-white/8 bg-white/[0.03] px-4 py-3">
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#CBD5E1]/55">
