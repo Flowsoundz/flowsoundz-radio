@@ -70,7 +70,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       token.id ??= token.sub;
       token.role ??= "LISTENER";
       token.tier ??= "FREE";
-      token.isAdmin ??= isAdminEmail(token.email);
+      // Always recompute from the CURRENT ADMIN_EMAIL list so changing the env
+      // var promotes existing sessions on the next request — no sign-out needed.
+      // (Previously `??=` left a stale isAdmin:false baked into the cookie.)
+      token.isAdmin = isAdminEmail((user?.email ?? token.email) as string | null | undefined);
       return token;
     },
     session({ session, token }) {
