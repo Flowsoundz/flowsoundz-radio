@@ -11,6 +11,7 @@ import {
 import { applySongOverrides, getCatalogSnapshot, slugifyArtistName } from "@/lib/catalogSnapshot";
 import { prisma } from "@/lib/prisma";
 import { getCuratedCatalog } from "@/lib/curatedCatalog";
+import { getStaticCatalog } from "@/lib/staticCatalog";
 import type {
   ArtistSocialLinks,
   CatalogSnapshot,
@@ -287,6 +288,12 @@ async function readCatalogSnapshotFromPrisma(): Promise<CatalogSnapshot> {
     };
 
     for (const song of artist.songs) {
+      // Songs still in the mastering pipeline (PENDING/PROCESSING/FAILED)
+      // are not broadcast-ready — keep them out of the public catalog until
+      // the worker marks them READY. Legacy/manual songs (null status) pass.
+      if (song.packagingStatus && song.packagingStatus !== "READY") {
+        continue;
+      }
       songs.push(applySongOverrides(mapPrismaSong(artist, song)));
 
       const primaryMilestone = song.milestones[0] ?? null;
@@ -294,6 +301,17 @@ async function readCatalogSnapshotFromPrisma(): Promise<CatalogSnapshot> {
         milestoneOverrides[song.id] = mapMilestone(primaryMilestone);
       }
     }
+  }
+
+  // DB songs ADD to the built-in catalog — they must never replace it.
+  // (Before this merge, the first ingested DB song silently evicted all 55
+  // static tracks and took the station off air.)
+  const seenIds = new Set(songs.map((s) => s.id));
+  const seenSlugs = new Set(songs.map((s) => s.slug).filter(Boolean));
+  for (const staticSong of getStaticCatalog()) {
+    if (seenIds.has(staticSong.id)) continue;
+    if (staticSong.slug && seenSlugs.has(staticSong.slug)) continue;
+    songs.push(staticSong);
   }
 
   return getCatalogSnapshot(songs, {
