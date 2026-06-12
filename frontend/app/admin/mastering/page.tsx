@@ -19,6 +19,22 @@ type Data = {
   jobs: Job[];
 };
 
+// Translate raw worker errors into something a human can act on.
+function explainError(raw: string): string | null {
+  const e = raw.toLowerCase();
+  if (e.includes("invalid data found") || e.includes("webpage, not an audio"))
+    return "That link was a webpage, not an audio file. Paste the track's share link again (we now auto-resolve those) or upload the file directly.";
+  if (e.includes("access denied") || e.includes("valid token"))
+    return "Storage credentials problem — the worker's BLOB_READ_WRITE_TOKEN is missing or wrong.";
+  if (e.includes("public access on a private store"))
+    return "The Blob store is set to private; masters need the public store token.";
+  if (e.includes("source fetch"))
+    return "Couldn't download the source — the link may be expired or wrong. Re-copy it and retry.";
+  if (e.includes("too small"))
+    return "The downloaded file was empty — the link probably didn't point at real audio.";
+  return null;
+}
+
 const STATUS_STYLE: Record<string, string> = {
   PENDING: "border-amber-300/30 bg-amber-300/10 text-amber-200",
   PROCESSING: "border-cyan-300/30 bg-cyan-300/10 text-cyan-200",
@@ -128,7 +144,12 @@ export default function MasteringAdminPage() {
                     {job.status === "FAILED" ? (
                       <div className="mt-2 space-y-2">
                         {job.error ? (
-                          <p className="rounded-lg bg-rose-500/10 px-3 py-2 text-[11px] leading-5 text-rose-200/90">{job.error}</p>
+                          <div className="rounded-lg bg-rose-500/10 px-3 py-2">
+                            {explainError(job.error) ? (
+                              <p className="text-xs leading-5 text-rose-100">{explainError(job.error)}</p>
+                            ) : null}
+                            <p className="mt-1 text-[10px] leading-4 text-rose-200/50">{job.error}</p>
+                          </div>
                         ) : null}
                         <div className="flex items-center gap-2">
                           <input

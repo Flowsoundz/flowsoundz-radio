@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { upload } from "@vercel/blob/client";
 
 const VIBES = [
   { value: "HYPE", label: "Hype" },
@@ -21,6 +22,30 @@ export function AdminIngestPanel() {
   const [sourceAudioUrl, setSourceAudioUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadPct, setUploadPct] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  async function handleFile(file: File) {
+    setUploading(true);
+    setUploadPct(0);
+    setResult(null);
+    try {
+      const blob = await upload(`sources/${file.name}`, file, {
+        access: "public",
+        handleUploadUrl: "/api/admin/blob-upload",
+        onUploadProgress: ({ percentage }) => setUploadPct(Math.round(percentage)),
+      });
+      setSourceAudioUrl(blob.url);
+      if (!title.trim()) {
+        setTitle(file.name.replace(/\.[a-z0-9]+$/i, "").replace(/[_-]+/g, " "));
+      }
+    } catch (err) {
+      setResult({ kind: "err", message: err instanceof Error ? err.message : "Upload failed." });
+    } finally {
+      setUploading(false);
+    }
+  }
 
   const canSubmit = title.trim() && /^https?:\/\//.test(sourceAudioUrl.trim()) && !submitting;
 
@@ -64,23 +89,54 @@ export function AdminIngestPanel() {
         </span>
       </div>
       <p className="mb-5 text-xs leading-5 text-white/55">
-        Paste a Suno / Udio export (or any direct audio URL). The mastering worker
-        normalizes it to broadcast loudness, reads its exact duration, and publishes
-        a radio-ready master — no manual mixing.
+        Paste any Suno / Udio link — <span className="text-white/75">share links are fine</span>, we
+        resolve them automatically — or upload the audio file directly. The mastering worker
+        normalizes it to broadcast loudness, reads its exact duration, and publishes a
+        radio-ready master. No manual mixing.
       </p>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="sm:col-span-2">
           <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-white/40">
-            Source audio URL
+            Source audio — link or file
           </label>
-          <input
-            className={field}
-            value={sourceAudioUrl}
-            onChange={(e) => setSourceAudioUrl(e.target.value)}
-            placeholder="https://cdn1.suno.ai/....mp3"
-            inputMode="url"
-          />
+          <div className="flex gap-2">
+            <input
+              className={field}
+              value={sourceAudioUrl}
+              onChange={(e) => setSourceAudioUrl(e.target.value)}
+              placeholder="https://suno.com/s/… or any audio URL"
+              inputMode="url"
+              disabled={uploading}
+            />
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="audio/*,.mp3,.wav,.m4a,.flac,.ogg"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void handleFile(f);
+                e.target.value = "";
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="shrink-0 rounded-xl border border-[#00E5FF]/30 bg-[#00E5FF]/10 px-4 py-2.5 text-xs font-bold text-[#00E5FF] transition hover:bg-[#00E5FF]/18 disabled:opacity-50"
+            >
+              {uploading ? `Uploading ${uploadPct}%` : "Upload file"}
+            </button>
+          </div>
+          {uploading ? (
+            <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/10">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-[#00E5FF] to-[#00FF88] transition-all"
+                style={{ width: `${uploadPct}%` }}
+              />
+            </div>
+          ) : null}
         </div>
         <div>
           <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-white/40">

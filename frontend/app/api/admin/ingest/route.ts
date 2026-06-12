@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { slugifyArtistName } from "@/lib/catalogSnapshot";
+import { resolveDirectAudioUrl } from "@/lib/resolveAudioSource";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -52,6 +53,11 @@ export async function POST(req: Request) {
     return Response.json({ error: "sourceAudioUrl must be an http(s) URL" }, { status: 400 });
   }
 
+  // Share links (suno.com/s/..., etc.) are HTML pages, not audio — resolve
+  // them to the underlying CDN file so artists can paste whatever they have.
+  const resolved = await resolveDirectAudioUrl(sourceAudioUrl);
+  const finalAudioUrl = resolved?.url ?? sourceAudioUrl;
+
   try {
     // Resolve or create the artist by slug.
     const artistSlug = slugifyArtistName(artistName);
@@ -75,8 +81,8 @@ export async function POST(req: Request) {
         slug,
         genre,
         vibe,
-        audioUrl: sourceAudioUrl, // placeholder; worker writes publicAudioUrl
-        sourceAudioUrl,
+        audioUrl: finalAudioUrl, // placeholder; worker writes publicAudioUrl
+        sourceAudioUrl: finalAudioUrl,
         packagingStatus: "PENDING",
       },
       select: { id: true, slug: true, title: true, packagingStatus: true },

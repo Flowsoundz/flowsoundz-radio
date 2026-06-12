@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { slugifyArtistName } from "@/lib/catalogSnapshot";
 import { evaluateSubmissionRequirements, type RequirementVerdict } from "@/lib/submissionRequirements";
+import { resolveDirectAudioUrl } from "@/lib/resolveAudioSource";
 
 const VIBES = new Set(["CHILL", "HYPE", "LATE_NIGHT", "EMOTIONAL", "UNSURE"]);
 
@@ -46,7 +47,11 @@ export async function publishApprovedSubmission(
   const verdict = evaluateSubmissionRequirements(sub);
   if (!verdict.passed) return { ok: false, reason: "blocked", verdict };
 
-  const sourceAudioUrl = (overrideAudioUrl ?? sub.songLink ?? "").trim();
+  const rawSource = (overrideAudioUrl ?? sub.songLink ?? "").trim();
+  // Share links resolve to the underlying CDN file so artists can paste
+  // whatever the platform gave them.
+  const resolved = await resolveDirectAudioUrl(rawSource);
+  const sourceAudioUrl = resolved?.url ?? rawSource;
 
   const artistSlug = slugifyArtistName(sub.artistName);
   const artist = await prisma.artist.upsert({

@@ -55,10 +55,44 @@ async function markFailed(id, message) {
   );
 }
 
+// Audio file URLs embedded in a share page's HTML (Suno/Udio expose the CDN
+// file in the page markup). Lets artists paste share links and still succeed.
+const EMBEDDED_AUDIO_URL =
+  /https?:\/\/(?:cdn\d*\.suno\.ai|audiopipe\.suno\.ai|cdn\.udio\.com)\/[A-Za-z0-9\-_/]+\.(?:mp3|wav|m4a)/g;
+
+// The actual track on a share page is the UUID-named file; pages also embed
+// utility clips like Suno's sil-100.mp3 (silence) that must not win.
+function pickBestEmbeddedAudio(html) {
+  const all = [...new Set(html.match(EMBEDDED_AUDIO_URL) ?? [])];
+  if (all.length === 0) return null;
+  const uuidNamed = all.find((u) =>
+    /\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(?:mp3|wav|m4a)$/i.test(u),
+  );
+  return uuidNamed ?? all.find((u) => !/\/sil-\d+\.mp3$/i.test(u)) ?? all[0];
+}
+
 async function fetchSourceToFile(url, destPath) {
-  const res = await fetch(url, { redirect: "follow" });
+  const res = await fetch(url, {
+    redirect: "follow",
+    headers: { "User-Agent": "Mozilla/5.0 (Macintosh) AppleWebKit/537.36 Chrome/124.0" },
+  });
   if (!res.ok) throw new Error(`source fetch ${res.status} for ${url}`);
+  const contentType = res.headers.get("content-type") ?? "";
   const buf = Buffer.from(await res.arrayBuffer());
+
+  // Share page instead of audio? Try to extract the real CDN file and refetch.
+  const looksHtml = contentType.includes("text/html") || buf.subarray(0, 256).toString().trimStart().startsWith("<");
+  if (looksHtml) {
+    const best = pickBestEmbeddedAudio(buf.toString("utf8"));
+    if (best) {
+      log(`  source was a share page — resolved to ${best}`);
+      return fetchSourceToFile(best, destPath);
+    }
+    throw new Error(
+      "Source URL is a webpage, not an audio file. Paste the direct file URL (e.g. cdn1.suno.ai/....mp3) or upload the file.",
+    );
+  }
+
   if (buf.length < 1024) throw new Error("source audio too small / empty");
   await writeFile(destPath, buf);
 }
