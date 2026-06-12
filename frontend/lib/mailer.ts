@@ -457,7 +457,7 @@ export async function sendWaitlistConfirmation(email: string) {
       ``,
       `We'll hit you first when FlowSoundz Radio goes fully live — new drops, exclusive features, and early access before anyone else.`,
       ``,
-      `In the meantime, tune in at: ${siteUrl}/radio`,
+      `In the meantime, check out the station: ${siteUrl}`,
       ``,
       `— FlowSoundz Radio`,
     ].join("\n"),
@@ -474,8 +474,8 @@ export async function sendWaitlistConfirmation(email: string) {
           <p style="font-size:14px;line-height:1.7;color:#94a3b8;margin:0 0 28px">
             Underground music, programmed like radio. Discovery before the algorithm catches up.
           </p>
-          <a href="${siteUrl}/radio" style="display:inline-block;padding:14px 28px;background:linear-gradient(135deg,#00e5ff 0%,#7c4dff 100%);color:#fff;font-size:14px;font-weight:700;text-decoration:none;border-radius:999px">
-            Tune in now →
+          <a href="${siteUrl}" style="display:inline-block;padding:14px 28px;background:linear-gradient(135deg,#00e5ff 0%,#7c4dff 100%);color:#fff;font-size:14px;font-weight:700;text-decoration:none;border-radius:999px">
+            Check out the station →
           </a>
           <p style="font-size:11px;color:#475569;margin:28px 0 0">
             No spam. You joined from flowsoundzradio.com. <a href="${siteUrl}/contact" style="color:#64748b">Unsubscribe</a> any time.
