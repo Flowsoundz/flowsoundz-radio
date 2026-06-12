@@ -71,13 +71,17 @@ export async function proxy(req: NextRequest) {
 
   // Maintenance / coming-soon mode — admin always gets through, /signin allowed so admin can log in.
   // /embed stays open (iframes on third-party sites) and embed audio streams through.
+  // Legal pages must NEVER be gated: Google's OAuth consent screen requires a
+  // publicly reachable privacy policy, and users on the waitlist need terms.
   if (
     MAINTENANCE &&
     !isAdmin &&
     !isEmbedAudio &&
     !pathname.startsWith("/api") &&
     !pathname.startsWith("/signin") &&
-    !pathname.startsWith("/embed")
+    !pathname.startsWith("/embed") &&
+    !pathname.startsWith("/privacy") &&
+    !pathname.startsWith("/terms")
   ) {
     if (pathname !== "/coming-soon") {
       return NextResponse.redirect(new URL("/coming-soon", req.url));
