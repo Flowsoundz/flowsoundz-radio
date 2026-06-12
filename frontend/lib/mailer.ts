@@ -843,3 +843,70 @@ export async function sendWeeklyDigest(data: {
 
   return { sent, skipped: data.recipients.length - sent };
 }
+
+// The golden moment: an artist's track finished mastering and is in rotation.
+// Air times come from the deterministic station clock — a promise no
+// traditional station can make.
+export async function sendTrackLiveEmail(
+  email: string,
+  data: { artistName: string; trackTitle: string; airings: string[] },
+) {
+  const transporter = getTransporter();
+  if (!transporter) return;
+
+  const from = getNotifyEmail();
+  const siteUrl = getSiteUrl();
+  const airingsText = data.airings.length
+    ? data.airings.map((a) => `  • ${a}`).join("\n")
+    : "  • Entering rotation now — airs within the next few hours.";
+  const airingsHtml = data.airings.length
+    ? data.airings
+        .map(
+          (a) =>
+            `<li style="margin:0 0 8px;font-size:15px;color:#fff;font-weight:600">${a}</li>`,
+        )
+        .join("")
+    : `<li style="margin:0 0 8px;font-size:15px;color:#fff">Entering rotation now — airs within the next few hours.</li>`;
+
+  await transporter.sendMail({
+    from: `"FlowSoundz Radio" <${from}>`,
+    to: email,
+    subject: `🎙️ "${data.trackTitle}" is ON THE AIR — here's exactly when it plays`,
+    text: [
+      `${data.artistName} — your track is live.`,
+      ``,
+      `"${data.trackTitle}" has been mastered to broadcast loudness and is now in the FlowSoundz Radio rotation.`,
+      ``,
+      `Your next air times:`,
+      airingsText,
+      ``,
+      `Tell your fans to tune in WITH you — FlowSoundz is synchronized radio, so everyone hears your track at the same moment. Get them firing 🔥 votes and your rotation climbs.`,
+      ``,
+      `Listen + share: ${siteUrl}`,
+      ``,
+      `— FlowSoundz Radio`,
+    ].join("\n"),
+    html: `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#050816;border-radius:16px;overflow:hidden">
+        <div style="padding:32px 32px 24px;background:linear-gradient(135deg,#0c1328 0%,#07111f 100%);border-bottom:1px solid rgba(0,229,255,0.15)">
+          <p style="margin:0 0 12px;font-size:11px;font-weight:700;letter-spacing:0.3em;text-transform:uppercase;color:#00FF88">On The Air</p>
+          <h1 style="margin:0;font-size:26px;font-weight:700;color:#fff;line-height:1.25">"${data.trackTitle}" is live on FlowSoundz Radio.</h1>
+        </div>
+        <div style="padding:28px 32px 32px">
+          <p style="font-size:15px;line-height:1.7;color:#cbd5e1;margin:0 0 18px">
+            ${data.artistName} — your track has been mastered to broadcast loudness and is in rotation. Because FlowSoundz runs on a synchronized station clock, we can tell you <strong style="color:#fff">exactly</strong> when it plays:
+          </p>
+          <ul style="margin:0 0 22px;padding:16px 20px 8px 36px;background:rgba(0,229,255,0.06);border:1px solid rgba(0,229,255,0.15);border-radius:12px">
+            ${airingsHtml}
+          </ul>
+          <p style="font-size:14px;line-height:1.7;color:#94a3b8;margin:0 0 26px">
+            Tell your fans to tune in <strong style="color:#fff">with</strong> you — everyone hears your track at the same moment. When they fire 🔥 votes together, the whole station lights up and your rotation climbs.
+          </p>
+          <a href="${siteUrl}" style="display:inline-block;padding:14px 28px;background:linear-gradient(135deg,#00e5ff 0%,#00FF88 100%);color:#04110b;font-size:14px;font-weight:700;text-decoration:none;border-radius:999px">
+            Listen + share →
+          </a>
+        </div>
+      </div>
+    `,
+  });
+}

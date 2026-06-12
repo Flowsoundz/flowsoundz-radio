@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { CreatorHubShell } from "@/components/creator-hub/CreatorHubShell";
 import { CreatorHubDashboardFlow } from "@/components/creator-hub/CreatorHubDashboardFlow";
+import { NextAiringCard } from "@/components/creator-hub/NextAiringCard";
 import { readCatalogSnapshotFromStore } from "@/lib/catalogSnapshotStore";
 
 export const metadata: Metadata = {
@@ -27,6 +28,9 @@ export default async function ArtistDashboardPage() {
       title="FlowSoundz Creator Hub"
       subtitle={`From song idea to ${stationModeCopy}.`}
     >
+      {/* ── Next Airing — exact air times for the artist's on-air tracks ── */}
+      <NextAiringCard />
+
       {/* ── Hero ── */}
       <div className="relative mb-10 overflow-hidden rounded-[2rem] border border-white/8 bg-[linear-gradient(135deg,#0c1328_0%,#07111f_55%,#050816_100%)] px-6 py-12 text-center">
         <div className="pointer-events-none absolute inset-0">

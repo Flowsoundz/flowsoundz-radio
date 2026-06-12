@@ -38,6 +38,8 @@ async function claimNextJob() {
   return rows[0] ?? null;
 }
 
+const SITE_URL = process.env.SITE_URL ?? "https://www.flowsoundzradio.com";
+
 async function markReady(id, publicAudioUrl, durationSec) {
   await pool.query(
     `UPDATE songs
@@ -46,6 +48,17 @@ async function markReady(id, publicAudioUrl, durationSec) {
      WHERE id = $3`,
     [publicAudioUrl, durationSec, id],
   );
+  // Tell the artist their track is on the air, with exact air times.
+  // Best-effort + idempotent server-side; failures never affect the job.
+  try {
+    await fetch(`${SITE_URL}/api/artist/track-live-notify`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ songId: id }),
+    });
+  } catch {
+    /* notification is best-effort */
+  }
 }
 
 async function markFailed(id, message) {
