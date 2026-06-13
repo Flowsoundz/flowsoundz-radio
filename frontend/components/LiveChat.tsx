@@ -33,10 +33,13 @@ function timeAgo(iso: string): string {
 
 type Props = {
   currentTrackTitle?: string | null;
-  onClose: () => void;
+  /** Optional in docked mode — the panel lives in the page layout, no dismiss. */
+  onClose?: () => void;
+  /** "overlay" (default) = fullscreen slide-in; "docked" = inline sidebar panel. */
+  variant?: "overlay" | "docked";
 };
 
-export function LiveChat({ currentTrackTitle, onClose }: Props) {
+export function LiveChat({ currentTrackTitle, onClose, variant = "overlay" }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [name, setName] = useState(() => {
     if (typeof window === "undefined") return "";
@@ -146,16 +149,25 @@ export function LiveChat({ currentTrackTitle, onClose }: Props) {
     }
   }
 
+  const docked = variant === "docked";
+
   return (
     <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px]"
-        onClick={onClose}
-      />
+      {/* Backdrop — overlay mode only */}
+      {!docked && (
+        <div
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px]"
+          onClick={onClose}
+        />
+      )}
 
-      {/* Panel — slide up on mobile, slide in from right on desktop */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 flex max-h-[82vh] flex-col rounded-t-[2rem] border-t border-white/10 bg-[#080f1e]/97 shadow-[0_-24px_80px_rgba(0,0,0,0.7)] sm:bottom-auto sm:right-0 sm:top-0 sm:h-screen sm:max-h-screen sm:w-[360px] sm:rounded-none sm:rounded-l-[2rem] sm:border-l sm:border-t-0 sm:shadow-[-24px_0_80px_rgba(0,0,0,0.5)]">
+      {/* Panel — overlay: slide up on mobile / in from right on desktop. Docked: inline sidebar card. */}
+      <div
+        className={
+          docked
+            ? "flex h-[480px] flex-col rounded-[1.8rem] border border-white/10 bg-[#080f1e]/90"
+            : "fixed bottom-0 left-0 right-0 z-50 flex max-h-[82vh] flex-col rounded-t-[2rem] border-t border-white/10 bg-[#080f1e]/97 shadow-[0_-24px_80px_rgba(0,0,0,0.7)] sm:bottom-auto sm:right-0 sm:top-0 sm:h-screen sm:max-h-screen sm:w-[360px] sm:rounded-none sm:rounded-l-[2rem] sm:border-l sm:border-t-0 sm:shadow-[-24px_0_80px_rgba(0,0,0,0.5)]"
+        }>
 
         {/* Header */}
         <div className="flex shrink-0 items-center justify-between border-b border-white/8 px-5 py-4">
@@ -170,16 +182,18 @@ export function LiveChat({ currentTrackTitle, onClose }: Props) {
               </p>
             )}
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 text-slate-400 transition hover:border-white/20 hover:text-white"
-            aria-label="Close chat"
-          >
-            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M18 6L6 18M6 6l12 12" />
-            </svg>
-          </button>
+          {!docked && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 text-slate-400 transition hover:border-white/20 hover:text-white"
+              aria-label="Close chat"
+            >
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            </button>
+          )}
         </div>
 
         {/* Message list */}

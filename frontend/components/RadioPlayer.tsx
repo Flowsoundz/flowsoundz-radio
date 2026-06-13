@@ -2898,7 +2898,7 @@ export default function RadioPlayer() {
                 setChatUnread(0);
                 lastChatOpenRef.current = Date.now();
               }}
-              className="relative flex min-w-0 items-center gap-2 rounded-full border border-white/8 bg-white/5 px-3 py-1.5 transition hover:border-white/14 hover:bg-white/8"
+              className="relative flex min-w-0 items-center gap-2 rounded-full border border-white/8 bg-white/5 px-3 py-1.5 transition hover:border-white/14 hover:bg-white/8 lg:hidden"
             >
               <svg className="h-3.5 w-3.5 text-[#00E5FF]/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
               <span className="text-[11px] text-[#CBD5E1]/40">Chat</span>
@@ -3403,7 +3403,10 @@ export default function RadioPlayer() {
 
         </div>
         <div>
-        <div className="state-fade mt-5 lg:mt-0 rounded-[1.8rem] border border-white/8 bg-[linear-gradient(180deg,#0B1020_0%,#050816_100%)] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+        <div
+          key={selectedVibe}
+          className="state-fade vibe-swap mt-5 lg:mt-0 rounded-[1.8rem] border border-white/8 bg-[linear-gradient(180deg,#0B1020_0%,#050816_100%)] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
+        >
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.26em] text-[#CBD5E1]/55">
@@ -3656,6 +3659,12 @@ export default function RadioPlayer() {
             </div>
           </div>
         ) : null}
+
+        {/* Persistent community chat — always visible on desktop (Twitch-style);
+            mobile keeps the slide-up overlay via the chat button. */}
+        <div className="mt-5 hidden lg:block">
+          <LiveChat variant="docked" currentTrackTitle={currentSong?.title ?? null} />
+        </div>
         </div>
         </div>
 

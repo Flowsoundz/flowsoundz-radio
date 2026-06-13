@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
+import { awardVibePoints } from "@/lib/vibePoints";
 
 export const runtime = "nodejs";
 
@@ -85,6 +87,10 @@ export async function POST(req: NextRequest) {
     // prompt context. Fire-and-forget; opportunistic prune keeps the table tiny.
     if (vote === "hype") {
       void prisma.hypeEvent.create({ data: { songId } }).catch(() => undefined);
+      // Rating earns Vibe Points for signed-in listeners (part of the earn loop).
+      void auth()
+        .then((s) => (s?.user?.id ? awardVibePoints(s.user.id, "VOTE") : null))
+        .catch(() => undefined);
       if (Math.random() < 0.05) {
         void prisma.hypeEvent
           .deleteMany({ where: { createdAt: { lt: new Date(Date.now() - 2 * 60 * 60 * 1000) } } })

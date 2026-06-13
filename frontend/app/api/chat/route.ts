@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import { getMessages, sendMessage, type ChatRole } from "@/lib/chatStore";
 import { auth } from "@/auth";
 import type { Session } from "next-auth";
+import { awardVibePoints } from "@/lib/vibePoints";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -49,6 +50,12 @@ export async function POST(request: NextRequest) {
 
   if (!result.ok) {
     return Response.json({ error: result.error }, { status: 429 });
+  }
+
+  // Chatting earns a Vibe Point for signed-in listeners (rate-limited by the
+  // 5s chat cooldown above, so it can't be farmed faster than conversation).
+  if (session?.user?.id) {
+    void awardVibePoints(session.user.id, "CHAT").catch(() => undefined);
   }
 
   return Response.json({ message: result.message });

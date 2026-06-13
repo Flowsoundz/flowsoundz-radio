@@ -538,6 +538,7 @@ enum VibeReason {
   VOTE
   SHARE
   QUEUE_BOOST
+  CHAT
 }
 
 model VibePoints {

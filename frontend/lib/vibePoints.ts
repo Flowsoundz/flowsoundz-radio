@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 
-const AWARD = { LISTEN_5MIN: 10, VOTE: 5, SHARE: 25, QUEUE_BOOST: 0 } as const;
+const AWARD = { LISTEN_5MIN: 10, VOTE: 5, SHARE: 25, QUEUE_BOOST: 0, CHAT: 1 } as const;
 const BOOST_COST = 50;
 
 export async function getVibeBalance(userId: string): Promise<number> {
@@ -10,7 +10,7 @@ export async function getVibeBalance(userId: string): Promise<number> {
 
 export async function awardVibePoints(
   userId: string,
-  reason: "LISTEN_5MIN" | "VOTE" | "SHARE",
+  reason: "LISTEN_5MIN" | "VOTE" | "SHARE" | "CHAT",
 ): Promise<number> {
   const delta = AWARD[reason];
   const row = await prisma.vibePoints.upsert({
