@@ -545,6 +545,9 @@ export default function RadioPlayer() {
   const stationSyncedRef = useRef(true);
   const clockSkewMsRef = useRef(0);
   const lastDriftCheckMsRef = useRef(0);
+  // Queue collapse — the full rotation is 50+ tracks; show a handful by
+  // default so Now Playing / Up Next keep the visual focus.
+  const [queueExpanded, setQueueExpanded] = useState(false);
   // Crowd hype — recent Fire votes across all listeners (12s rolling window,
   // pushed over SSE). >= 3 counts as a burst and lights up the room.
   const [crowdHype, setCrowdHype] = useState(0);
@@ -3458,7 +3461,8 @@ export default function RadioPlayer() {
                 ) : null}
               </div>
             ) : upcomingSongs.length > 0 ? (
-              upcomingSongs.map((song, index) => {
+              <>
+              {(queueExpanded ? upcomingSongs : upcomingSongs.slice(0, 6)).map((song, index) => {
                 const isNextUp = index === 0;
                 const queueAccessLabel = song.is_vault
                   ? "Vault"
@@ -3593,7 +3597,19 @@ export default function RadioPlayer() {
                     </div>
                   </div>
                 );
-              })
+              })}
+              {upcomingSongs.length > 6 ? (
+                <button
+                  type="button"
+                  onClick={() => setQueueExpanded((v) => !v)}
+                  className="state-fade mt-1 w-full rounded-[1.2rem] border border-white/10 bg-white/[0.03] py-2.5 text-xs font-semibold uppercase tracking-[0.18em] text-[#CBD5E1]/75 transition hover:border-[#00E5FF]/30 hover:text-[#00E5FF]"
+                >
+                  {queueExpanded
+                    ? "Show less ▴"
+                    : `Show full rotation · ${upcomingSongs.length} tracks ▾`}
+                </button>
+              ) : null}
+              </>
             ) : (
               <p className="text-sm leading-6 text-[#CBD5E1]">
                 No songs are available in this vibe queue yet.
