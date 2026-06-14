@@ -34,7 +34,7 @@ export const siteContent: SiteContent = {
 
   heroTitle: "FlowSoundz Radio",
   heroSubtitle:
-    "FlowSoundz Radio introduces independent, AI-assisted, and virtual artists through curated rotation, artist spotlights, and radio-style launch moments.",
+    "Late-night R&B and urbano — in English and Spanish — programmed by humans, not an algorithm. One station, one moment, everyone tuned in together.",
 
   ctaButtons: [
     { label: "Listen Live", href: "/radio", variant: "cyan" },
@@ -43,12 +43,12 @@ export const siteContent: SiteContent = {
 
   valueCards: [
     {
-      title: "Underground discovery",
-      text: "FlowSoundz turns unknown songs into curated discovery moments, so listeners hear artists with context instead of getting lost in endless playlists.",
+      title: "Bilingual by nature",
+      text: "English and Spanish in the same rotation — R&B, reggaeton, urbano, Afrobeats. The way you actually listen, not split across two apps.",
     },
     {
-      title: "Why listeners use it",
-      text: "Use FlowSoundz for curated rotation, artist spotlights, and radio-style launch moments that make discovery feel intentional.",
+      title: "A real station, not a playlist",
+      text: "Everyone hears the same track at the same moment. Human-programmed, synchronized, communal — discovery before the algorithm catches on.",
     },
     {
       title: "Why artists submit",

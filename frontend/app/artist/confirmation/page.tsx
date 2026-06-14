@@ -101,6 +101,15 @@ export default function ConfirmationPage() {
   const [activeEditors, setActiveEditors] = useState<Record<string, boolean>>({});
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [buyingPriority, setBuyingPriority] = useState(false);
+  const [priorityActive, setPriorityActive] = useState(false);
+
+  // Returning from a successful (or mock) priority-review checkout.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("priority") === "1") {
+      setPriorityActive(true);
+    }
+  }, []);
 
   function toggleEditor(id: string) {
     setActiveEditors((current) => ({ ...current, [id]: !current[id] }));
@@ -197,6 +206,49 @@ export default function ConfirmationPage() {
         <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-[#00e5ff]/20 bg-[#00e5ff]/8 px-4 py-1.5 text-xs font-semibold text-[#00e5ff]">
           ✦ AI promo assets generated below — edit freely
         </div>
+
+        {/* Priority review upsell — buys guaranteed feedback, not airplay */}
+        {submission?.submissionId ? (
+          <div className="mt-5 rounded-[1.4rem] border border-[#FF2DA6]/20 bg-[#FF2DA6]/[0.06] p-4 sm:p-5">
+            {priorityActive ? (
+              <p className="text-sm font-semibold text-[#FF2DA6]">
+                ✓ Priority review active — you&apos;ll hear back within 48 hours.
+              </p>
+            ) : (
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-white">Want a guaranteed answer?</p>
+                  <p className="mt-1 text-xs leading-5 text-slate-300">
+                    Free submissions are reviewed as we get to them. <span className="text-white">Priority Review ($5)</span> gets
+                    you written feedback within 48 hours and a front-of-line slot. Buys consideration — never guaranteed airplay.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={buyingPriority}
+                  onClick={async () => {
+                    setBuyingPriority(true);
+                    try {
+                      const res = await fetch("/api/artist/submission-checkout", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ submission_id: submission.submissionId, origin: window.location.origin }),
+                      });
+                      const data = (await res.json()) as { url?: string; error?: string };
+                      if (data.url) window.location.href = data.url;
+                      else setBuyingPriority(false);
+                    } catch {
+                      setBuyingPriority(false);
+                    }
+                  }}
+                  className="shrink-0 rounded-full bg-gradient-to-r from-[#FF2DA6] to-[#7c4dff] px-5 py-2.5 text-sm font-bold text-white transition hover:brightness-110 disabled:opacity-50"
+                >
+                  {buyingPriority ? "…" : "Get Priority Review · $5"}
+                </button>
+              </div>
+            )}
+          </div>
+        ) : null}
       </div>
 
       {/* ── Vibe badge ── */}

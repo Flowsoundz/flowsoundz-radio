@@ -164,6 +164,11 @@ export function SongGrid({ songs, isLoading, error }: SongGridProps) {
                 <span className="rounded-full bg-cyan-300/12 px-3 py-1 text-xs font-medium text-cyan-100">
                   {formatVibeLabel(song.vibe ?? "all")}
                 </span>
+                {song.is_ai_generated ? (
+                  <span className="rounded-full border border-violet-400/25 bg-violet-400/10 px-3 py-1 text-xs font-medium text-violet-200">
+                    AI-assisted
+                  </span>
+                ) : null}
                 {isVaultTrack ? (
                   <span className="rounded-full bg-[#8B5CF6]/14 px-3 py-1 text-xs font-medium text-violet-100">
                     Vault

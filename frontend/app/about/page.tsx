@@ -120,12 +120,13 @@ export default function AboutPage() {
 
           <div className="max-w-2xl">
             <h2 className="text-[clamp(1.5rem,4vw,2.25rem)] font-semibold leading-tight text-white">
-              Where Music Gets Discovered First
+              Late-Night Sound, in Two Languages
             </h2>
             <p className="mt-4 text-sm leading-7 text-slate-300 sm:text-base sm:leading-8">
-              FlowSoundz Radio is a discovery-first platform built to give independent artists
-              real visibility and listeners early access to music that hasn&apos;t been
-              filtered through a corporate algorithm yet.
+              FlowSoundz Radio is a bilingual after-hours station — English and Spanish R&amp;B,
+              reggaeton, and urbano in one human-programmed rotation. Everyone hears the same track
+              at the same moment: a real station for discovery before the algorithm catches on, not
+              another endless personalized playlist.
             </p>
           </div>
 

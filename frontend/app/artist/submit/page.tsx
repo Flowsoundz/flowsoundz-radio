@@ -26,7 +26,7 @@ type FormState = {
   streamingLink: string;
   coverArtLink: string;
   socialLink: string;
-  aiUsed: "yes" | "no";
+  aiUsed: "yes" | "no" | "";
   aiTool: string;
   notes: string;
 };
@@ -46,7 +46,7 @@ const INITIAL_FORM: FormState = {
   streamingLink: "",
   coverArtLink: "",
   socialLink: "",
-  aiUsed: "no",
+  aiUsed: "",
   aiTool: "",
   notes: "",
 };
@@ -158,6 +158,9 @@ export default function SubmitPage() {
     form.genre.trim() &&
     form.description.trim() &&
     form.songLink.trim() &&
+    // AI disclosure is mandatory: must answer, and name the tool when "yes".
+    form.aiUsed !== "" &&
+    (form.aiUsed === "no" || form.aiTool.trim()) &&
     allChecked;
 
   async function handleSubmit() {
@@ -533,7 +536,7 @@ export default function SubmitPage() {
           {/* AI Use */}
           <div className="grid gap-3">
             <span className="text-sm font-medium text-white">
-              Was AI used in the creation of this track?
+              Was AI used in the creation of this track? <span className="text-[#FF2DA6]">*</span>
             </span>
             <div className="flex gap-3">
               {(["yes", "no"] as const).map((val) => (

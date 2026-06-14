@@ -29,10 +29,10 @@ export default function ComingSoonPage() {
             Coming soon
           </p>
           <h1 className="mt-3 text-3xl font-semibold text-white sm:text-4xl">
-            Underground music.<br />Curated.
+            After hours.<br />En inglés y español.
           </h1>
           <p className="mt-4 max-w-sm text-sm leading-7 text-slate-400">
-            FlowSoundz Radio is almost ready. We&apos;re putting the final touches on the station before opening the doors.
+            Bilingual late-night R&amp;B and urbano, programmed like real radio. FlowSoundz is putting the final touches on the station before opening the doors.
           </p>
         </div>
 

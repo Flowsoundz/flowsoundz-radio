@@ -88,12 +88,12 @@ export default async function HomePage() {
           {/* Left — copy */}
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-[0.34em] text-cyan-400">
-              CURATED DISCOVERY RADIO
+              BILINGUAL AFTER-HOURS RADIO
             </p>
             <h1 className="mt-4 font-headline text-[clamp(40px,7vw,88px)] font-black uppercase leading-[0.92] tracking-tight">
-              UNDERGROUND
+              AFTER-HOURS
               <br />
-              DISCOVERY,
+              R&amp;B &amp; URBANO,
               <br />
               <span className="text-[#00e5ff]">PROGRAMMED</span>{" "}
               <span className="text-[#7c4dff]">LIKE RADIO.</span>
@@ -102,7 +102,7 @@ export default async function HomePage() {
               {heroSubtitle}
             </p>
             <p className="mt-4 max-w-md text-sm leading-7 text-white/35 sm:text-[0.95rem]">
-              FlowSoundz turns unknown songs into curated discovery moments.
+              English and Spanish in one rotation. Programmed by humans, before the algorithm catches on.
             </p>
             <HomepageCtaGroup ctaButtons={ctaButtons} />
           </div>

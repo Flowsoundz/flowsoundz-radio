@@ -3154,6 +3154,11 @@ export default function RadioPlayer() {
                         ? `${songsUntilDrop} songs to next drop`
                         : currentSong?.genre ?? "After-hours mix"}
                 </span>
+                {currentSong?.is_ai_generated && !isDropPlaying ? (
+                  <span className="pointer-events-auto state-fade rounded-full border border-violet-400/25 bg-violet-400/10 px-3 py-1 text-xs font-medium text-violet-200">
+                    AI-assisted
+                  </span>
+                ) : null}
                 {currentSong && !isDropPlaying ? (
                   <button
                     type="button"

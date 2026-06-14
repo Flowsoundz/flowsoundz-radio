@@ -385,6 +385,8 @@ model ArtistSubmission {
   publishedSongId String?
   // Set when the "your track is live" air-time email was sent — once, ever.
   liveNotifiedAt  DateTime?
+  // Set when the artist paid for priority/guaranteed review (Stripe).
+  reviewPaidAt    DateTime?
   createdAt      DateTime                @default(now())
   updatedAt      DateTime                @updatedAt
 

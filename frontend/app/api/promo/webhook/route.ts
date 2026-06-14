@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import Stripe from "stripe";
 import { sendPromoLeadNotification } from "@/lib/mailer";
 import { appendPromoPayment, type PromoPaymentTier } from "@/lib/promoPaymentStore";
+import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 
@@ -33,6 +34,18 @@ export async function POST(request: NextRequest) {
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
+
+    // Priority-review payment for an artist submission — mark it paid.
+    if (session.metadata?.type === "submission_review" && session.metadata?.submission_id) {
+      void prisma.artistSubmission
+        .update({
+          where: { id: session.metadata.submission_id },
+          data: { reviewPaidAt: new Date() },
+        })
+        .catch(() => undefined);
+      return Response.json({ received: true });
+    }
+
     const artistName = session.metadata?.artist_name ?? "Unknown";
     const songTitle = session.metadata?.song_title ?? "";
     const tier = session.metadata?.package_tier ?? "basic";
