@@ -81,7 +81,8 @@ export async function proxy(req: NextRequest) {
     !pathname.startsWith("/signin") &&
     !pathname.startsWith("/embed") &&
     !pathname.startsWith("/privacy") &&
-    !pathname.startsWith("/terms")
+    !pathname.startsWith("/terms") &&
+    !pathname.startsWith("/copyright")
   ) {
     if (pathname !== "/coming-soon") {
       return NextResponse.redirect(new URL("/coming-soon", req.url));
