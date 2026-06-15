@@ -10,6 +10,10 @@ node_modules
 # Catalog audio is served from the public Blob CDN (migrated out of the build
 # 2026-06-15, see lib/audioCdn.ts). Kept out of git so server-side Vercel
 # builds stay under the lambda/bundle limit and git CI/CD can run.
+# Exception: transition beds + DJ narration (~5MB) are needed at build time for
+# manifest generation, so keep them tracked for CI parity with local builds.
+!frontend/public/audio/beds/**
+!frontend/public/audio/narration/**
 .next
 .next-runtime
 .DS_Store

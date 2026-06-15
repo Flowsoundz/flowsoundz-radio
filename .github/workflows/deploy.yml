@@ -1,0 +1,45 @@
+name: Deploy to Production
+
+# Push to main = deploy. We run the PREBUILT recipe (vercel build locally on the
+# runner, then deploy --prebuilt) instead of Vercel's native git build, because
+# this project's Next 16 server-side build hits a Vercel builder bug
+# (routes-manifest-deterministic.json ENOENT). Building on the runner sidesteps
+# that broken post-build step entirely. Catalog audio lives on the Blob CDN
+# (see lib/audioCdn.ts), so the build stays small.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {} # allow manual runs from the Actions tab
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+
+      - name: Install Vercel CLI
+        run: npm i -g vercel@latest
+
+      - name: Pull production environment
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build (prebuilt output)
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy prebuilt to production
+        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }} --yes
