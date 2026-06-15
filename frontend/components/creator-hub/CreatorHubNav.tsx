@@ -3,18 +3,18 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+// Focused primary nav — the artist's core loop. Resource pages (Release Kit,
+// Schedule, Distribution, Rights, Video) stay reachable from the dashboard's
+// tools section; keeping them out of the top bar removes the cognitive load.
+// "Stats" points at the artist's OWN stats (my-stats) — analytics/metrics are
+// admin-only views and don't belong in the creator nav.
 const STEPS = [
   { href: "/artist/dashboard", label: "Dashboard", short: "Hub" },
-  { href: "/artist/profile", label: "Profile", short: "Profile" },
-  { href: "/artist/kit", label: "Release Kit", short: "Kit" },
-  { href: "/artist/create", label: "Create", short: "Create" },
-  { href: "/artist/releases", label: "Schedule", short: "Sched." },
-  { href: "/artist/distribution", label: "Distribution", short: "Dist." },
-  { href: "/artist/rights", label: "Rights", short: "Rights" },
-  { href: "/artist/video", label: "Video", short: "Video" },
   { href: "/artist/submit", label: "Submit", short: "Submit" },
   { href: "/artist/submissions", label: "My Tracks", short: "Tracks" },
-  { href: "/artist/analytics", label: "Analytics", short: "Stats" },
+  { href: "/artist/my-stats", label: "Stats", short: "Stats" },
+  { href: "/artist/create", label: "Create", short: "Create" },
+  { href: "/artist/profile", label: "Profile", short: "Profile" },
 ] as const;
 
 export function CreatorHubNav() {
