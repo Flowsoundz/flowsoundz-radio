@@ -2,8 +2,9 @@
 // lang: "en" | "es" | "spanglish" — drives bilingual DJ drop selection.
 
 import type { Song } from "@/lib/types";
+import { toCdnAudioUrl } from "@/lib/audioCdn";
 
-export const STATIC_CATALOG: Song[] = [
+const RAW_STATIC_CATALOG: Song[] = [
   { id: "track_001", lang: "en",        title: "1888",                        artist: "FlowSoundz",                   album: "Singles", genre: "R&B",          vibe: "late_night", duration_sec: 167, audio_file: "1888.mp3",                    public_audio_url: "/audio/1888.mp3",                    cover_file: "some1888.webp",            featured: false, is_playable: true, packaging_status: "ready" },
   { id: "track_002", lang: "en",        title: "3AM",                          artist: "FlowSoundz",                   album: "Singles", genre: "R&B Trap",      vibe: "late_night", duration_sec: 253, audio_file: "3am.mp3",                     public_audio_url: "/audio/3am.mp3",                     cover_file: "flowsoundz-artist.png",    featured: false, is_playable: true, packaging_status: "ready" },
   { id: "track_003", lang: "spanglish", title: "No Te Imaginas",               artist: "FlowSoundz",                   album: "Singles", genre: "Hip-Hop",        vibe: "hype",       duration_sec: 134, audio_file: "5321_bobby_st_3.mp3",         public_audio_url: "/audio/5321_bobby_st_3.mp3",         cover_file: "flowsoundz-artist.png",    featured: false, is_playable: true, packaging_status: "ready" },
@@ -60,6 +61,13 @@ export const STATIC_CATALOG: Song[] = [
   { id: "track_056", lang: "en",        title: "DIIT",                         artist: "FlowSoundz",                   album: "Singles", genre: "Hip-Hop",        vibe: "hype",       duration_sec: 137, audio_file: "diit.mp3",                    public_audio_url: "/audio/diit.mp3",                    cover_file: "flowsoundz-artist.png",    featured: false, is_playable: true, packaging_status: "ready" },
   { id: "track_057", lang: "spanglish", title: "Sin Alivio a Toribo",          artist: "FlowSoundz",                   album: "Singles", genre: "R&B",            vibe: "emotional",  duration_sec: 225, audio_file: "sin_alivio_a_toribo.mp3",     public_audio_url: "/audio/sin_alivio_a_toribo.mp3",     cover_file: "flowsoundz-artist.png",    featured: false, is_playable: true, packaging_status: "ready" },
 ];
+
+// Rewrite the in-repo /audio/*.mp3 paths to the Blob CDN (no-op when the env is
+// unset, e.g. local dev against /public). See lib/audioCdn.ts.
+export const STATIC_CATALOG: Song[] = RAW_STATIC_CATALOG.map((s) => ({
+  ...s,
+  public_audio_url: toCdnAudioUrl(s.public_audio_url),
+}));
 
 export function getStaticCatalog(vibe?: string): Song[] {
   if (!vibe || vibe === "all") return STATIC_CATALOG;

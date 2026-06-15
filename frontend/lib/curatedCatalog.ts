@@ -1,6 +1,7 @@
 import type { Song } from "@/lib/types";
+import { toCdnAudioUrl } from "@/lib/audioCdn";
 
-export const CURATED_CATALOG_FALLBACK: Song[] = [
+const RAW_CURATED_CATALOG_FALLBACK: Song[] = [
   {
     id: "curated-1888",
     title: "1888",
@@ -98,6 +99,13 @@ export const CURATED_CATALOG_FALLBACK: Song[] = [
     curated_fallback: true,
   },
 ];
+
+// Rewrite the in-repo /archive/*.mp3 paths to the Blob CDN (no-op when the env
+// is unset). See lib/audioCdn.ts.
+export const CURATED_CATALOG_FALLBACK: Song[] = RAW_CURATED_CATALOG_FALLBACK.map((s) => ({
+  ...s,
+  public_audio_url: toCdnAudioUrl(s.public_audio_url),
+}));
 
 export function getCuratedCatalog(vibe?: string): Song[] {
   if (!vibe || vibe === "all") {
