@@ -910,3 +910,86 @@ export async function sendTrackLiveEmail(
     `,
   });
 }
+
+// Per-artist weekly performance digest — the retention twin of Air Time.
+// Pulls artists back by showing real numbers + their next air time + a one-tap
+// share. Sent by the artist-digest cron.
+export async function sendArtistDigest(
+  email: string,
+  data: {
+    artistName: string;
+    weekLabel: string;
+    totals: { plays: number; fires: number; favorites: number; bestRank: number | null };
+    topTrack: { title: string; plays: number; fires: number; nextAiring: string | null } | null;
+  },
+) {
+  const transporter = getTransporter();
+  if (!transporter) return;
+  const from = getNotifyEmail();
+  const siteUrl = getSiteUrl();
+
+  const headline =
+    data.totals.plays > 0
+      ? `${data.totals.plays} plays · ${data.totals.fires} 🔥 this week`
+      : "Your tracks are in rotation";
+
+  const shareMsg = data.topTrack?.nextAiring
+    ? `My track "${data.topTrack.title}" airs on @flowsoundzradio — ${data.topTrack.nextAiring}. Tune in with me 🔥 ${siteUrl}`
+    : `Catch my music on @flowsoundzradio — bilingual after-hours radio 🔥 ${siteUrl}`;
+
+  await transporter.sendMail({
+    from: `"FlowSoundz Radio" <${from}>`,
+    to: email,
+    subject: `📈 Your FlowSoundz week — ${headline}`,
+    text: [
+      `${data.artistName} — here's your week on FlowSoundz Radio (${data.weekLabel}).`,
+      ``,
+      `Plays: ${data.totals.plays}`,
+      `🔥 Fires: ${data.totals.fires}`,
+      `♥ Favorites: ${data.totals.favorites}`,
+      data.totals.bestRank != null ? `Best rotation rank: ${data.totals.bestRank}` : ``,
+      ``,
+      data.topTrack?.nextAiring ? `"${data.topTrack.title}" next airs ${data.topTrack.nextAiring}.` : ``,
+      ``,
+      `Share with your fans: ${shareMsg}`,
+      ``,
+      `Full stats: ${siteUrl}/artist/dashboard`,
+      ``,
+      `— FlowSoundz Radio`,
+    ].filter(Boolean).join("\n"),
+    html: `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#050816;border-radius:16px;overflow:hidden">
+        <div style="padding:28px 32px 22px;background:linear-gradient(135deg,#0c1328 0%,#07111f 100%);border-bottom:1px solid rgba(0,229,255,0.15)">
+          <p style="margin:0 0 10px;font-size:11px;font-weight:700;letter-spacing:0.28em;text-transform:uppercase;color:#00e5ff">Your FlowSoundz Week</p>
+          <h1 style="margin:0;font-size:22px;font-weight:700;color:#fff;line-height:1.3">${headline}</h1>
+          <p style="margin:8px 0 0;font-size:13px;color:#94a3b8">${data.artistName} · ${data.weekLabel}</p>
+        </div>
+        <div style="padding:24px 32px 30px">
+          <table style="width:100%;border-collapse:separate;border-spacing:8px 0;margin:0 0 22px">
+            <tr>
+              <td style="background:rgba(0,229,255,0.06);border-radius:12px;padding:14px;text-align:center">
+                <div style="font-size:22px;font-weight:700;color:#00e5ff">${data.totals.plays}</div>
+                <div style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.12em">Plays</div>
+              </td>
+              <td style="background:rgba(255,45,166,0.06);border-radius:12px;padding:14px;text-align:center">
+                <div style="font-size:22px;font-weight:700;color:#FF2DA6">${data.totals.fires}</div>
+                <div style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.12em">Fires</div>
+              </td>
+              <td style="background:rgba(124,77,255,0.06);border-radius:12px;padding:14px;text-align:center">
+                <div style="font-size:22px;font-weight:700;color:#c4b5fd">${data.totals.bestRank ?? "—"}</div>
+                <div style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.12em">Best rank</div>
+              </td>
+            </tr>
+          </table>
+          ${
+            data.topTrack?.nextAiring
+              ? `<p style="font-size:14px;line-height:1.7;color:#cbd5e1;margin:0 0 18px">Your next air time: <strong style="color:#fff">&ldquo;${data.topTrack.title}&rdquo; ${data.topTrack.nextAiring}</strong>. Tell your fans to tune in with you.</p>`
+              : `<p style="font-size:14px;line-height:1.7;color:#cbd5e1;margin:0 0 18px">Keep the momentum — share your tracks and climb the rotation.</p>`
+          }
+          <a href="https://twitter.com/intent/tweet?text=${encodeURIComponent(shareMsg)}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg,#00e5ff,#7c4dff);color:#fff;font-size:14px;font-weight:700;text-decoration:none;border-radius:999px;margin-right:8px">Share with fans →</a>
+          <a href="${siteUrl}/artist/dashboard" style="display:inline-block;padding:12px 24px;border:1px solid rgba(255,255,255,0.15);color:#cbd5e1;font-size:14px;font-weight:600;text-decoration:none;border-radius:999px">Full stats</a>
+        </div>
+      </div>
+    `,
+  });
+}
