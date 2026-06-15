@@ -1,8 +1,11 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { auth } from "@/auth";
 import { CreatorHubShell } from "@/components/creator-hub/CreatorHubShell";
 import { CreatorHubDashboardFlow } from "@/components/creator-hub/CreatorHubDashboardFlow";
 import { CreatorCommandCenter } from "@/components/creator-hub/CreatorCommandCenter";
+import { CreatorOnboarding } from "@/components/creator-hub/CreatorOnboarding";
+import { getCreatorDashboard } from "@/lib/creatorDashboard";
 import { readCatalogSnapshotFromStore } from "@/lib/catalogSnapshotStore";
 
 export const metadata: Metadata = {
@@ -13,6 +16,14 @@ export const metadata: Metadata = {
 
 export default async function ArtistDashboardPage() {
   const snapshot = await readCatalogSnapshotFromStore();
+
+  // Fetch the artist's state once and branch: returning artists (≥1 submission)
+  // get their Command Center + the full toolbox; brand-new artists get a single
+  // focused "submit your first track" funnel instead of the button wall.
+  const session = await auth();
+  const dash = session?.user?.email ? await getCreatorDashboard(session.user.email) : null;
+  const isReturning = Boolean(dash);
+
   const featuredArtist = snapshot.artists[0] ?? null;
   const featuredRelease = featuredArtist?.featuredRelease ?? featuredArtist?.latestRelease ?? null;
   const stationModeCopy =
@@ -29,10 +40,14 @@ export default async function ArtistDashboardPage() {
       subtitle={`From song idea to ${stationModeCopy}.`}
     >
       {/* ── Personalized command center (returning artists) — renders null for
-            new/anonymous visitors, who then see the onboarding view below. ── */}
-      <CreatorCommandCenter />
+            new/anonymous visitors, who get the focused onboarding funnel. ── */}
+      <CreatorCommandCenter data={dash} />
 
-      {/* ── Hero ── */}
+      {!isReturning && <CreatorOnboarding />}
+
+      {/* ── Hero (returning artists only — the full toolbox would overwhelm a
+            first-time artist, who sees the focused onboarding above instead) ── */}
+      {isReturning && (
       <div className="relative mb-10 overflow-hidden rounded-[2rem] border border-white/8 bg-[linear-gradient(135deg,#0c1328_0%,#07111f_55%,#050816_100%)] px-6 py-12 text-center">
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute left-1/4 top-0 h-64 w-64 rounded-full bg-[#00e5ff]/7 blur-[90px]" />
@@ -123,6 +138,7 @@ export default async function ArtistDashboardPage() {
           </div>
         </div>
       </div>
+      )}
 
       <CreatorHubDashboardFlow
         catalogSummary={{

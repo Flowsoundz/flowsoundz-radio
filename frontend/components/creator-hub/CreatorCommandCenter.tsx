@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { auth } from "@/auth";
-import { getCreatorDashboard, type CreatorTrackStatus } from "@/lib/creatorDashboard";
+import {
+  getCreatorDashboard,
+  type CreatorDashboard,
+  type CreatorTrackStatus,
+} from "@/lib/creatorDashboard";
 
 const STATUS: Record<CreatorTrackStatus, { label: string; cls: string }> = {
   live: { label: "● Live", cls: "border-[#00FF88]/30 bg-[#00FF88]/10 text-[#00FF88]" },
@@ -21,11 +25,15 @@ function Stat({ value, label, accent }: { value: string | number; label: string;
 
 // The artist's personalized HQ — renders only for signed-in artists who have
 // submitted at least one track. Returns null otherwise so the dashboard shows
-// its onboarding view for new/anonymous visitors.
-export async function CreatorCommandCenter() {
-  const session = await auth();
-  if (!session?.user?.email) return null;
-  const data = await getCreatorDashboard(session.user.email);
+// its onboarding view for new/anonymous visitors. Pass `data` to reuse a
+// dashboard query already made by the page (avoids a duplicate fetch).
+export async function CreatorCommandCenter({ data: provided }: { data?: CreatorDashboard | null } = {}) {
+  let data = provided;
+  if (data === undefined) {
+    const session = await auth();
+    if (!session?.user?.email) return null;
+    data = await getCreatorDashboard(session.user.email);
+  }
   if (!data) return null;
 
   return (
