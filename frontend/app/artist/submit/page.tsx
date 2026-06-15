@@ -106,6 +106,8 @@ export default function SubmitPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [prefilledFromStep1, setPrefilledFromStep1] = useState(false);
+  // Multi-step wizard: 1 = your track, 2 = music & links, 3 = rights & submit.
+  const [step, setStep] = useState(1);
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -162,6 +164,41 @@ export default function SubmitPage() {
     form.aiUsed !== "" &&
     (form.aiUsed === "no" || form.aiTool.trim()) &&
     allChecked;
+
+  // Per-step gates so we can validate before letting the artist advance —
+  // these are strict subsets of canSubmit, so the final guard still holds.
+  const STEP_LABELS = ["Your track", "Music & links", "Rights & submit"] as const;
+  const step1Valid = Boolean(
+    form.artistName.trim() &&
+      form.contactName.trim() &&
+      form.email.trim() &&
+      form.songTitle.trim() &&
+      form.genre.trim() &&
+      form.description.trim(),
+  );
+  const step2Valid = Boolean(
+    form.songLink.trim() &&
+      form.aiUsed !== "" &&
+      (form.aiUsed === "no" || form.aiTool.trim()),
+  );
+
+  function goToStep(next: number) {
+    setError("");
+    setStep(next);
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function handleContinue() {
+    if (step === 1 && !step1Valid) {
+      setError("Please fill in all required fields before continuing.");
+      return;
+    }
+    if (step === 2 && !step2Valid) {
+      setError("Please add your song link and AI disclosure before continuing.");
+      return;
+    }
+    goToStep(step + 1);
+  }
 
   async function handleSubmit() {
     if (!canSubmit) {
@@ -266,10 +303,45 @@ export default function SubmitPage() {
   return (
     <CreatorHubShell eyebrow="Creator Hub" title="Submit to FlowSoundz Radio">
 
-      {/* ── Intro ── */}
+      {/* ── Wizard progress ── */}
+      <div className="mb-6 glass-card rounded-[1.4rem] px-5 py-4">
+        <div className="flex items-center justify-between gap-2">
+          {STEP_LABELS.map((label, i) => {
+            const n = i + 1;
+            const active = step === n;
+            const done = step > n;
+            return (
+              <div key={label} className="flex flex-1 items-center gap-2 last:flex-none">
+                <span
+                  className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold transition ${
+                    active
+                      ? "bg-[linear-gradient(135deg,#00e5ff_0%,#7c4dff_100%)] text-white"
+                      : done
+                        ? "border border-[#00FF88]/30 bg-[#00FF88]/15 text-[#00FF88]"
+                        : "border border-white/12 text-white/40"
+                  }`}
+                >
+                  {done ? "✓" : n}
+                </span>
+                <span
+                  className={`hidden text-xs font-semibold sm:inline ${active ? "text-white" : "text-white/45"}`}
+                >
+                  {label}
+                </span>
+                {n < STEP_LABELS.length && (
+                  <span className="mx-1 hidden h-px flex-1 bg-white/10 sm:block" />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Intro (step 1 only) ── */}
+      {step === 1 && (
       <div className="mb-8 glass-card rounded-[1.8rem] p-6 sm:p-8">
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200/75">
-          Step 5 of 5
+          Submit Your Track
         </p>
         <h2 className="mt-3 text-xl font-semibold text-white sm:text-2xl">
           Submit Your Track for Review
@@ -305,6 +377,7 @@ export default function SubmitPage() {
           <span className="text-xs text-slate-400">After submission, AI-assisted promo assets are generated for your track. These are suggestions only — you review and edit them before they go anywhere.</span>
         </div>
       </div>
+      )}
 
       {/* ── Step 1 pre-fill notice ── */}
       {prefilledFromStep1 && (
@@ -319,9 +392,12 @@ export default function SubmitPage() {
       )}
 
       {/* ── Form ── */}
+      {step !== 3 && (
       <div className="mb-10 glass-card rounded-[1.8rem] p-6 sm:p-8">
         <div className="grid gap-5">
 
+          {step === 1 && (
+          <>
           {/* Row 1: Artist + Contact */}
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="grid gap-2">
@@ -473,7 +549,11 @@ export default function SubmitPage() {
               className={TEXTAREA_CLASS}
             />
           </label>
+          </>
+          )}
 
+          {step === 2 && (
+          <>
           {/* Song + Platform Links */}
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="grid gap-2">
@@ -584,10 +664,14 @@ export default function SubmitPage() {
               className={TEXTAREA_CLASS}
             />
           </label>
+          </>
+          )}
         </div>
       </div>
+      )}
 
-      {/* ── Required Checkboxes ── */}
+      {/* ── Required Checkboxes (step 3) ── */}
+      {step === 3 && (
       <div className="mb-8 glass-card rounded-[1.8rem] p-6 sm:p-8">
         <h2 className="text-base font-semibold text-white">
           Required Confirmations
@@ -618,6 +702,7 @@ export default function SubmitPage() {
           ))}
         </ul>
       </div>
+      )}
 
       {/* ── Error ── */}
       {error && (
@@ -626,31 +711,58 @@ export default function SubmitPage() {
         </div>
       )}
 
-      {/* ── Submit ── */}
+      {/* ── Step navigation ── */}
       <div className="mb-10 flex flex-wrap items-center gap-4">
-        <button
-          type="button"
-          disabled={isSubmitting || !canSubmit}
-          onClick={() => void handleSubmit()}
-          className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#00e5ff_0%,#7c4dff_100%)] px-8 py-3 text-sm font-bold text-white shadow-[0_0_22px_rgba(0,229,255,0.24)] transition hover:shadow-[0_0_36px_rgba(0,229,255,0.44)] disabled:opacity-40"
-        >
-          {isSubmitting ? (
-            <>
-              <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                <circle
-                  cx="12" cy="12" r="10"
-                  stroke="currentColor" strokeWidth="3"
-                  strokeDasharray="40" strokeDashoffset="15"
-                />
-              </svg>
-              Generating AI assets…
-            </>
-          ) : (
-            "✦ Submit & Generate Promo Assets"
-          )}
-        </button>
+        {step > 1 && (
+          <button
+            type="button"
+            onClick={() => goToStep(step - 1)}
+            disabled={isSubmitting}
+            className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/15 px-6 py-3 text-sm font-semibold text-white transition hover:border-white/25 hover:bg-white/5 disabled:opacity-40"
+          >
+            ← Back
+          </button>
+        )}
+
+        {step < 3 ? (
+          <button
+            type="button"
+            onClick={handleContinue}
+            disabled={(step === 1 && !step1Valid) || (step === 2 && !step2Valid)}
+            className="inline-flex min-h-12 items-center justify-center rounded-full bg-[linear-gradient(135deg,#00e5ff_0%,#7c4dff_100%)] px-8 py-3 text-sm font-bold text-white shadow-[0_0_22px_rgba(0,229,255,0.24)] transition hover:shadow-[0_0_36px_rgba(0,229,255,0.44)] disabled:opacity-40"
+          >
+            Continue →
+          </button>
+        ) : (
+          <button
+            type="button"
+            disabled={isSubmitting || !canSubmit}
+            onClick={() => void handleSubmit()}
+            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#00e5ff_0%,#7c4dff_100%)] px-8 py-3 text-sm font-bold text-white shadow-[0_0_22px_rgba(0,229,255,0.24)] transition hover:shadow-[0_0_36px_rgba(0,229,255,0.44)] disabled:opacity-40"
+          >
+            {isSubmitting ? (
+              <>
+                <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle
+                    cx="12" cy="12" r="10"
+                    stroke="currentColor" strokeWidth="3"
+                    strokeDasharray="40" strokeDashoffset="15"
+                  />
+                </svg>
+                Generating AI assets…
+              </>
+            ) : (
+              "✦ Submit & Generate Promo Assets"
+            )}
+          </button>
+        )}
+
         <p className="text-xs text-slate-500">
-          Fields marked <span className="text-[#ff2da6]">*</span> are required.
+          {step < 3 ? (
+            <>Step {step} of 3 · fields marked <span className="text-[#ff2da6]">*</span> are required.</>
+          ) : (
+            <>Confirm all boxes to submit.</>
+          )}
         </p>
       </div>
     </CreatorHubShell>
