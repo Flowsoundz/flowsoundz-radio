@@ -1,15 +1,9 @@
 import type { NextRequest } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import webpush from "web-push";
+import { getWebPush } from "@/lib/webpush";
 
 export const runtime = "nodejs";
-
-webpush.setVapidDetails(
-  process.env.VAPID_SUBJECT ?? "mailto:flowsoundzradio@gmail.com",
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "",
-  process.env.VAPID_PRIVATE_KEY ?? "",
-);
 
 // GET ?artistId= — public feed for an artist
 // GET ?mine=1    — authenticated artist's own posts
@@ -89,14 +83,17 @@ export async function POST(req: NextRequest) {
       select: { endpoint: true, p256dh: true, auth: true },
     });
 
-    await Promise.allSettled(
-      subs.map((sub) =>
-        webpush.sendNotification(
-          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-          notifPayload,
+    const webpush = getWebPush();
+    if (webpush) {
+      await Promise.allSettled(
+        subs.map((sub) =>
+          webpush.sendNotification(
+            { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+            notifPayload,
+          )
         )
-      )
-    );
+      );
+    }
   }
 
   return Response.json({ post });

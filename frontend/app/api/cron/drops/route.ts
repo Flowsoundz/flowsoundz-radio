@@ -1,14 +1,8 @@
 import { NextResponse } from "next/server";
-import webpush from "web-push";
 import { prisma } from "@/lib/prisma";
+import { getWebPush } from "@/lib/webpush";
 
 export const runtime = "nodejs";
-
-webpush.setVapidDetails(
-  process.env.VAPID_SUBJECT ?? "mailto:flowsoundzradio@gmail.com",
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "",
-  process.env.VAPID_PRIVATE_KEY ?? "",
-);
 
 // Called by Vercel cron every 5 minutes
 // Sends push notifications for songs that just went live
@@ -16,6 +10,11 @@ export async function GET(req: Request) {
   const authHeader = req.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return new NextResponse("Unauthorized", { status: 401 });
+  }
+
+  const webpush = getWebPush();
+  if (!webpush) {
+    return NextResponse.json({ ok: false, error: "push not configured" }, { status: 503 });
   }
 
   const now = new Date();

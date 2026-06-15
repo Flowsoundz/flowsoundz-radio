@@ -1,14 +1,8 @@
 import type { NextRequest } from "next/server";
-import webpush from "web-push";
 import { prisma } from "@/lib/prisma";
+import { getWebPush } from "@/lib/webpush";
 
 export const runtime = "nodejs";
-
-webpush.setVapidDetails(
-  process.env.VAPID_SUBJECT ?? "mailto:flowsoundzradio@gmail.com",
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "",
-  process.env.VAPID_PRIVATE_KEY ?? "",
-);
 
 type SendBody = {
   title: string;
@@ -43,21 +37,24 @@ export async function POST(request: NextRequest) {
 
   const staleEndpoints: string[] = [];
 
-  await Promise.allSettled(
-    subscriptions.map(async (sub: { endpoint: string; p256dh: string; auth: string }) => {
-      try {
-        await webpush.sendNotification(
-          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-          notification,
-        );
-      } catch (err: unknown) {
-        const status = (err as { statusCode?: number }).statusCode;
-        if (status === 410 || status === 404) {
-          staleEndpoints.push(sub.endpoint);
+  const webpush = getWebPush();
+  if (webpush) {
+    await Promise.allSettled(
+      subscriptions.map(async (sub: { endpoint: string; p256dh: string; auth: string }) => {
+        try {
+          await webpush.sendNotification(
+            { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+            notification,
+          );
+        } catch (err: unknown) {
+          const status = (err as { statusCode?: number }).statusCode;
+          if (status === 410 || status === 404) {
+            staleEndpoints.push(sub.endpoint);
+          }
         }
-      }
-    }),
-  );
+      }),
+    );
+  }
 
   if (staleEndpoints.length > 0) {
     await prisma.pushSubscription.deleteMany({
