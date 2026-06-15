@@ -7,19 +7,13 @@ const WINDOW_MS = 50 * 60 * 1000; // 50-minute rotating window
 const COOKIE_MAX_AGE = 55 * 60; // 55-min cookie (overlap keeps streams alive through rotation)
 const COOKIE_NAME = "fsr-stream-token";
 
-export function buildStreamToken(secret: string): string {
+// Module-local helper — NOT exported. App Router route files may only export
+// route handlers + config (GET, runtime, …); exporting arbitrary functions is a
+// build-time type error under webpack. The matching validator lives in proxy.ts
+// for the middleware runtime.
+function buildStreamToken(secret: string): string {
   const windowId = Math.floor(Date.now() / WINDOW_MS);
   return createHmac("sha256", secret).update(`stream:${windowId}`).digest("hex");
-}
-
-export function isValidStreamToken(secret: string, token: string): boolean {
-  const now = Date.now();
-  for (const offset of [0, -1]) {
-    const windowId = Math.floor(now / WINDOW_MS) + offset;
-    const expected = createHmac("sha256", secret).update(`stream:${windowId}`).digest("hex");
-    if (expected === token) return true;
-  }
-  return false;
 }
 
 // Issues (or refreshes) the stream access cookie. Open to any visitor — the
