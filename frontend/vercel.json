@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "buildCommand": "prisma generate && node scripts/generate-narration-manifest.mjs && node scripts/generate-bed-manifest.mjs && next build --webpack",
+  "buildCommand": "prisma generate && node scripts/generate-narration-manifest.mjs && node scripts/generate-bed-manifest.mjs && next build --webpack && (cp .next/routes-manifest.json .next/routes-manifest-deterministic.json 2>/dev/null || true)",
   "crons": [
     {
       "path": "/api/cron/keep-alive",
