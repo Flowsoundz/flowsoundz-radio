@@ -632,7 +632,7 @@ export function CreatorHubDashboardFlow({
               {[
                 { href: "/artist/profile", label: "Profile editor", desc: "Bio, social links, tip destinations" },
                 { href: "/artist/kit", label: "AI Release Kit", desc: "Full promo + hooks + video prompt" },
-                { href: "/artist/releases", label: "Release scheduler", desc: "Members early + public dates per track" },
+                { href: "/artist/drops", label: "Release scheduler", desc: "Members early + public dates per track" },
                 { href: "/artist/my-stats", label: "Track analytics", desc: "Plays, skips, requests, milestones" },
               ].map(({ href, label, desc }) => (
                 <Link key={href} href={href} className="flex items-start gap-2 rounded-[1rem] border border-white/6 bg-white/[0.02] px-3 py-2.5 transition hover:border-white/12 hover:bg-white/[0.04]">

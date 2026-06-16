@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
+import { getStationBenchmarks, percentileRank, buildTips } from "@/lib/creatorBenchmark";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -103,7 +104,29 @@ export default async function MyStatsPage() {
   const avgComplete = playedRows.length > 0
     ? playedRows.reduce((s, r) => s + r.completeRate, 0) / playedRows.length
     : 0;
+  const avgSkip = playedRows.length > 0
+    ? playedRows.reduce((s, r) => s + r.skipRate, 0) / playedRows.length
+    : 0;
   const maxPlays = rows[0]?.playCount ?? 1;
+
+  // ── Benchmark this artist against the whole station ──
+  const station = await getStationBenchmarks();
+  const bestPlays = rows[0]?.playCount ?? 0;
+  const bestPlayPercentile = station ? percentileRank(station.playCountsAsc, bestPlays) : 0;
+  const tips = station
+    ? buildTips({
+        bestPlayPercentile,
+        artistAvgComplete: avgComplete,
+        artistAvgSkip: avgSkip,
+        station,
+        totalPlays,
+        totalShares,
+        artistSlug: artist.slug,
+      })
+    : [];
+  // Directional comparison vs station average (only meaningful with plays).
+  const completeDelta = station && playedRows.length ? avgComplete - station.avgCompleteRate : 0;
+  const skipDelta = station && playedRows.length ? avgSkip - station.avgSkipRate : 0;
 
   return (
     <AppShell eyebrow="Creator Hub" title="My Stats">
@@ -135,6 +158,83 @@ export default async function MyStatsPage() {
           </div>
         ))}
       </section>
+
+      {/* How you compare — benchmark vs the whole station */}
+      {station && (
+        <section className="mb-6 rounded-[1.8rem] border border-[#7c4dff]/20 bg-[linear-gradient(135deg,rgba(124,77,255,0.08),rgba(0,229,255,0.04))] p-6">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-200/80">How you compare</h2>
+            <span className="text-[11px] text-slate-500">vs {station.trackCount} track{station.trackCount !== 1 ? "s" : ""} on the station</span>
+          </div>
+
+          {playedRows.length > 0 ? (
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              <div className="rounded-[1.4rem] border border-white/8 bg-white/[0.03] p-4">
+                <p className="text-3xl font-bold leading-none text-violet-300">
+                  Top {Math.max(1, 100 - bestPlayPercentile)}%
+                </p>
+                <p className="mt-1.5 text-[11px] leading-5 text-slate-400">
+                  Your best track beats <span className="text-white">{bestPlayPercentile}%</span> of the catalog on plays
+                </p>
+              </div>
+              <div className="rounded-[1.4rem] border border-white/8 bg-white/[0.03] p-4">
+                <div className="flex items-baseline gap-2">
+                  <p className="text-3xl font-bold leading-none text-emerald-300">{Math.round(avgComplete * 100)}%</p>
+                  <span className={`text-xs font-semibold ${completeDelta >= 0 ? "text-emerald-400" : "text-orange-300"}`}>
+                    {completeDelta >= 0 ? "▲" : "▼"} {Math.abs(Math.round(completeDelta * 100))}pts
+                  </span>
+                </div>
+                <p className="mt-1.5 text-[11px] leading-5 text-slate-400">
+                  Avg completion · station avg <span className="text-white">{Math.round(station.avgCompleteRate * 100)}%</span>
+                </p>
+              </div>
+              <div className="rounded-[1.4rem] border border-white/8 bg-white/[0.03] p-4">
+                <div className="flex items-baseline gap-2">
+                  <p className="text-3xl font-bold leading-none text-cyan-300">{Math.round(avgSkip * 100)}%</p>
+                  <span className={`text-xs font-semibold ${skipDelta <= 0 ? "text-emerald-400" : "text-orange-300"}`}>
+                    {skipDelta <= 0 ? "▼" : "▲"} {Math.abs(Math.round(skipDelta * 100))}pts
+                  </span>
+                </div>
+                <p className="mt-1.5 text-[11px] leading-5 text-slate-400">
+                  Avg skip · station avg <span className="text-white">{Math.round(station.avgSkipRate * 100)}%</span> (lower is better)
+                </p>
+              </div>
+            </div>
+          ) : (
+            <p className="mt-3 text-sm text-slate-400">
+              Your tracks haven&apos;t logged plays yet — once they&apos;re in rotation, you&apos;ll see exactly how you stack up against the station here.
+            </p>
+          )}
+
+          {tips.length > 0 && (
+            <div className="mt-4 space-y-2">
+              {tips.map((tip, i) => (
+                <div
+                  key={i}
+                  className={`flex flex-col gap-2 rounded-[1.1rem] border px-4 py-3 sm:flex-row sm:items-center sm:justify-between ${
+                    tip.tone === "good"
+                      ? "border-emerald-400/20 bg-emerald-400/[0.06]"
+                      : "border-white/8 bg-white/[0.03]"
+                  }`}
+                >
+                  <p className="text-[12.5px] leading-6 text-slate-300">
+                    <span className="mr-1.5">{tip.tone === "good" ? "✨" : "💡"}</span>
+                    {tip.text}
+                  </p>
+                  {tip.href && tip.cta && (
+                    <Link
+                      href={tip.href}
+                      className="shrink-0 self-start rounded-full border border-white/15 bg-white/[0.04] px-3.5 py-1.5 text-xs font-semibold text-white transition hover:border-white/25 sm:self-auto"
+                    >
+                      {tip.cta} →
+                    </Link>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       {/* Song table */}
       <section className="overflow-hidden rounded-[1.8rem] border border-white/8 bg-[#0B1020]/80">
