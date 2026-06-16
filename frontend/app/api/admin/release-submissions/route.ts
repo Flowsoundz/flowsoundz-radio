@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { runAI, extractTag } from "@/lib/creatorHub/aiEngine";
 import { sendArtistApprovalEmail } from "@/lib/mailer";
 
 export const runtime = "nodejs";
 
-const ADMIN_PASSWORD = process.env.ADMIN_UPLOAD_PASSWORD ?? "";
-
-function checkPassword(pw: string | null): boolean {
-  return Boolean(ADMIN_PASSWORD && pw === ADMIN_PASSWORD);
+// Admin mutations require a real admin SESSION (matches /api/admin/ingest etc.) —
+// the /admin pages are already session-gated by proxy.ts, so the cookie carries
+// auth automatically. Replaces the old password-in-request-body scheme.
+async function isAdminSession(): Promise<boolean> {
+  const session = await auth();
+  return Boolean(session?.user && (session.user as { isAdmin?: boolean }).isAdmin);
 }
 
 function toClientShape(s: {
@@ -51,6 +54,7 @@ export async function GET() {
   try {
     const submissions = await prisma.releaseSubmission.findMany({
       orderBy: { createdAt: "desc" },
+      take: 200,
     });
     return NextResponse.json({
       submissions: submissions.map(toClientShape),
@@ -69,8 +73,7 @@ export async function POST(req: NextRequest) {
   // Admin update via FormData (from AdminReleaseSubmissionsReview component)
   if (contentType.includes("multipart/form-data") || contentType.includes("application/x-www-form-urlencoded")) {
     const form = await req.formData();
-    const password = form.get("password") as string | null;
-    if (!checkPassword(password)) {
+    if (!(await isAdminSession())) {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
     }
 
@@ -203,7 +206,7 @@ export async function PATCH(req: NextRequest) {
       status?: string; internal_notes?: string;
     };
 
-    if (!checkPassword(body.password ?? null)) {
+    if (!(await isAdminSession())) {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
     }
     if (!body.submission_id) {
@@ -233,8 +236,8 @@ export async function PATCH(req: NextRequest) {
 // DELETE — password protected
 export async function DELETE(req: NextRequest) {
   try {
-    const body = await req.json() as { submission_id?: string; password?: string };
-    if (!checkPassword(body.password ?? null)) {
+    const body = await req.json() as { submission_id?: string };
+    if (!(await isAdminSession())) {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
     }
     if (!body.submission_id) {

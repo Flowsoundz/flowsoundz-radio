@@ -70,7 +70,6 @@ export function AdminReleaseSubmissionsReview({
 }: AdminReleaseSubmissionsReviewProps) {
   const [submissions, setSubmissions] = useState(initial);
   const [selectedId, setSelectedId] = useState(initial[0]?.submission_id ?? "");
-  const [password, setPassword] = useState("");
   const [status, setStatus] = useState(initial[0]?.status ?? "received");
   const [notes, setNotes] = useState(initial[0]?.internal_notes ?? "");
   const [isSaving, setIsSaving] = useState(false);
@@ -92,11 +91,6 @@ export function AdminReleaseSubmissionsReview({
   async function handleSave(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!password) {
-      setSaveError("Enter the admin password.");
-      return;
-    }
-
     if (!selectedId) {
       setSaveError("No submission selected.");
       return;
@@ -108,7 +102,6 @@ export function AdminReleaseSubmissionsReview({
 
     try {
       const formData = new FormData();
-      formData.append("password", password);
       formData.append("submissionId", selectedId);
       formData.append("status", status);
       formData.append("internalNotes", notes);
@@ -145,11 +138,6 @@ export function AdminReleaseSubmissionsReview({
   }
 
   async function handleGenerateAiSummary() {
-    if (!password) {
-      setSaveError("Enter the admin password.");
-      return;
-    }
-
     if (!selectedId) {
       setSaveError("No submission selected.");
       return;
@@ -162,7 +150,6 @@ export function AdminReleaseSubmissionsReview({
     try {
       const formData = new FormData();
       formData.append("action", "generate_ai_summary");
-      formData.append("password", password);
       formData.append("submissionId", selectedId);
       formData.append("status", status);
       formData.append("internalNotes", notes);
@@ -211,18 +198,6 @@ export function AdminReleaseSubmissionsReview({
 
   return (
     <div className="space-y-6">
-      <div className="glass-card rounded-[1.8rem] p-5">
-        <label className="block text-sm font-medium text-slate-200">
-          Admin password
-        </label>
-        <input
-          type="password"
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          placeholder="Enter ADMIN_UPLOAD_PASSWORD"
-          className="mt-3 w-full rounded-2xl border border-white/10 bg-white/6 px-4 py-3 text-sm text-white outline-none focus:border-cyan-300/40"
-        />
-      </div>
 
       <div className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
         <div className="glass-card rounded-[1.8rem] p-5">
@@ -339,7 +314,7 @@ export function AdminReleaseSubmissionsReview({
                   <button
                     type="button"
                     onClick={() => void handleGenerateAiSummary()}
-                    disabled={isGeneratingAi || !password}
+                    disabled={isGeneratingAi}
                     className="rounded-full border border-fuchsia-400/20 bg-fuchsia-400/10 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-fuchsia-100 transition hover:border-fuchsia-300/35 hover:bg-fuchsia-400/16 disabled:opacity-50"
                   >
                     {isGeneratingAi ? "Generating..." : selected.ai_summary ? "Regenerate AI" : "Generate AI"}
@@ -413,7 +388,7 @@ export function AdminReleaseSubmissionsReview({
 
                 <button
                   type="submit"
-                  disabled={isSaving || !password}
+                  disabled={isSaving}
                   className="w-full rounded-2xl border border-cyan-100/70 bg-[linear-gradient(135deg,#67E8F9_0%,#22D3EE_45%,#06B6D4_100%)] px-4 py-3 text-sm font-bold text-slate-950 shadow-[0_0_0_1px_rgba(255,255,255,0.12),0_12px_30px_rgba(34,211,238,0.35)] transition hover:-translate-y-0.5 disabled:border-white/8 disabled:bg-white/10 disabled:text-slate-400 disabled:shadow-none disabled:hover:translate-y-0"
                 >
                   {isSaving ? "Saving..." : "Save review"}

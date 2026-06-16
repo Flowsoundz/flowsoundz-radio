@@ -1,4 +1,5 @@
 import type { NextRequest } from "next/server";
+import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getWebPush } from "@/lib/webpush";
 
@@ -12,9 +13,10 @@ type SendBody = {
 };
 
 export async function POST(request: NextRequest) {
-  const adminPassword = process.env.ADMIN_UPLOAD_PASSWORD;
-  const authHeader = request.headers.get("authorization");
-  if (!adminPassword || authHeader !== `Bearer ${adminPassword}`) {
+  // Broadcasts a push to every subscriber — admin session only (was a shared
+  // password in the Authorization header, which could leak in logs).
+  const session = await auth();
+  if (!session?.user || !(session.user as { isAdmin?: boolean }).isAdmin) {
     return Response.json({ error: "Unauthorized." }, { status: 401 });
   }
 
