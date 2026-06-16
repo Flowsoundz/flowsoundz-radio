@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import Link from "next/link";
 import { CreatorHubShell } from "@/components/creator-hub/CreatorHubShell";
 
@@ -49,6 +49,66 @@ function formatDate(iso: string) {
   } catch {
     return iso;
   }
+}
+
+type Stage = { label: string; state: "done" | "active" | "pending" | "bad" };
+
+// Visual pipeline so artists always know where a track stands — the
+// transparency that makes the curated (and paid-priority) review worth trusting.
+function SubmissionTimeline({ status }: { status: Submission["status"] }) {
+  let stages: Stage[];
+  if (status === "rejected") {
+    stages = [
+      { label: "Submitted", state: "done" },
+      { label: "Reviewed", state: "done" },
+      { label: "Not selected", state: "bad" },
+    ];
+  } else {
+    // current active stage index along Submitted → In Review → Approved → On Air
+    const current = status === "approved" ? 3 : 1;
+    stages = ["Submitted", "In Review", "Approved", "On Air"].map((label, i) => ({
+      label,
+      state: i < current ? "done" : i === current ? "active" : "pending",
+    }));
+  }
+
+  return (
+    <div className="flex items-start">
+      {stages.map((st, i) => (
+        <Fragment key={st.label}>
+          <div className="flex min-w-0 flex-col items-center gap-1.5" style={{ flex: "0 0 auto" }}>
+            <span
+              className={`flex h-6 w-6 items-center justify-center rounded-full border text-[10px] font-bold ${
+                st.state === "done"
+                  ? "border-[#00FF88]/40 bg-[#00FF88]/15 text-[#00FF88]"
+                  : st.state === "active"
+                    ? "border-cyan-300/50 bg-cyan-300/15 text-cyan-200 shadow-[0_0_10px_rgba(0,229,255,0.3)]"
+                    : st.state === "bad"
+                      ? "border-red-400/40 bg-red-400/15 text-red-300"
+                      : "border-white/15 text-white/35"
+              }`}
+            >
+              {st.state === "done" ? "✓" : st.state === "bad" ? "✕" : i + 1}
+            </span>
+            <span
+              className={`whitespace-nowrap text-[10px] font-medium ${
+                st.state === "pending" ? "text-white/35" : st.state === "bad" ? "text-red-300" : "text-slate-300"
+              }`}
+            >
+              {st.label}
+            </span>
+          </div>
+          {i < stages.length - 1 && (
+            <span
+              className={`mt-3 h-px flex-1 ${
+                stages[i].state === "done" ? "bg-[#00FF88]/30" : "bg-white/10"
+              }`}
+            />
+          )}
+        </Fragment>
+      ))}
+    </div>
+  );
 }
 
 export default function MySubmissionsPage() {
@@ -149,6 +209,9 @@ export default function MySubmissionsPage() {
                     <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
                     {cfg.label}
                   </span>
+                </div>
+                <div className="border-t border-white/[0.06] pt-3">
+                  <SubmissionTimeline status={s.status} />
                 </div>
                 {s.artist_feedback ? (
                   <div className="rounded-[1rem] border border-[#7c4dff]/20 bg-[#7c4dff]/[0.06] px-4 py-3">
