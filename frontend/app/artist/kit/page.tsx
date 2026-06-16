@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+const STORAGE_KEY = "fsz-release-kit";
 import { CreatorHubShell } from "@/components/creator-hub/CreatorHubShell";
 
 type KitOutput = {
@@ -71,6 +73,56 @@ export default function ReleaseKitPage() {
   const [output, setOutput] = useState<KitOutput | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>("Promo");
   const [error, setError] = useState("");
+  const [savingBio, setSavingBio] = useState(false);
+  const [bioSaved, setBioSaved] = useState<"ok" | "err" | null>(null);
+
+  // Restore the last kit so generated copy survives navigation/refresh.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const s = JSON.parse(raw) as { inputs?: Record<string, string>; output?: KitOutput };
+      if (s.inputs) {
+        setArtistName(s.inputs.artistName ?? "");
+        setSongTitle(s.inputs.songTitle ?? "");
+        setGenre(s.inputs.genre ?? "");
+        setVibe(s.inputs.vibe ?? "Chill");
+        setArtistType(s.inputs.artistType ?? "Independent");
+        setDescription(s.inputs.description ?? "");
+        setCoreThemes(s.inputs.coreThemes ?? "");
+      }
+      if (s.output) setOutput(s.output);
+    } catch {
+      /* ignore corrupt cache */
+    }
+  }, []);
+
+  async function saveBioToProfile(bio: string) {
+    setSavingBio(true);
+    setBioSaved(null);
+    try {
+      const r = await fetch("/api/artist/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bio }),
+      });
+      setBioSaved(r.ok ? "ok" : "err");
+    } catch {
+      setBioSaved("err");
+    } finally {
+      setSavingBio(false);
+      setTimeout(() => setBioSaved(null), 3500);
+    }
+  }
+
+  function clearKit() {
+    setOutput(null);
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      /* ignore */
+    }
+  }
 
   async function generate(e: React.FormEvent) {
     e.preventDefault();
@@ -95,6 +147,11 @@ export default function ReleaseKitPage() {
 
       setOutput({ promo, lyrics, video });
       setActiveTab("Promo");
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ inputs: base, output: { promo, lyrics, video } }));
+      } catch {
+        /* storage full / unavailable — non-fatal */
+      }
     } catch {
       setError("Generation failed. Check your connection and try again.");
     } finally {
@@ -190,12 +247,33 @@ export default function ReleaseKitPage() {
                     {tab}
                   </button>
                 ))}
+                <button
+                  type="button"
+                  onClick={clearKit}
+                  className="ml-auto shrink-0 px-4 py-3 text-xs font-medium text-slate-500 transition hover:text-white"
+                >
+                  Start over
+                </button>
               </div>
 
               <div className="p-5 space-y-4">
                 {activeTab === "Promo" && output.promo && (
                   <>
                     <OutputBlock label="Artist Bio" content={output.promo.bio} />
+                    <div className="flex flex-wrap items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => void saveBioToProfile(output.promo!.bio)}
+                        disabled={savingBio}
+                        className="rounded-full border border-cyan-300/25 bg-cyan-300/[0.06] px-4 py-1.5 text-xs font-semibold text-cyan-200 transition hover:border-cyan-300/40 disabled:opacity-50"
+                      >
+                        {savingBio ? "Saving…" : "Save as my profile bio"}
+                      </button>
+                      {bioSaved === "ok" && <span className="text-xs text-emerald-400">Saved to profile ✓</span>}
+                      {bioSaved === "err" && (
+                        <span className="text-xs text-red-400">Couldn&apos;t save — set it on your Profile.</span>
+                      )}
+                    </div>
                     <OutputBlock label="Promo Blurb" content={output.promo.promoBlurb} />
                   </>
                 )}
