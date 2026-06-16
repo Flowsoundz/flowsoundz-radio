@@ -16,8 +16,8 @@ const FAQS = [
     a: "Head to the For Artists page and fill out the submission form. Artist Pro members get priority review, featured placement consideration, and sponsored visibility across the station.",
   },
   {
-    q: "When do Insider and Vault memberships launch?",
-    a: "Paid tiers are in active development. Join the waitlist on this page to be first in line — you'll get early access before public slots open and a heads-up on launch pricing.",
+    q: "Are Insider and Vault memberships available now?",
+    a: "Yes — both tiers are open. Pick a plan above to subscribe; you can cancel any time, no contracts or hidden fees.",
   },
 ];
 

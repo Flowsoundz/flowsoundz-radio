@@ -103,12 +103,13 @@ export default function ConfirmationPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [buyingPriority, setBuyingPriority] = useState(false);
   const [priorityActive, setPriorityActive] = useState(false);
+  const [checkoutCancelled, setCheckoutCancelled] = useState(false);
 
-  // Returning from a successful (or mock) priority-review checkout.
+  // Returning from a successful (or mock) priority-review checkout, or a cancel.
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("priority") === "1") {
-      setPriorityActive(true);
-    }
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("priority") === "1") setPriorityActive(true);
+    if (params.get("cancelled") === "1") setCheckoutCancelled(true);
   }, []);
 
   function toggleEditor(id: string) {
@@ -217,6 +218,11 @@ export default function ConfirmationPage() {
             ) : (
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="min-w-0">
+                  {checkoutCancelled && (
+                    <p className="mb-2 rounded-[0.8rem] border border-amber-400/25 bg-amber-400/10 px-3 py-1.5 text-xs text-amber-200">
+                      Priority review checkout cancelled — no charge. Your free submission is still in the queue.
+                    </p>
+                  )}
                   <p className="text-sm font-semibold text-white">Want a guaranteed answer?</p>
                   <p className="mt-1 text-xs leading-5 text-slate-300">
                     Free submissions are reviewed as we get to them. <span className="text-white">Priority Review ($5)</span> gets

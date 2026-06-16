@@ -38,7 +38,15 @@ export async function POST(request: NextRequest) {
   const secretKey = process.env.STRIPE_SECRET_KEY?.trim();
 
   // Dev bypass when Stripe isn't configured — mark paid and bounce to success.
+  // NEVER in production: a missing key must fail loudly, not hand out free
+  // priority reviews.
   if (!secretKey) {
+    if (process.env.NODE_ENV === "production" || process.env.VERCEL) {
+      return Response.json(
+        { error: "Payments are temporarily unavailable. Please try again shortly." },
+        { status: 503 },
+      );
+    }
     await prisma.artistSubmission.update({
       where: { id: submissionId },
       data: { reviewPaidAt: new Date() },
@@ -64,7 +72,7 @@ export async function POST(request: NextRequest) {
       },
     ],
     success_url: `${origin}/artist/confirmation?priority=1&session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${origin}/artist/confirmation`,
+    cancel_url: `${origin}/artist/confirmation?cancelled=1`,
     metadata: {
       type: "submission_review",
       submission_id: submission.id,

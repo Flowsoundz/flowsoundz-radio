@@ -44,8 +44,14 @@ export default async function MembershipSuccessPage({
             Welcome to <span className={tierColor}>{tierLabel}</span>
           </h1>
           <p className="mt-3 text-sm leading-6 text-slate-400">
-            Your membership is active. You now have access to early drops, exclusive tracks, and everything the {tierLabel} tier unlocks.
+            Your membership is active. Here&apos;s what you unlocked:
           </p>
+
+          <ul className="mx-auto mt-4 max-w-sm space-y-2 text-left text-sm text-slate-300">
+            <li className="flex items-start gap-2"><span className="mt-0.5 text-[#00FF88]">✓</span> Member access to the live station &amp; full audio</li>
+            <li className="flex items-start gap-2"><span className="mt-0.5 text-[#00FF88]">✓</span> Early Drops — new records before the public window</li>
+            <li className="flex items-start gap-2"><span className="mt-0.5 text-[#00FF88]">✓</span> Cancel any time from Manage membership</li>
+          </ul>
 
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
             <Link
