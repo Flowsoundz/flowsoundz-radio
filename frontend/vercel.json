@@ -17,7 +17,7 @@
     },
     {
       "path": "/api/cron/reap-stuck-jobs",
-      "schedule": "30 */2 * * *"
+      "schedule": "0 9 * * *"
     }
   ]
 }
