@@ -129,6 +129,21 @@ export function PromoCheckoutPage() {
             ))}
           </div>
 
+          {/* Honest trust signals — what we actually promise (no fabricated quotes) */}
+          <div className="grid grid-cols-2 gap-3 rounded-[1.6rem] border border-white/8 bg-white/[0.02] p-4 sm:grid-cols-4">
+            {[
+              { stat: "100%", label: "Human-reviewed — every track gets a real listen" },
+              { stat: "48h", label: "Feedback window on priority & featured lanes" },
+              { stat: "Curated", label: "Hand-sequenced rotation, not an algorithm" },
+              { stat: "No ads", label: "Submissions fund the station, not advertisers" },
+            ].map((t) => (
+              <div key={t.label} className="text-center">
+                <p className="text-lg font-bold text-[#00e5ff]">{t.stat}</p>
+                <p className="mt-1 text-[11px] leading-4 text-slate-400">{t.label}</p>
+              </div>
+            ))}
+          </div>
+
           <section className="glass-card rounded-[2rem] border border-white/8 bg-[#0B1020]/86 p-6 md:p-8">
             <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
               <div>

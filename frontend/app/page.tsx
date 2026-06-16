@@ -336,6 +336,39 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* ── Artist on-ramp ── */}
+      <section className="mx-auto max-w-7xl px-4 pb-4 sm:px-6">
+        <div className="relative overflow-hidden rounded-[2rem] border border-white/8 bg-[linear-gradient(135deg,#0c1328_0%,#07111f_55%,#050816_100%)] px-6 py-10 sm:px-10">
+          <div className="pointer-events-none absolute right-1/4 top-0 h-56 w-56 rounded-full bg-[#FF2DA6]/8 blur-[90px]" />
+          <div className="relative z-10 flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="max-w-xl">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-fuchsia-300/80">For artists</p>
+              <h2 className="mt-2 text-[clamp(1.3rem,3vw,1.9rem)] font-semibold text-white">
+                Get your music heard — by people actually looking for it.
+              </h2>
+              <p className="mt-2 text-sm leading-7 text-slate-300">
+                FlowSoundz is human-curated radio. Submit a track for free, or grab a priority lane for
+                guaranteed 48-hour feedback. Your submission funds the station, not ads.
+              </p>
+            </div>
+            <div className="flex shrink-0 flex-wrap gap-3">
+              <Link
+                href="/artist/submit"
+                className="inline-flex min-h-11 items-center justify-center rounded-full bg-[linear-gradient(135deg,#00e5ff_0%,#7c4dff_100%)] px-6 text-sm font-bold text-white shadow-[0_0_22px_rgba(0,229,255,0.3)] transition hover:shadow-[0_0_36px_rgba(0,229,255,0.5)]"
+              >
+                Submit a track
+              </Link>
+              <Link
+                href="/for-artists"
+                className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/15 px-6 text-sm font-semibold text-white transition hover:border-white/25 hover:bg-white/5"
+              >
+                How it works
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── Support Banner ── */}
       <div className="mx-auto max-w-7xl px-4 pb-8 sm:px-6">
         <SupportBanner />

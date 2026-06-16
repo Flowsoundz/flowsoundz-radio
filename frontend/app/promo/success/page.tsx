@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { AppShell } from "@/components/AppShell";
+import { isCheckoutPaid } from "@/lib/verifyCheckout";
 
 export const metadata: Metadata = {
   title: "Payment Confirmed — FlowSoundz Radio",
@@ -11,6 +12,32 @@ type PageProps = { searchParams: Promise<Record<string, string | string[] | unde
 export default async function PromoSuccessPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const isMock = params.mock === "1";
+  const sessionId = typeof params.session_id === "string" ? params.session_id : undefined;
+  const paid = isMock || (await isCheckoutPaid(sessionId));
+
+  // Don't celebrate a payment we can't confirm (e.g. someone opened this URL
+  // directly). Show a neutral "confirming" state instead.
+  if (!paid) {
+    return (
+      <AppShell eyebrow="Promo" title="Confirming payment">
+        <div className="mx-auto max-w-lg text-center">
+          <h2 className="text-xl font-semibold text-white">We&apos;re confirming your payment.</h2>
+          <p className="mt-3 text-sm leading-7 text-slate-300">
+            If you just completed checkout, your Stripe receipt is the confirmation — your submission
+            is queued and you&apos;ll hear back by email. If you reached this page by mistake, no charge was made.
+          </p>
+          <div className="mt-7 flex flex-wrap justify-center gap-3">
+            <Link href="/radio" className="inline-flex min-h-11 items-center justify-center rounded-full bg-[linear-gradient(135deg,#00e5ff_0%,#7c4dff_100%)] px-6 text-sm font-bold text-white">
+              Tune in to FlowSoundz
+            </Link>
+            <Link href="/contact" className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/10 px-6 text-sm text-slate-300 transition hover:border-white/20 hover:text-white">
+              Contact us
+            </Link>
+          </div>
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell eyebrow="Promo" title="Payment Confirmed">
@@ -67,7 +94,7 @@ export default async function PromoSuccessPage({ searchParams }: PageProps) {
             href="/artist/submit"
             className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/10 px-6 text-sm text-slate-300 transition hover:border-white/20 hover:text-white"
           >
-            Complete track submission
+            Submit another track
           </Link>
         </div>
 

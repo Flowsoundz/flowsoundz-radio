@@ -1,13 +1,15 @@
 import Link from "next/link";
 import { BrandLogo } from "@/components/BrandLogo";
+import { isCheckoutPaid } from "@/lib/verifyCheckout";
 
 export default async function MembershipSuccessPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tier?: string; mock?: string }>;
+  searchParams: Promise<{ tier?: string; mock?: string; session_id?: string }>;
 }) {
-  const { tier, mock } = await searchParams;
+  const { tier, mock, session_id } = await searchParams;
   const isMock = mock === "1";
+  const confirmed = isMock || (await isCheckoutPaid(session_id));
   const tierLabel = tier === "vault" ? "Vault" : "Insider";
   const tierColor = tier === "vault" ? "text-fuchsia-300" : "text-cyan-300";
   const tierBorder = tier === "vault" ? "border-fuchsia-400/20" : "border-cyan-400/20";
@@ -40,18 +42,29 @@ export default async function MembershipSuccessPage({
             </div>
           </div>
 
-          <h1 className="text-2xl font-semibold text-white">
-            Welcome to <span className={tierColor}>{tierLabel}</span>
-          </h1>
-          <p className="mt-3 text-sm leading-6 text-slate-400">
-            Your membership is active. Here&apos;s what you unlocked:
-          </p>
-
-          <ul className="mx-auto mt-4 max-w-sm space-y-2 text-left text-sm text-slate-300">
-            <li className="flex items-start gap-2"><span className="mt-0.5 text-[#00FF88]">✓</span> Member access to the live station &amp; full audio</li>
-            <li className="flex items-start gap-2"><span className="mt-0.5 text-[#00FF88]">✓</span> Early Drops — new records before the public window</li>
-            <li className="flex items-start gap-2"><span className="mt-0.5 text-[#00FF88]">✓</span> Cancel any time from Manage membership</li>
-          </ul>
+          {confirmed ? (
+            <>
+              <h1 className="text-2xl font-semibold text-white">
+                Welcome to <span className={tierColor}>{tierLabel}</span>
+              </h1>
+              <p className="mt-3 text-sm leading-6 text-slate-400">
+                Your membership is active. Here&apos;s what you unlocked:
+              </p>
+              <ul className="mx-auto mt-4 max-w-sm space-y-2 text-left text-sm text-slate-300">
+                <li className="flex items-start gap-2"><span className="mt-0.5 text-[#00FF88]">✓</span> Member access to the live station &amp; full audio</li>
+                <li className="flex items-start gap-2"><span className="mt-0.5 text-[#00FF88]">✓</span> Early Drops — new records before the public window</li>
+                <li className="flex items-start gap-2"><span className="mt-0.5 text-[#00FF88]">✓</span> Cancel any time from Manage membership</li>
+              </ul>
+            </>
+          ) : (
+            <>
+              <h1 className="text-2xl font-semibold text-white">Confirming your membership</h1>
+              <p className="mt-3 text-sm leading-6 text-slate-400">
+                If you just completed checkout, your Stripe receipt confirms it — access activates as
+                soon as payment clears. If you landed here by mistake, no charge was made.
+              </p>
+            </>
+          )}
 
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
             <Link
