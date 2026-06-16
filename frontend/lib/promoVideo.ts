@@ -9,6 +9,19 @@
 
 export type PromoTheme = { bg: string; accent: string; accent2: string };
 
+// The fields drawPromoFrame needs — shared by export and the live preview so
+// both render through the exact same code path (true WYSIWYG).
+export type PromoDrawOptions = {
+  width: number;
+  height: number;
+  theme: PromoTheme;
+  artistName: string;
+  trackTitle: string;
+  pageUrl: string;
+  cover?: HTMLImageElement | null;
+  logo?: HTMLImageElement | null;
+};
+
 export type PromoExportOptions = {
   audioEl: HTMLAudioElement;
   audioContext: AudioContext;
@@ -73,9 +86,9 @@ function wrapLines(ctx: CanvasRenderingContext2D, text: string, maxW: number, ma
   return lines.slice(0, maxLines);
 }
 
-function drawFrame(
+export function drawPromoFrame(
   ctx: CanvasRenderingContext2D,
-  o: PromoExportOptions,
+  o: PromoDrawOptions,
   freq: Uint8Array,
   bass: number,
   activeLyric: string | null,
@@ -316,7 +329,7 @@ export async function exportPromoVideo(o: PromoExportOptions): Promise<Blob> {
       }
     }
 
-    drawFrame(ctx, o, freq, bassSmooth, activeLyric);
+    drawPromoFrame(ctx, o, freq, bassSmooth, activeLyric);
     raf = requestAnimationFrame(render);
   };
 

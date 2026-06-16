@@ -3,12 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
-import { PremiumAudioVisualizer } from "@/components/PremiumAudioVisualizer";
-import { VisualizerCanvasThree } from "@/components/VisualizerCanvasThree";
 import { AudioUploader } from "@/components/visualizer/AudioUploader";
 import { slugifyArtistName } from "@/lib/artists";
 import { playTrack } from "@/lib/playbackController";
 import { exportPromoVideo, type PromoTheme } from "@/lib/promoVideo";
+import { PromoPreview } from "@/components/visualizer/PromoPreview";
 import {
   getStoredVisualizerMode,
   persistVisualizerMode,
@@ -94,7 +93,7 @@ export function ConnectedVisualizerStudio({
   const [exportPct, setExportPct] = useState(0);
   const [exportError, setExportError] = useState<string | null>(null);
   const exportAbortRef = useRef<AbortController | null>(null);
-  const logoImgRef = useRef<HTMLImageElement | null>(null);
+  const [logoImg, setLogoImg] = useState<HTMLImageElement | null>(null);
 
   // Lyrics (shown on the promo video). Timings come from Whisper segments; we
   // keep them only while the line count matches what's in the editor.
@@ -194,6 +193,14 @@ export function ConnectedVisualizerStudio({
     persistVisualizerMode(mode);
   }, [mode]);
 
+  // Load the brand wordmark once for the preview + export center fallback.
+  useEffect(() => {
+    const img = new window.Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => setLogoImg(img);
+    img.src = "/brand/flowsoundz-radio-wordmark-transparent.png";
+  }, []);
+
   async function ensureAnalyser() {
     const audio = audioRef.current;
     if (!audio) {
@@ -259,6 +266,30 @@ export function ConnectedVisualizerStudio({
   const promoBriefTitle =
     initialTrackTitle?.trim() ||
     `${trimmedArtistName || "FlowSoundz"} ${exportTarget.label} Promo`;
+
+  // ── Shared promo-render inputs (live preview + MP4 export use the same) ──
+  const promoTheme = EXPORT_THEMES[mode] ?? DEFAULT_THEME;
+  const promoTrackTitle =
+    initialTrackTitle?.trim() ||
+    (audioFile ? audioFile.name.replace(/\.[^.]+$/, "") : "New release");
+  const promoPageUrl = artistSlug
+    ? `flowsoundzradio.com/artists/${artistSlug}`
+    : "flowsoundzradio.com";
+  const lyricCueLines = lyrics.split("\n").map((s) => s.trim()).filter(Boolean);
+  const lyricCues =
+    showLyrics && lyricCueLines.length > 0
+      ? lyricCueLines.map((text, i) => ({
+          text,
+          start:
+            lyricTimings && lyricTimings.length === lyricCueLines.length
+              ? lyricTimings[i]
+              : (i / lyricCueLines.length) * exportSeconds,
+        }))
+      : undefined;
+  const aspect = ASPECTS[aspectId];
+  const previewScale = 540 / Math.min(aspect.w, aspect.h);
+  const previewW = Math.round(aspect.w * previewScale);
+  const previewH = Math.round(aspect.h * previewScale);
 
   async function handleSharePreview() {
     const shareMessage = `${trimmedArtistName || "FlowSoundz Radio"} visualizer preview — ${audioFile?.name ?? "local track"} • Built in FlowSoundz Visualizer Studio`;
@@ -359,51 +390,20 @@ export function ConnectedVisualizerStudio({
         throw new Error("Audio engine isn't ready — press play once, then export.");
       }
 
-      // Load the brand wordmark once (raster = reliable on canvas).
-      if (!logoImgRef.current) {
-        const img = new window.Image();
-        img.crossOrigin = "anonymous";
-        img.src = "/brand/flowsoundz-radio-wordmark-transparent.png";
-        await img.decode().catch(() => undefined);
-        logoImgRef.current = img;
-      }
-
-      const theme = EXPORT_THEMES[mode] ?? DEFAULT_THEME;
-      const trackTitle =
-        initialTrackTitle?.trim() || audioFile.name.replace(/\.[^.]+$/, "");
-      const pageUrl = artistSlug
-        ? `flowsoundzradio.com/artists/${artistSlug}`
-        : "flowsoundzradio.com";
-
-      // Build time-cued lyric lines: use Whisper timings when they still match
-      // the editor, otherwise distribute evenly across the clip.
-      const lyricLines = lyrics.split("\n").map((s) => s.trim()).filter(Boolean);
-      const cues =
-        showLyrics && lyricLines.length > 0
-          ? lyricLines.map((text, i) => ({
-              text,
-              start:
-                lyricTimings && lyricTimings.length === lyricLines.length
-                  ? lyricTimings[i]
-                  : (i / lyricLines.length) * exportSeconds,
-            }))
-          : undefined;
-
-      const dims = ASPECTS[aspectId];
       const blob = await exportPromoVideo({
         audioEl: audio,
         audioContext,
         analyser,
-        width: dims.w,
-        height: dims.h,
+        width: aspect.w,
+        height: aspect.h,
         durationMs: exportSeconds * 1000,
         artistName: trimmedArtistName || "FlowSoundz",
-        trackTitle,
-        theme,
+        trackTitle: promoTrackTitle,
+        theme: promoTheme,
         cover: coverImg,
-        logo: logoImgRef.current,
-        pageUrl,
-        lyrics: cues,
+        logo: logoImg,
+        pageUrl: promoPageUrl,
+        lyrics: lyricCues,
         onProgress: (phase, pct) => {
           setExportPhase(phase);
           setExportPct(pct);
@@ -807,67 +807,31 @@ export function ConnectedVisualizerStudio({
 
       <div className="space-y-4">
         <div
-          className="relative overflow-hidden rounded-[1.95rem] border border-white/10 bg-[#050816] shadow-[0_28px_90px_rgba(2,6,23,0.45)]"
-          style={{ height: "clamp(240px, 28vw, 360px)" }}
+          className="relative flex items-center justify-center overflow-hidden rounded-[1.95rem] border border-white/10 bg-[#050816] shadow-[0_28px_90px_rgba(2,6,23,0.45)]"
+          style={{ height: "clamp(360px, 56vw, 580px)" }}
         >
-          {mode === "aurora" ? (
-            <>
-              <VisualizerCanvasThree
-                analyser={analyserNode}
-                isPlaying={isPlaying}
-                isActive
-                className="absolute inset-0 h-full w-full"
-              />
-              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_18%,rgba(1,5,16,0.18)_56%,rgba(1,5,16,0.74)_100%)]" />
-              <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
-                <Image
-                  src="/FSRLogo.svg"
-                  alt="FlowSoundz Radio"
-                  width={240}
-                  height={76}
-                  className="h-auto w-[clamp(160px,20vw,240px)] opacity-95 drop-shadow-[0_0_22px_rgba(0,229,255,0.24)]"
-                  priority
-                />
-              </div>
-            </>
-          ) : (
-            <PremiumAudioVisualizer
-              analyser={analyserNode}
-              isPlaying={isPlaying}
-              isActive
-              className="absolute inset-0 h-full w-full"
-              fullHeight
-              showFrame={false}
-              showLogo
-            />
-          )}
-
-          <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-center justify-between px-5 py-4 text-[10px] font-semibold uppercase tracking-[0.3em] text-white/52">
-            <span>FlowSoundz Studio</span>
-            <span>{VISUALIZER_MODES.find((visualizerMode) => visualizerMode.id === mode)?.name}</span>
-          </div>
-
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-[linear-gradient(180deg,rgba(1,5,16,0)_0%,rgba(1,5,16,0.26)_32%,rgba(1,5,16,0.82)_100%)] px-5 pb-5 pt-10">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-cyan-200/68">
-              Connected to radio modal
-            </p>
-            <p className="mt-2 text-xl font-semibold text-white">
-              {audioFile?.name ?? promoBriefTitle}
-            </p>
-            <p className="mt-1 text-sm text-slate-300">
-              {trimmedArtistName || "FlowSoundz Radio"}
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/75">
-                {exportTarget.label}
-              </span>
-              {initialPersonaLabel ? (
-                <span className="rounded-full border border-fuchsia-400/18 bg-fuchsia-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-fuchsia-100">
-                  {initialPersonaLabel}
-                </span>
-              ) : null}
-            </div>
-          </div>
+          <PromoPreview
+            analyser={analyserNode}
+            audioEl={audioRef.current}
+            isPlaying={isPlaying}
+            width={previewW}
+            height={previewH}
+            theme={promoTheme}
+            artistName={trimmedArtistName || "FlowSoundz"}
+            trackTitle={promoTrackTitle}
+            pageUrl={promoPageUrl}
+            cover={coverImg}
+            logo={logoImg}
+            lyrics={lyricCues}
+          />
+          <span className="pointer-events-none absolute left-4 top-3 rounded-full bg-black/45 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/65">
+            Live preview · matches your export
+          </span>
+          {!isPlaying ? (
+            <span className="pointer-events-none absolute bottom-3 right-4 rounded-full bg-black/45 px-2.5 py-1 text-[10px] font-medium text-white/55">
+              Press play to see it react
+            </span>
+          ) : null}
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">
