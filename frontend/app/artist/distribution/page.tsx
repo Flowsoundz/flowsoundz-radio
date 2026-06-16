@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CreatorHubShell } from "@/components/creator-hub/CreatorHubShell";
 import { ToolCard } from "@/components/creator-hub/ToolCard";
+import { ReleaseChecklist } from "@/components/creator-hub/ReleaseChecklist";
 
 export const metadata: Metadata = {
   title: "Distribution Options — FlowSoundz Creator Hub",
@@ -81,6 +82,11 @@ const PRE_DISTRO_CHECKLIST = [
 export default function DistributionPage() {
   return (
     <CreatorHubShell eyebrow="Creator Hub" title="Distribution Options">
+      {/* Persistent, profile-tied distribution checklist */}
+      <div className="mb-8">
+        <ReleaseChecklist group="distribution" />
+      </div>
+
       {/* ── Intro ── */}
       <div className="mb-10 glass-card rounded-[1.8rem] p-6 sm:p-8">
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200/75">

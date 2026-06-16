@@ -274,6 +274,7 @@ model ArtistProfile {
   secondaryMoods    String[]
   supportLabel      String?
   featuredTrackId   String?
+  releaseChecklist  Json?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 

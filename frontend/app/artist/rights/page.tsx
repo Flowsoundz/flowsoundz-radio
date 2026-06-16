@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { CreatorHubShell } from "@/components/creator-hub/CreatorHubShell";
+import { ReleaseChecklist } from "@/components/creator-hub/ReleaseChecklist";
 
 
 type CheckItem = {
@@ -108,6 +109,11 @@ export default function RightsPage() {
           Before submitting to FlowSoundz Radio or any platform, you need to be clear on who owns
           the song. Work through the checklists below — then you&apos;re ready to move on to visuals and submission.
         </p>
+      </div>
+
+      {/* Persistent, profile-tied rights checklist */}
+      <div className="mb-8">
+        <ReleaseChecklist group="rights" />
         <p className="mt-3 text-sm font-medium text-cyan-100/80">
           Goal: confirm ownership and rights before your track goes anywhere.
         </p>

@@ -39,6 +39,7 @@ export async function PATCH(request: NextRequest) {
     statement?: string;
     rootsLabel?: string;
     featuredTrackId?: string | null;
+    releaseChecklist?: Record<string, boolean>;
     payoutEmail?: string;
     socialLinks?: Record<string, string>;
     supportLinks?: Array<{ platform: string; label: string; url: string; isPrimary?: boolean }>;
@@ -69,7 +70,8 @@ export async function PATCH(request: NextRequest) {
     if (
       body.statement !== undefined ||
       body.rootsLabel !== undefined ||
-      body.featuredTrackId !== undefined
+      body.featuredTrackId !== undefined ||
+      body.releaseChecklist !== undefined
     ) {
       // Only accept a featured track that actually belongs to this artist.
       let featured: string | null | undefined = undefined;
@@ -88,11 +90,13 @@ export async function PATCH(request: NextRequest) {
           statement: body.statement?.trim() ?? null,
           rootsLabel: body.rootsLabel?.trim() ?? null,
           featuredTrackId: featured ?? null,
+          ...(body.releaseChecklist !== undefined ? { releaseChecklist: body.releaseChecklist } : {}),
         },
         update: {
           ...(body.statement !== undefined ? { statement: body.statement.trim() } : {}),
           ...(body.rootsLabel !== undefined ? { rootsLabel: body.rootsLabel.trim() } : {}),
           ...(featured !== undefined ? { featuredTrackId: featured } : {}),
+          ...(body.releaseChecklist !== undefined ? { releaseChecklist: body.releaseChecklist } : {}),
         },
       });
     }
