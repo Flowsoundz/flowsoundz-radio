@@ -2215,8 +2215,12 @@ export default function RadioPlayer() {
       if (entry?.type === "track" && currentSong) {
         if (entry.song.id === currentSong.id) {
           const drift = Math.abs(audio.currentTime - entry.positionSec);
+          // Only hard-seek for drift large enough to matter for the shared
+          // broadcast. A lower threshold caused audible "little" jumps from
+          // ordinary buffering/decode lag; 8s keeps listeners in sync without
+          // yanking the track for normal jitter.
           if (
-            drift > 4 &&
+            drift > 8 &&
             Number.isFinite(audio.duration) &&
             entry.positionSec < audio.duration - 1
           ) {
@@ -2373,6 +2377,11 @@ export default function RadioPlayer() {
     if (Number.isFinite(audio.duration) && audio.duration > 0) {
       setDuration(audio.duration);
     }
+
+    // Grace period: the track just loaded (and was sync-seeked above), so hold
+    // off the drift check for a full interval. Prevents an audible re-seek the
+    // instant a track (re)loads — e.g. right after navigating between pages.
+    lastDriftCheckMsRef.current = window.performance.now();
   }
 
   useEffect(() => {
