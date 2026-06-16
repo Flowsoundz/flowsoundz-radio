@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { AppShell } from "@/components/AppShell";
+import { prisma } from "@/lib/prisma";
 import { readCatalogSnapshotFromStore } from "@/lib/catalogSnapshotStore";
 import { readArtistSubmissions } from "@/lib/artistSubmissionStore";
 import { readPromoPayments } from "@/lib/promoPaymentStore";
@@ -24,11 +25,18 @@ const MODE_LABEL: Record<string, string> = {
 };
 
 export default async function AdminPage() {
-  const [snapshot, submissions, promoPayments] = await Promise.all([
-    readCatalogSnapshotFromStore().catch(() => null),
-    readArtistSubmissions().catch(() => []),
-    readPromoPayments().catch(() => []),
-  ]);
+  const [snapshot, submissions, promoPayments, insiderCount, vaultCount, paidPriorityCount, playAgg] =
+    await Promise.all([
+      readCatalogSnapshotFromStore().catch(() => null),
+      readArtistSubmissions().catch(() => []),
+      readPromoPayments().catch(() => []),
+      prisma.user.count({ where: { tier: "INSIDER" } }).catch(() => 0),
+      prisma.user.count({ where: { tier: "VAULT" } }).catch(() => 0),
+      prisma.artistSubmission.count({ where: { reviewPaidAt: { not: null } } }).catch(() => 0),
+      prisma.queuePreference
+        .aggregate({ _sum: { playCount: true } })
+        .catch(() => ({ _sum: { playCount: 0 } })),
+    ]);
 
   const pendingSubmissions = submissions.filter((s) =>
     ["new", "reviewing"].includes(s.status),
@@ -36,6 +44,18 @@ export default async function AdminPage() {
   const pendingPromo = promoPayments.filter(
     (p) => p.status === "pending_review",
   ).length;
+
+  // ── Business KPIs ──
+  const approved = submissions.filter((s) => s.status === "approved").length;
+  const rejected = submissions.filter((s) => s.status === "rejected").length;
+  const reviewedCount = approved + rejected;
+  const approvalRate = reviewedCount > 0 ? Math.round((approved / reviewedCount) * 100) : null;
+  const priorityRevenue = paidPriorityCount * 5;
+  const promoRevenue = promoPayments.reduce((sum, p) => sum + (p.amountCents ?? 0), 0) / 100;
+  const mrr = insiderCount * 7.99 + vaultCount * 14.99;
+  const totalPlays = playAgg._sum.playCount ?? 0;
+  const oneTimeRevenue = priorityRevenue + promoRevenue;
+  const fmt = (n: number) => `$${n.toLocaleString(undefined, { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 })}`;
 
   const stationMode = snapshot?.stationMode ?? "maintenance";
   const modeStyle = MODE_STYLE[stationMode] ?? MODE_STYLE.maintenance;
@@ -179,6 +199,27 @@ export default async function AdminPage() {
           >
             Radio →
           </Link>
+        </div>
+      </div>
+
+      {/* ── Business at a glance ── */}
+      <div className="mb-6">
+        <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-200/70">Business at a glance</p>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+          {[
+            { label: "MRR", value: fmt(mrr), sub: `${insiderCount + vaultCount} members`, accent: "text-emerald-300" },
+            { label: "One-time rev.", value: fmt(oneTimeRevenue), sub: `${paidPriorityCount} priority · ${promoPayments.length} promo`, accent: "text-cyan-300" },
+            { label: "Submissions", value: submissions.length.toLocaleString(), sub: `${pendingSubmissions} pending`, accent: "text-white" },
+            { label: "Approval rate", value: approvalRate === null ? "—" : `${approvalRate}%`, sub: `${approved} live · ${rejected} passed`, accent: "text-violet-300" },
+            { label: "Members", value: `${insiderCount} / ${vaultCount}`, sub: "Insider / Vault", accent: "text-fuchsia-300" },
+            { label: "Total plays", value: totalPlays.toLocaleString(), sub: `${snapshot?.artists.length ?? 0} artists`, accent: "text-[#00e5ff]" },
+          ].map((kpi) => (
+            <div key={kpi.label} className="rounded-[1.4rem] border border-white/8 bg-[#0B1020]/70 px-4 py-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/40">{kpi.label}</p>
+              <p className={`mt-1 text-2xl font-bold leading-none ${kpi.accent}`}>{kpi.value}</p>
+              <p className="mt-1.5 text-[10px] text-slate-500">{kpi.sub}</p>
+            </div>
+          ))}
         </div>
       </div>
 
