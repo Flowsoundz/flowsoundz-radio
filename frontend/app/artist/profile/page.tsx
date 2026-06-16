@@ -27,9 +27,15 @@ type ArtistData = {
   name: string;
   bio: string | null;
   payoutEmail: string | null;
-  profile: { statement: string | null; rootsLabel: string | null } | null;
+  profile: {
+    statement: string | null;
+    rootsLabel: string | null;
+    heroImageUrl: string | null;
+    featuredTrackId: string | null;
+  } | null;
   socialLinks: { platform: string; url: string }[];
   supportLinks: { platform: string; label: string | null; url: string; isPrimary: boolean }[];
+  songs: { id: string; title: string }[];
 };
 
 export default function ArtistProfilePage() {
@@ -47,6 +53,11 @@ export default function ArtistProfilePage() {
   const [payoutEmail, setPayoutEmail] = useState("");
   const [socialLinks, setSocialLinks] = useState<Record<string, string>>({});
   const [supportLinks, setSupportLinks] = useState<Array<{ platform: string; label: string; url: string }>>([]);
+  const [heroImageUrl, setHeroImageUrl] = useState<string | null>(null);
+  const [featuredTrackId, setFeaturedTrackId] = useState("");
+  const [songs, setSongs] = useState<{ id: string; title: string }[]>([]);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imageError, setImageError] = useState("");
 
   useEffect(() => {
     fetch("/api/artist/profile")
@@ -65,6 +76,9 @@ export default function ArtistProfilePage() {
         setSupportLinks(
           a.supportLinks.map((l) => ({ platform: l.platform, label: l.label ?? "", url: l.url }))
         );
+        setHeroImageUrl(a.profile?.heroImageUrl ?? null);
+        setFeaturedTrackId(a.profile?.featuredTrackId ?? "");
+        setSongs(a.songs ?? []);
         setLoading(false);
       })
       .catch((e) => {
@@ -81,7 +95,7 @@ export default function ArtistProfilePage() {
       const res = await fetch("/api/artist/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, bio, statement, rootsLabel, payoutEmail, socialLinks, supportLinks }),
+        body: JSON.stringify({ name, bio, statement, rootsLabel, featuredTrackId: featuredTrackId || null, payoutEmail, socialLinks, supportLinks }),
       });
       if (!res.ok) throw new Error("save_failed");
       setSaved(true);
@@ -90,6 +104,24 @@ export default function ArtistProfilePage() {
       setError("Save failed. Try again.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleImageUpload(file: File | null) {
+    if (!file) return;
+    setImageError("");
+    setUploadingImage(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/artist/profile/image", { method: "POST", body: fd });
+      const d = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
+      if (!res.ok || !d.url) throw new Error(d.error || "Upload failed.");
+      setHeroImageUrl(d.url);
+    } catch (e) {
+      setImageError(e instanceof Error ? e.message : "Upload failed.");
+    } finally {
+      setUploadingImage(false);
     }
   }
 
@@ -126,6 +158,45 @@ export default function ArtistProfilePage() {
   return (
     <CreatorHubShell eyebrow="Creator Hub" title="Your Profile">
       <form onSubmit={(e) => { void handleSave(e); }} className="space-y-8 max-w-2xl">
+
+        {/* Profile image & spotlight */}
+        <section className="rounded-[1.8rem] border border-white/8 bg-[#0B1020]/80 p-6 space-y-5">
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">Profile Image &amp; Spotlight</h2>
+          <div className="flex flex-wrap items-center gap-5">
+            <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-[1.2rem] border border-white/10 bg-white/[0.03]">
+              {heroImageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={heroImageUrl} alt="Profile" className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center text-center text-[10px] uppercase tracking-[0.2em] text-slate-500">
+                  No image
+                </div>
+              )}
+            </div>
+            <div className="space-y-2">
+              <label className="inline-flex cursor-pointer items-center rounded-full border border-cyan-300/25 bg-cyan-300/[0.06] px-4 py-2 text-xs font-semibold text-cyan-200 transition hover:border-cyan-300/40">
+                {uploadingImage ? "Uploading…" : heroImageUrl ? "Change image" : "Upload image"}
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  disabled={uploadingImage}
+                  onChange={(e) => void handleImageUpload(e.target.files?.[0] ?? null)}
+                />
+              </label>
+              <p className="text-[11px] text-slate-500">Headlines your public page, share cards, and promo videos. JPG/PNG/WebP, 8&nbsp;MB max — square works best.</p>
+              {imageError && <p className="text-[11px] text-red-400">{imageError}</p>}
+            </div>
+          </div>
+          <Field label="Spotlight Track" hint="Featured at the top of your public artist page">
+            <select value={featuredTrackId} onChange={(e) => setFeaturedTrackId(e.target.value)} className={INPUT}>
+              <option value="">— None —</option>
+              {songs.map((s) => (
+                <option key={s.id} value={s.id}>{s.title}</option>
+              ))}
+            </select>
+          </Field>
+        </section>
 
         {/* Identity */}
         <section className="rounded-[1.8rem] border border-white/8 bg-[#0B1020]/80 p-6 space-y-5">

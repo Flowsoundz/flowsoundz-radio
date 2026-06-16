@@ -14,6 +14,10 @@ async function findArtistBySession() {
       profile: true,
       socialLinks: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] },
       supportLinks: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }] },
+      songs: {
+        select: { id: true, title: true },
+        orderBy: [{ isFeatured: "desc" }, { createdAt: "desc" }],
+      },
     },
   });
 }
@@ -34,6 +38,7 @@ export async function PATCH(request: NextRequest) {
     bio?: string;
     statement?: string;
     rootsLabel?: string;
+    featuredTrackId?: string | null;
     payoutEmail?: string;
     socialLinks?: Record<string, string>;
     supportLinks?: Array<{ platform: string; label: string; url: string; isPrimary?: boolean }>;
@@ -61,17 +66,33 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Upsert ArtistProfile
-    if (body.statement !== undefined || body.rootsLabel !== undefined) {
+    if (
+      body.statement !== undefined ||
+      body.rootsLabel !== undefined ||
+      body.featuredTrackId !== undefined
+    ) {
+      // Only accept a featured track that actually belongs to this artist.
+      let featured: string | null | undefined = undefined;
+      if (body.featuredTrackId !== undefined) {
+        featured = body.featuredTrackId
+          ? (await tx.song.findFirst({
+              where: { id: body.featuredTrackId, artistId: artist.id },
+              select: { id: true },
+            }))?.id ?? null
+          : null;
+      }
       await tx.artistProfile.upsert({
         where: { artistId: artist.id },
         create: {
           artistId: artist.id,
           statement: body.statement?.trim() ?? null,
           rootsLabel: body.rootsLabel?.trim() ?? null,
+          featuredTrackId: featured ?? null,
         },
         update: {
           ...(body.statement !== undefined ? { statement: body.statement.trim() } : {}),
           ...(body.rootsLabel !== undefined ? { rootsLabel: body.rootsLabel.trim() } : {}),
+          ...(featured !== undefined ? { featuredTrackId: featured } : {}),
         },
       });
     }
