@@ -22,6 +22,24 @@ function getSiteUrl() {
   ).replace(/\/$/, "");
 }
 
+// Internal ops alert to the FlowSoundz admin inbox (no-op if mail unconfigured).
+export async function sendAdminAlert(subject: string, lines: string[]): Promise<void> {
+  const transporter = getTransporter();
+  const to = getNotifyEmail();
+  if (!transporter || !to) return;
+  await transporter
+    .sendMail({
+      from: `"FlowSoundz Ops" <${to}>`,
+      to,
+      subject: `[FlowSoundz] ${subject}`,
+      text: lines.join("\n"),
+      html: `<div style="font-family:system-ui,sans-serif;font-size:14px;line-height:1.6;color:#0f172a">${lines
+        .map((l) => `<p style="margin:4px 0">${l}</p>`)
+        .join("")}</div>`,
+    })
+    .catch(() => undefined);
+}
+
 export async function sendContactNotification(msg: {
   name: string;
   email: string;
