@@ -52,6 +52,13 @@ const EXPORT_THEMES: Record<string, PromoTheme> = {
 const DEFAULT_THEME: PromoTheme = { bg: "#0c1328", accent: "#00e5ff", accent2: "#7c4dff" };
 const EXPORT_LENGTHS = [15, 20, 30] as const;
 
+const ASPECTS = {
+  vertical: { w: 1080, h: 1920, label: "9:16", hint: "Reels · TikTok · Shorts" },
+  square: { w: 1080, h: 1080, label: "1:1", hint: "Feed posts" },
+  wide: { w: 1920, h: 1080, label: "16:9", hint: "YouTube · X" },
+} as const;
+type AspectId = keyof typeof ASPECTS;
+
 export function ConnectedVisualizerStudio({
   initialArtistName,
   initialTrackTitle,
@@ -96,6 +103,11 @@ export function ConnectedVisualizerStudio({
   const [showLyrics, setShowLyrics] = useState(true);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [transcribeError, setTranscribeError] = useState<string | null>(null);
+
+  // Format + optional center artwork
+  const [aspectId, setAspectId] = useState<AspectId>("vertical");
+  const [coverImg, setCoverImg] = useState<HTMLImageElement | null>(null);
+  const [coverName, setCoverName] = useState<string | null>(null);
 
   useEffect(() => {
     const audio = new Audio();
@@ -276,6 +288,23 @@ export function ConnectedVisualizerStudio({
     if (lyricTimings && count !== lyricTimings.length) setLyricTimings(null);
   }
 
+  function handleCoverChange(file: File | null) {
+    if (!file) {
+      setCoverImg(null);
+      setCoverName(null);
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    const img = new window.Image();
+    img.onload = () => {
+      setCoverImg(img);
+      URL.revokeObjectURL(url);
+    };
+    img.onerror = () => URL.revokeObjectURL(url);
+    img.src = url;
+    setCoverName(file.name);
+  }
+
   async function handleTranscribe() {
     if (!audioFile) {
       setTranscribeError("Upload a track first.");
@@ -360,16 +389,18 @@ export function ConnectedVisualizerStudio({
             }))
           : undefined;
 
+      const dims = ASPECTS[aspectId];
       const blob = await exportPromoVideo({
         audioEl: audio,
         audioContext,
         analyser,
-        width: 1080,
-        height: 1920,
+        width: dims.w,
+        height: dims.h,
         durationMs: exportSeconds * 1000,
         artistName: trimmedArtistName || "FlowSoundz",
         trackTitle,
         theme,
+        cover: coverImg,
         logo: logoImgRef.current,
         pageUrl,
         lyrics: cues,
@@ -501,6 +532,67 @@ export function ConnectedVisualizerStudio({
           )}
         </div>
 
+        {/* ── Format & artwork ── */}
+        <div className="glass-card rounded-[1.75rem] border border-white/10 p-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200/70">Format &amp; artwork</p>
+          <h2 className="mt-2 text-lg font-semibold text-white">Frame it and make it yours</h2>
+
+          <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+            Aspect ratio
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {(Object.keys(ASPECTS) as AspectId[]).map((id) => {
+              const a = ASPECTS[id];
+              const active = id === aspectId;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setAspectId(id)}
+                  className={`rounded-[0.9rem] border px-3 py-2 text-left transition ${
+                    active
+                      ? "border-cyan-300/40 bg-cyan-300/[0.08]"
+                      : "border-white/10 bg-white/[0.03] hover:border-white/18"
+                  }`}
+                >
+                  <span className="block text-sm font-semibold text-white">{a.label}</span>
+                  <span className="block text-[10px] text-slate-400">{a.hint}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">
+            Center artwork (optional)
+          </p>
+          <div className="mt-2 flex items-center gap-3">
+            <label className="cursor-pointer rounded-full border border-cyan-300/25 bg-cyan-300/[0.06] px-4 py-2 text-xs font-semibold text-cyan-200 transition hover:border-cyan-300/40">
+              {coverName ? "Change image" : "Upload cover"}
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => handleCoverChange(e.target.files?.[0] ?? null)}
+              />
+            </label>
+            {coverName ? (
+              <span className="flex items-center gap-2 text-xs text-slate-300">
+                <span className="max-w-[140px] truncate">{coverName}</span>
+                <button
+                  type="button"
+                  onClick={() => handleCoverChange(null)}
+                  className="text-slate-500 transition hover:text-white"
+                  aria-label="Remove cover"
+                >
+                  ✕
+                </button>
+              </span>
+            ) : (
+              <span className="text-[11px] text-slate-500">Defaults to the FlowSoundz wordmark.</span>
+            )}
+          </div>
+        </div>
+
         <div className="glass-card rounded-[1.75rem] border border-fuchsia-400/14 bg-fuchsia-500/[0.04] p-5">
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200/70">
             Export target
@@ -597,7 +689,7 @@ export function ConnectedVisualizerStudio({
                 disabled={!audioFile}
                 className="mt-4 w-full rounded-full bg-[linear-gradient(135deg,#00e5ff_0%,#7c4dff_100%)] px-5 py-3 text-sm font-bold text-white shadow-[0_0_22px_rgba(0,229,255,0.3)] transition hover:shadow-[0_0_36px_rgba(0,229,255,0.5)] disabled:opacity-40"
               >
-                ⬇ Export promo video — MP4 · 1080×1920
+                ⬇ Export promo video — MP4 · {ASPECTS[aspectId].w}×{ASPECTS[aspectId].h}
               </button>
             )}
 

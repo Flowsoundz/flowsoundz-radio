@@ -83,6 +83,8 @@ function drawFrame(
   const { width: W, height: H, theme } = o;
   const cx = W / 2;
   const cy = H * 0.42;
+  // Size everything off the short edge so the layout holds across 9:16, 1:1, 16:9.
+  const base = Math.min(W, H);
 
   // ── Background ──
   const bg = ctx.createLinearGradient(0, 0, 0, H);
@@ -123,7 +125,7 @@ function drawFrame(
       grad.addColorStop(1, theme.accent2);
       ctx.strokeStyle = grad;
       ctx.globalAlpha = 0.35 + v * 0.65;
-      ctx.lineWidth = (W / 1080) * 6;
+      ctx.lineWidth = (base / 1080) * 6;
       ctx.beginPath();
       ctx.moveTo(x1, y1);
       ctx.lineTo(x2, y2);
@@ -143,7 +145,7 @@ function drawFrame(
     ctx.clip();
     ctx.drawImage(o.cover, -artR, -artR, artR * 2, artR * 2);
     ctx.restore();
-    ctx.lineWidth = (W / 1080) * 3;
+    ctx.lineWidth = (base / 1080) * 3;
     ctx.strokeStyle = `${theme.accent}66`;
     roundRect(ctx, -artR, -artR, artR * 2, artR * 2, artR * 0.28);
     ctx.stroke();
@@ -157,9 +159,9 @@ function drawFrame(
   ctx.restore();
 
   // ── Top wordmark ──
-  const pad = W * 0.06;
+  const pad = base * 0.06;
   ctx.fillStyle = "rgba(255,255,255,0.62)";
-  ctx.font = `600 ${Math.round(W * 0.026)}px system-ui, -apple-system, sans-serif`;
+  ctx.font = `600 ${Math.round(base * 0.026)}px system-ui, -apple-system, sans-serif`;
   ctx.textBaseline = "top";
   ctx.textAlign = "left";
   ctx.fillText("FLOWSOUNDZ RADIO", pad, pad);
@@ -177,13 +179,13 @@ function drawFrame(
   if (activeLyric) {
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.font = `700 ${Math.round(W * 0.05)}px system-ui, -apple-system, sans-serif`;
+    ctx.font = `700 ${Math.round(base * 0.05)}px system-ui, -apple-system, sans-serif`;
     const lines = wrapLines(ctx, activeLyric, W * 0.86, 2);
-    const lineH = W * 0.066;
+    const lineH = base * 0.066;
     const startY = H * 0.72 - ((lines.length - 1) * lineH) / 2;
     ctx.save();
     ctx.shadowColor = "rgba(0,0,0,0.85)";
-    ctx.shadowBlur = W * 0.02;
+    ctx.shadowBlur = base * 0.02;
     lines.forEach((ln, i) => {
       ctx.fillStyle = "#ffffff";
       ctx.fillText(ln, W / 2, startY + i * lineH);
@@ -195,20 +197,20 @@ function drawFrame(
   // Artist name
   ctx.fillStyle = "#ffffff";
   ctx.textBaseline = "alphabetic";
-  ctx.font = `800 ${Math.round(W * 0.072)}px system-ui, -apple-system, sans-serif`;
+  ctx.font = `800 ${Math.round(base * 0.072)}px system-ui, -apple-system, sans-serif`;
   ctx.fillText(truncate(ctx, o.artistName || "FlowSoundz", W - pad * 2), pad, H * 0.83);
   // Track title
   ctx.fillStyle = "rgba(226,232,240,0.82)";
-  ctx.font = `500 ${Math.round(W * 0.04)}px system-ui, -apple-system, sans-serif`;
+  ctx.font = `500 ${Math.round(base * 0.04)}px system-ui, -apple-system, sans-serif`;
   ctx.fillText(truncate(ctx, o.trackTitle || "New release", W - pad * 2), pad, H * 0.88);
 
   // "Now on FlowSoundz Radio" pill
   const pillY = H * 0.91;
-  const pillH = W * 0.066;
-  ctx.font = `700 ${Math.round(W * 0.03)}px system-ui, -apple-system, sans-serif`;
+  const pillH = base * 0.066;
+  ctx.font = `700 ${Math.round(base * 0.03)}px system-ui, -apple-system, sans-serif`;
   const label = "● NOW ON FLOWSOUNDZ RADIO";
   const tw = ctx.measureText(label).width;
-  const pillW = tw + W * 0.06;
+  const pillW = tw + base * 0.06;
   const pg = ctx.createLinearGradient(pad, 0, pad + pillW, 0);
   pg.addColorStop(0, theme.accent);
   pg.addColorStop(1, theme.accent2);
@@ -217,11 +219,11 @@ function drawFrame(
   ctx.fill();
   ctx.fillStyle = "#06121f";
   ctx.textBaseline = "middle";
-  ctx.fillText(label, pad + W * 0.03, pillY + pillH / 2 + 1);
+  ctx.fillText(label, pad + base * 0.03, pillY + pillH / 2 + 1);
 
   // Page URL
   ctx.fillStyle = "rgba(255,255,255,0.6)";
-  ctx.font = `600 ${Math.round(W * 0.026)}px system-ui, -apple-system, sans-serif`;
+  ctx.font = `600 ${Math.round(base * 0.026)}px system-ui, -apple-system, sans-serif`;
   ctx.textBaseline = "alphabetic";
   ctx.fillText(o.pageUrl, pad, H * 0.965);
 }
