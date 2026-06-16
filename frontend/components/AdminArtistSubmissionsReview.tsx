@@ -362,6 +362,43 @@ export function AdminArtistSubmissionsReview({
                 </div>
               </div>
 
+              {selected.ai_summary || selected.ai_recommendation ? (
+                <div className="rounded-[1.4rem] border border-[#7c4dff]/25 bg-[linear-gradient(135deg,rgba(124,77,255,0.1),rgba(0,229,255,0.04))] p-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-cyan-200/80">AI triage</p>
+                    {selected.ai_recommendation ? (
+                      <span
+                        className={`rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+                          selected.ai_recommendation === "approve"
+                            ? "border-[#00FF88]/30 bg-[#00FF88]/10 text-[#00FF88]"
+                            : selected.ai_recommendation === "reject"
+                              ? "border-red-400/30 bg-red-400/10 text-red-300"
+                              : "border-amber-300/30 bg-amber-300/10 text-amber-200"
+                        }`}
+                      >
+                        {selected.ai_recommendation}
+                      </span>
+                    ) : null}
+                    {selected.ai_confidence ? (
+                      <span className="text-[10px] text-[#CBD5E1]/50">{selected.ai_confidence} confidence</span>
+                    ) : null}
+                  </div>
+                  {selected.ai_summary ? (
+                    <p className="mt-2 text-sm leading-6 text-[#E2E8F0]">{selected.ai_summary}</p>
+                  ) : null}
+                  {selected.ai_tags && selected.ai_tags.length > 0 ? (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {selected.ai_tags.map((t) => (
+                        <span key={t} className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[10px] text-[#CBD5E1]">
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                  <p className="mt-2 text-[10px] text-[#CBD5E1]/40">AI suggestion — you decide.</p>
+                </div>
+              ) : null}
+
               <div className="rounded-[1.4rem] border border-white/8 bg-white/[0.03] divide-y divide-white/6">
                 {[
                   { label: "Genre", value: selected.genre || "Not provided" },

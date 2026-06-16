@@ -2,6 +2,7 @@ import type { NextRequest } from "next/server";
 import type { ArtistPromoOutput } from "@/lib/creatorHub/generators";
 import { createArtistSubmission } from "@/lib/artistSubmissionStore";
 import { autoPublishIfEligible } from "@/lib/publishSubmission";
+import { triageSubmission } from "@/lib/creatorHub/triage";
 import {
   sendArtistSubmissionNotification,
   sendArtistSubmissionConfirmation,
@@ -278,6 +279,12 @@ export async function POST(request: NextRequest) {
       artist_feedback: null,
       promo,
     });
+
+    // AI triage — fire-and-forget curator take + tags + recommendation so the
+    // admin queue starts pre-sorted. Never blocks the artist's response.
+    if (submission.submission_id) {
+      void triageSubmission(submission.submission_id).catch(() => undefined);
+    }
 
     // Auto-publish path — no-op unless SUBMISSION_AUTO_APPROVE=1 and the
     // submission is spotless. Fire-and-forget so the artist's response isn't

@@ -38,6 +38,11 @@ export type ArtistSubmissionRecord = {
   social_link: string | null;
   ai_used: boolean;
   ai_tool: string | null;
+  ai_summary: string | null;
+  ai_tags: string[];
+  ai_recommendation: string | null;
+  ai_confidence: string | null;
+  ai_triaged_at: string | null;
   rights_confirmed: boolean;
   samples_confirmed: boolean;
   promotion_permission_confirmed: boolean;
@@ -180,6 +185,11 @@ function mapPrismaSubmission(
     social_link: submission.socialLink,
     ai_used: submission.aiUsed,
     ai_tool: submission.aiTool,
+    ai_summary: submission.aiSummary,
+    ai_tags: submission.aiTags,
+    ai_recommendation: submission.aiRecommendation,
+    ai_confidence: submission.aiConfidence,
+    ai_triaged_at: submission.aiTriagedAt?.toISOString() ?? null,
     rights_confirmed: submission.rightsConfirmed,
     samples_confirmed: submission.samplesConfirmed,
     promotion_permission_confirmed: submission.promotionPermissionConfirmed,
@@ -251,6 +261,11 @@ export async function createArtistSubmission(
     | "promo_updated_at"
     | "status"
     | "internal_notes"
+    | "ai_summary"
+    | "ai_tags"
+    | "ai_recommendation"
+    | "ai_confidence"
+    | "ai_triaged_at"
   >,
 ): Promise<ArtistSubmissionRecord> {
   if (SHOULD_USE_PRISMA) {
@@ -309,6 +324,11 @@ export async function createArtistSubmission(
     promo_updated_at: now,
     status: "new",
     internal_notes: null,
+    ai_summary: null,
+    ai_tags: [],
+    ai_recommendation: null,
+    ai_confidence: null,
+    ai_triaged_at: null,
     ...input,
   };
 

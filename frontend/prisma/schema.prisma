@@ -391,6 +391,13 @@ model ArtistSubmission {
   promotionPermissionConfirmed Boolean   @default(false)
   removalPolicyConfirmed Boolean         @default(false)
   notes          String?
+  // AI triage — auto-run on intake so curators see a take + tags + recommendation
+  // before they listen. Advisory only; humans still decide.
+  aiSummary        String?
+  aiTags           String[]
+  aiRecommendation String?
+  aiConfidence     String?
+  aiTriagedAt      DateTime?
   status         ArtistSubmissionStatus  @default(NEW)
   // Set when an approved submission is published into the catalog as a Song —
   // idempotency guard so re-approving never double-creates the master job.
