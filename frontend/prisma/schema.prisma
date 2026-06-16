@@ -259,6 +259,17 @@ model Song {
   @@map("songs")
 }
 
+// Dedup for Stripe webhook events — Stripe retries on timeout, so we record
+// each event id once and skip re-processing (prevents double promo payments,
+// double tier upgrades, etc.).
+model StripeEvent {
+  id        String   @id
+  type      String
+  createdAt DateTime @default(now())
+
+  @@map("stripe_events")
+}
+
 model ArtistProfile {
   id                String   @id @default(cuid())
   artistId          String   @unique

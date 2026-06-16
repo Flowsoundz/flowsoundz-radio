@@ -87,6 +87,14 @@ async function handleCheckoutCompleted(stripe: Stripe, session: Stripe.Checkout.
 }
 
 export async function handleStripeEvent(stripe: Stripe, event: Stripe.Event): Promise<void> {
+  // Idempotency: Stripe retries on timeout. Record each event id once; a
+  // duplicate insert (unique PK) means we've already handled it — skip.
+  try {
+    await prisma.stripeEvent.create({ data: { id: event.id, type: event.type } });
+  } catch {
+    return;
+  }
+
   switch (event.type) {
     case "checkout.session.completed":
       await handleCheckoutCompleted(stripe, event.data.object as Stripe.Checkout.Session);
