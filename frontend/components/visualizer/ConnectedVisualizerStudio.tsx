@@ -8,6 +8,7 @@ import { VisualizerCanvasThree } from "@/components/VisualizerCanvasThree";
 import { AudioUploader } from "@/components/visualizer/AudioUploader";
 import { slugifyArtistName } from "@/lib/artists";
 import { playTrack } from "@/lib/playbackController";
+import { exportPromoVideo, type PromoTheme } from "@/lib/promoVideo";
 import {
   getStoredVisualizerMode,
   persistVisualizerMode,
@@ -43,6 +44,14 @@ const EXPORT_TARGETS = [
   },
 ] as const;
 
+// Promo render color themes per visual mode (falls back to brand cyan/violet).
+const EXPORT_THEMES: Record<string, PromoTheme> = {
+  aurora: { bg: "#06121f", accent: "#00e5ff", accent2: "#7c4dff" },
+  liquid: { bg: "#140a1f", accent: "#FF2DA6", accent2: "#7c4dff" },
+};
+const DEFAULT_THEME: PromoTheme = { bg: "#0c1328", accent: "#00e5ff", accent2: "#7c4dff" };
+const EXPORT_LENGTHS = [15, 20, 30] as const;
+
 export function ConnectedVisualizerStudio({
   initialArtistName,
   initialTrackTitle,
@@ -70,6 +79,15 @@ export function ConnectedVisualizerStudio({
       ? (initialExportTarget as (typeof EXPORT_TARGETS)[number]["id"])
       : "tiktok",
   );
+
+  // Promo-video export state
+  const [exportSeconds, setExportSeconds] = useState<number>(20);
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportPhase, setExportPhase] = useState<"recording" | "transcoding" | null>(null);
+  const [exportPct, setExportPct] = useState(0);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const exportAbortRef = useRef<AbortController | null>(null);
+  const logoImgRef = useRef<HTMLImageElement | null>(null);
 
   useEffect(() => {
     const audio = new Audio();
@@ -239,6 +257,85 @@ export function ConnectedVisualizerStudio({
     window.setTimeout(() => setShareCopied(false), 2200);
   }
 
+  function cancelExport() {
+    exportAbortRef.current?.abort();
+  }
+
+  async function handleExportVideo() {
+    if (!audioFile) {
+      setExportError("Upload a track first, then export.");
+      return;
+    }
+    setExportError(null);
+    setIsExporting(true);
+    setExportPhase("recording");
+    setExportPct(0);
+    const abort = new AbortController();
+    exportAbortRef.current = abort;
+
+    try {
+      const analyser = await ensureAnalyser();
+      const audio = audioRef.current;
+      const audioContext = audioContextRef.current;
+      if (!analyser || !audio || !audioContext) {
+        throw new Error("Audio engine isn't ready — press play once, then export.");
+      }
+
+      // Load the brand wordmark once (raster = reliable on canvas).
+      if (!logoImgRef.current) {
+        const img = new window.Image();
+        img.crossOrigin = "anonymous";
+        img.src = "/brand/flowsoundz-radio-wordmark-transparent.png";
+        await img.decode().catch(() => undefined);
+        logoImgRef.current = img;
+      }
+
+      const theme = EXPORT_THEMES[mode] ?? DEFAULT_THEME;
+      const trackTitle =
+        initialTrackTitle?.trim() || audioFile.name.replace(/\.[^.]+$/, "");
+      const pageUrl = artistSlug
+        ? `flowsoundzradio.com/artists/${artistSlug}`
+        : "flowsoundzradio.com";
+
+      const blob = await exportPromoVideo({
+        audioEl: audio,
+        audioContext,
+        analyser,
+        width: 1080,
+        height: 1920,
+        durationMs: exportSeconds * 1000,
+        artistName: trimmedArtistName || "FlowSoundz",
+        trackTitle,
+        theme,
+        logo: logoImgRef.current,
+        pageUrl,
+        onProgress: (phase, pct) => {
+          setExportPhase(phase);
+          setExportPct(pct);
+        },
+        signal: abort.signal,
+      });
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${(trimmedArtistName || "flowsoundz").replace(/\s+/g, "-").toLowerCase()}-flowsoundz-promo.mp4`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 5000);
+    } catch (err) {
+      if ((err as Error)?.name !== "AbortError") {
+        setExportError(err instanceof Error ? err.message : "Export failed. Try again.");
+      }
+    } finally {
+      setIsExporting(false);
+      setExportPhase(null);
+      setExportPct(0);
+      exportAbortRef.current = null;
+    }
+  }
+
   return (
     <section className="grid gap-6 xl:grid-cols-[minmax(320px,0.94fr)_minmax(0,1.42fr)]">
       <div className="space-y-4">
@@ -327,6 +424,76 @@ export function ConnectedVisualizerStudio({
             </p>
             <p className="mt-2 text-sm font-semibold text-white">{exportTarget.format}</p>
             <p className="mt-2 text-sm leading-6 text-slate-300">{exportTarget.guidance}</p>
+          </div>
+
+          {/* ── Real promo-video export (records visualizer + audio → branded MP4) ── */}
+          <div className="mt-4 border-t border-white/8 pt-4">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-fuchsia-200/75">
+                Clip length
+              </p>
+              <div className="flex gap-1.5">
+                {EXPORT_LENGTHS.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    disabled={isExporting}
+                    onClick={() => setExportSeconds(s)}
+                    className={`rounded-full border px-3 py-1 text-xs font-semibold transition disabled:opacity-50 ${
+                      exportSeconds === s
+                        ? "border-cyan-300/40 bg-cyan-300/15 text-white"
+                        : "border-white/10 bg-white/[0.03] text-slate-300 hover:text-white"
+                    }`}
+                  >
+                    {s}s
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {isExporting ? (
+              <div className="mt-4">
+                <div className="flex items-center justify-between text-xs text-slate-300">
+                  <span>{exportPhase === "transcoding" ? "Converting to MP4…" : "Recording…"}</span>
+                  <span>{Math.round(exportPct * 100)}%</span>
+                </div>
+                <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/[0.06]">
+                  <div
+                    className="h-full rounded-full bg-[linear-gradient(90deg,#00e5ff,#7c4dff)] transition-all"
+                    style={{ width: `${Math.round(exportPct * 100)}%` }}
+                  />
+                </div>
+                <p className="mt-2 text-[11px] text-slate-500">
+                  {exportPhase === "recording"
+                    ? "Plays your track in real time while recording — keep this tab open and focused."
+                    : "Final MP4 encode (first run loads the in-browser encoder, ~25MB)."}
+                </p>
+                <button
+                  type="button"
+                  onClick={cancelExport}
+                  className="mt-3 rounded-full border border-white/15 px-4 py-1.5 text-xs font-semibold text-slate-300 transition hover:text-white"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => void handleExportVideo()}
+                disabled={!audioFile}
+                className="mt-4 w-full rounded-full bg-[linear-gradient(135deg,#00e5ff_0%,#7c4dff_100%)] px-5 py-3 text-sm font-bold text-white shadow-[0_0_22px_rgba(0,229,255,0.3)] transition hover:shadow-[0_0_36px_rgba(0,229,255,0.5)] disabled:opacity-40"
+              >
+                ⬇ Export promo video — MP4 · 1080×1920
+              </button>
+            )}
+
+            {exportError ? (
+              <p className="mt-3 rounded-[0.9rem] border border-fuchsia-400/20 bg-fuchsia-500/10 px-3 py-2 text-xs text-fuchsia-100">
+                {exportError}
+              </p>
+            ) : !audioFile && !isExporting ? (
+              <p className="mt-2 text-[11px] text-slate-500">Upload a track above to enable export.</p>
+            ) : null}
           </div>
         </div>
 
@@ -533,7 +700,9 @@ export function ConnectedVisualizerStudio({
               Turn every preview into social promotion
             </h3>
             <p className="mt-3 text-sm leading-6 text-slate-300">
-              Use the share control above to send this studio page to collaborators, or use it as the launch point for short-form promo clips once export rendering is enabled.
+              Export a branded, audio-synced promo clip with one tap (Export target panel), then post it
+              straight to Reels, TikTok, or Shorts — every clip carries your name and a link back to
+              your FlowSoundz page.
             </p>
           </div>
           <div className="glass-card rounded-[1.45rem] border border-fuchsia-400/14 bg-fuchsia-500/[0.04] p-5">

@@ -32,18 +32,22 @@ const coverOrigin = backendCoverPattern
   ? `${backendCoverPattern.protocol}://${backendCoverPattern.hostname}${backendCoverPattern.port ? `:${backendCoverPattern.port}` : ""}`
   : "";
 
-function buildCsp(frameAncestors: string): string {
+function buildCsp(frameAncestors: string, opts?: { wasm?: boolean }): string {
+  // The Visualizer Studio runs ffmpeg.wasm to transcode promo videos to MP4 in
+  // the browser. WASM compilation needs 'wasm-unsafe-eval'; the worker pulls the
+  // self-hosted core (/ffmpeg/*) and blob: handles its module/worker plumbing.
+  const wasm = opts?.wasm ?? false;
   return [
     "default-src 'self'",
     // Next.js injects inline bootstrap scripts; dev mode additionally needs eval for HMR
-    `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
+    `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}${wasm ? " 'wasm-unsafe-eval' blob:" : ""}`,
     "style-src 'self' 'unsafe-inline'",
     // https: needed — cover art can live on external storage hosts (DB coverUrl)
     `img-src 'self' data: blob: https:${coverOrigin && !coverOrigin.startsWith("https") ? ` ${coverOrigin}` : ""}`,
     // DJ drops arrive as data:audio/mpeg URLs; blob: for Web Audio processing;
     // https: because public_audio_url can point at external storage/CDN hosts
     "media-src 'self' data: blob: https:",
-    "connect-src 'self'",
+    `connect-src 'self'${wasm ? " blob:" : ""}`,
     "font-src 'self' data:",
     "worker-src 'self' blob:",
     "object-src 'none'",
@@ -75,8 +79,15 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        // Visualizer Studio: same lockdown + WASM (ffmpeg.wasm promo export)
+        source: "/visualizer",
+        headers: [
+          { key: "Content-Security-Policy", value: buildCsp("'self'", { wasm: true }) },
+        ],
+      },
+      {
         // All other pages: lock down sources, framing only by the site itself
-        source: "/((?!embed|api/).*)",
+        source: "/((?!embed|visualizer|api/).*)",
         headers: [
           { key: "Content-Security-Policy", value: buildCsp("'self'") },
         ],
