@@ -27,6 +27,21 @@ function slugify(input: string): string {
 // Enqueue a track for the mastering worker. Accepts a Suno/Udio export URL (or
 // any direct audio URL) and creates a PENDING song; the worker loudness-masters
 // it, fills publicAudioUrl + durationSec, and flips it to READY.
+// Reject loopback / private / link-local / metadata hosts to prevent SSRF via
+// the server-side fetch in resolveDirectAudioUrl.
+function isBlockedHost(urlStr: string): boolean {
+  try {
+    const h = new URL(urlStr).hostname.toLowerCase().replace(/^\[|\]$/g, "");
+    if (h === "localhost" || h.endsWith(".local") || h.endsWith(".internal")) return true;
+    if (h === "0.0.0.0" || h === "::1") return true;
+    if (/^127\./.test(h) || /^10\./.test(h) || /^192\.168\./.test(h) || /^169\.254\./.test(h)) return true;
+    if (/^172\.(1[6-9]|2\d|3[0-1])\./.test(h)) return true;
+    return false;
+  } catch {
+    return true;
+  }
+}
+
 export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user || !(session.user as { isAdmin?: boolean }).isAdmin) {
@@ -51,6 +66,11 @@ export async function POST(req: Request) {
   if (!title) return Response.json({ error: "title required" }, { status: 400 });
   if (!sourceAudioUrl || !/^https?:\/\//.test(sourceAudioUrl)) {
     return Response.json({ error: "sourceAudioUrl must be an http(s) URL" }, { status: 400 });
+  }
+  // SSRF guard: this URL is fetched server-side (resolveDirectAudioUrl), so
+  // refuse loopback / private / link-local hosts and cloud metadata endpoints.
+  if (isBlockedHost(sourceAudioUrl)) {
+    return Response.json({ error: "That host isn't allowed." }, { status: 400 });
   }
 
   // Share links (suno.com/s/..., etc.) are HTML pages, not audio — resolve

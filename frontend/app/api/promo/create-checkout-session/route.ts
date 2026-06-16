@@ -30,8 +30,15 @@ function str(v: unknown): string {
 export async function POST(request: NextRequest) {
   const secretKey = process.env.STRIPE_SECRET_KEY?.trim();
 
-  // Dev bypass — no Stripe key configured, return a mock success URL
+  // Dev bypass — no Stripe key configured, return a mock success URL. NEVER in
+  // production: a missing key must fail loudly, not fabricate a paid promo.
   if (!secretKey) {
+    if (process.env.NODE_ENV === "production" || process.env.VERCEL) {
+      return Response.json(
+        { error: "Payments are temporarily unavailable. Please try again shortly." },
+        { status: 503 },
+      );
+    }
     let mockBody: { package_tier?: unknown; artist_name?: unknown; song_title?: unknown; origin?: unknown };
     try {
       mockBody = (await request.json()) as typeof mockBody;

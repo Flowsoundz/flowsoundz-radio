@@ -24,8 +24,15 @@ export async function POST(req: NextRequest) {
 
   const origin = req.headers.get("origin") ?? process.env.NEXT_PUBLIC_SITE_URL ?? "https://flowsoundzradio.com";
 
-  // Dev bypass — no Stripe key
+  // Dev bypass — no Stripe key. NEVER in production: fail loudly rather than
+  // fake an active membership.
   if (!process.env.STRIPE_SECRET_KEY) {
+    if (process.env.NODE_ENV === "production" || process.env.VERCEL) {
+      return NextResponse.json(
+        { error: "Payments are temporarily unavailable. Please try again shortly." },
+        { status: 503 },
+      );
+    }
     return NextResponse.json({ url: `${origin}/membership/success?mock=1&tier=${tier}` });
   }
 
