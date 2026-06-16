@@ -55,6 +55,16 @@ function buildCsp(frameAncestors: string): string {
 
 const nextConfig: NextConfig = {
   distDir: process.env.NEXT_DIST_DIR || (isVercel ? ".next" : ".next-runtime"),
+  // Retired Creator Hub pages — edge-level redirects run before any page cache,
+  // so they're reliable where page-component redirect() got served from stale
+  // edge cache. releases→drops (duplicate scheduler), release-submit→submit
+  // (legacy intake that bypassed AI promo + curation).
+  async redirects() {
+    return [
+      { source: "/artist/releases", destination: "/artist/drops", permanent: true },
+      { source: "/artist/release-submit", destination: "/artist/submit", permanent: true },
+    ];
+  },
   async headers() {
     return [
       {
