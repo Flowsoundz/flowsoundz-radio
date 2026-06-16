@@ -23,6 +23,9 @@ export type PromoExportOptions = {
   cover?: HTMLImageElement | null;
   logo?: HTMLImageElement | null;
   pageUrl: string;
+  /** Time-cued lyric lines (start in seconds from track start). The line whose
+   *  start is the latest <= current playback time is shown, karaoke-style. */
+  lyrics?: { text: string; start: number }[];
   onProgress?: (phase: "recording" | "transcoding", pct: number) => void;
   signal?: AbortSignal;
 };
@@ -52,11 +55,30 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
   ctx.closePath();
 }
 
+function wrapLines(ctx: CanvasRenderingContext2D, text: string, maxW: number, maxLines: number): string[] {
+  const words = text.split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let cur = "";
+  for (const w of words) {
+    const test = cur ? `${cur} ${w}` : w;
+    if (ctx.measureText(test).width > maxW && cur) {
+      lines.push(cur);
+      cur = w;
+      if (lines.length === maxLines - 1) break;
+    } else {
+      cur = test;
+    }
+  }
+  if (cur && lines.length < maxLines) lines.push(cur);
+  return lines.slice(0, maxLines);
+}
+
 function drawFrame(
   ctx: CanvasRenderingContext2D,
   o: PromoExportOptions,
   freq: Uint8Array,
   bass: number,
+  activeLyric: string | null,
 ) {
   const { width: W, height: H, theme } = o;
   const cx = W / 2;
@@ -150,6 +172,24 @@ function drawFrame(
   scrim.addColorStop(1, "rgba(2,4,10,0.96)");
   ctx.fillStyle = scrim;
   ctx.fillRect(0, scrimTop, W, H - scrimTop);
+
+  // ── Active lyric line (karaoke-style), centered above the artist block ──
+  if (activeLyric) {
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = `700 ${Math.round(W * 0.05)}px system-ui, -apple-system, sans-serif`;
+    const lines = wrapLines(ctx, activeLyric, W * 0.86, 2);
+    const lineH = W * 0.066;
+    const startY = H * 0.72 - ((lines.length - 1) * lineH) / 2;
+    ctx.save();
+    ctx.shadowColor = "rgba(0,0,0,0.85)";
+    ctx.shadowBlur = W * 0.02;
+    lines.forEach((ln, i) => {
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText(ln, W / 2, startY + i * lineH);
+    });
+    ctx.restore();
+  }
 
   ctx.textAlign = "left";
   // Artist name
@@ -264,7 +304,17 @@ export async function exportPromoVideo(o: PromoExportOptions): Promise<Blob> {
     for (let i = 0; i < bassBins; i++) bassSum += freq[i];
     const bass = bassSum / bassBins / 255;
     bassSmooth = bassSmooth * 0.8 + bass * 0.2;
-    drawFrame(ctx, o, freq, bassSmooth);
+
+    let activeLyric: string | null = null;
+    if (o.lyrics && o.lyrics.length) {
+      const t = o.audioEl.currentTime;
+      for (const cue of o.lyrics) {
+        if (cue.start <= t + 0.05) activeLyric = cue.text;
+        else break;
+      }
+    }
+
+    drawFrame(ctx, o, freq, bassSmooth, activeLyric);
     raf = requestAnimationFrame(render);
   };
 

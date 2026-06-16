@@ -89,6 +89,14 @@ export function ConnectedVisualizerStudio({
   const exportAbortRef = useRef<AbortController | null>(null);
   const logoImgRef = useRef<HTMLImageElement | null>(null);
 
+  // Lyrics (shown on the promo video). Timings come from Whisper segments; we
+  // keep them only while the line count matches what's in the editor.
+  const [lyrics, setLyrics] = useState("");
+  const [lyricTimings, setLyricTimings] = useState<number[] | null>(null);
+  const [showLyrics, setShowLyrics] = useState(true);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [transcribeError, setTranscribeError] = useState<string | null>(null);
+
   useEffect(() => {
     const audio = new Audio();
     audio.preload = "metadata";
@@ -261,6 +269,47 @@ export function ConnectedVisualizerStudio({
     exportAbortRef.current?.abort();
   }
 
+  function handleLyricsChange(value: string) {
+    setLyrics(value);
+    // Drop timings once the line count diverges from the transcription.
+    const count = value.split("\n").filter((l) => l.trim()).length;
+    if (lyricTimings && count !== lyricTimings.length) setLyricTimings(null);
+  }
+
+  async function handleTranscribe() {
+    if (!audioFile) {
+      setTranscribeError("Upload a track first.");
+      return;
+    }
+    setTranscribeError(null);
+    setIsTranscribing(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", audioFile);
+      const res = await fetch("/api/transcribe-lyrics", { method: "POST", body: fd });
+      if (!res.ok) {
+        const e = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(e.error || "Transcription failed.");
+      }
+      const data = (await res.json()) as {
+        transcript: string;
+        lines?: { text: string; start: number }[];
+      };
+      if (data.lines && data.lines.length > 0) {
+        setLyrics(data.lines.map((l) => l.text).join("\n"));
+        setLyricTimings(data.lines.map((l) => l.start));
+      } else {
+        setLyrics(data.transcript || "");
+        setLyricTimings(null);
+      }
+      setShowLyrics(true);
+    } catch (err) {
+      setTranscribeError(err instanceof Error ? err.message : "Transcription failed.");
+    } finally {
+      setIsTranscribing(false);
+    }
+  }
+
   async function handleExportVideo() {
     if (!audioFile) {
       setExportError("Upload a track first, then export.");
@@ -297,6 +346,20 @@ export function ConnectedVisualizerStudio({
         ? `flowsoundzradio.com/artists/${artistSlug}`
         : "flowsoundzradio.com";
 
+      // Build time-cued lyric lines: use Whisper timings when they still match
+      // the editor, otherwise distribute evenly across the clip.
+      const lyricLines = lyrics.split("\n").map((s) => s.trim()).filter(Boolean);
+      const cues =
+        showLyrics && lyricLines.length > 0
+          ? lyricLines.map((text, i) => ({
+              text,
+              start:
+                lyricTimings && lyricTimings.length === lyricLines.length
+                  ? lyricTimings[i]
+                  : (i / lyricLines.length) * exportSeconds,
+            }))
+          : undefined;
+
       const blob = await exportPromoVideo({
         audioEl: audio,
         audioContext,
@@ -309,6 +372,7 @@ export function ConnectedVisualizerStudio({
         theme,
         logo: logoImgRef.current,
         pageUrl,
+        lyrics: cues,
         onProgress: (phase, pct) => {
           setExportPhase(phase);
           setExportPct(pct);
@@ -385,6 +449,56 @@ export function ConnectedVisualizerStudio({
               </p>
             </div>
           </div>
+        </div>
+
+        {/* ── Lyrics ── */}
+        <div className="glass-card rounded-[1.75rem] border border-white/10 p-5">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200/70">Lyrics</p>
+              <h2 className="mt-2 text-lg font-semibold text-white">Add lyrics to the promo</h2>
+            </div>
+            <label className="flex shrink-0 items-center gap-2 text-xs text-slate-300">
+              <input
+                type="checkbox"
+                checked={showLyrics}
+                onChange={(e) => setShowLyrics(e.target.checked)}
+                className="h-4 w-4 accent-[#00e5ff]"
+              />
+              Show on video
+            </label>
+          </div>
+          <p className="mt-2 text-sm leading-6 text-slate-300">
+            Paste your lyrics, or auto-transcribe from the track — then edit before exporting.
+          </p>
+          <button
+            type="button"
+            onClick={() => void handleTranscribe()}
+            disabled={!audioFile || isTranscribing}
+            className="mt-3 inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-300/[0.06] px-4 py-2 text-xs font-semibold text-cyan-200 transition hover:border-cyan-300/40 disabled:opacity-40"
+          >
+            {isTranscribing ? "Transcribing…" : "✨ Auto-transcribe from track"}
+          </button>
+          <textarea
+            value={lyrics}
+            onChange={(e) => handleLyricsChange(e.target.value)}
+            rows={6}
+            placeholder="One line per row. Lines appear on the video as the track plays."
+            className="mt-3 w-full rounded-[1rem] border border-white/10 bg-[#0b1020] px-4 py-3 text-sm leading-6 text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/35"
+          />
+          {transcribeError ? (
+            <p className="mt-2 rounded-[0.9rem] border border-fuchsia-400/20 bg-fuchsia-500/10 px-3 py-2 text-xs text-fuchsia-100">
+              {transcribeError}
+            </p>
+          ) : (
+            <p className="mt-2 text-[11px] text-slate-500">
+              {lyricTimings
+                ? "✓ Synced to the track from transcription — edits keep sync while the line count matches."
+                : lyrics.trim()
+                  ? "Lines spread evenly across the clip."
+                  : "Audio stays in your browser; transcription runs once, on request."}
+            </p>
+          )}
         </div>
 
         <div className="glass-card rounded-[1.75rem] border border-fuchsia-400/14 bg-fuchsia-500/[0.04] p-5">

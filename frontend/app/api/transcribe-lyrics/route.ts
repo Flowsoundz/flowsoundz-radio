@@ -28,10 +28,12 @@ export async function POST(req: NextRequest) {
   }
 
   // Forward to Whisper
+  // verbose_json gives segment timestamps so the promo video can sync each
+  // lyric line to the audio.
   const whisperForm = new FormData();
   whisperForm.append("file", file, (file as File).name ?? "track.mp3");
   whisperForm.append("model", "whisper-1");
-  whisperForm.append("response_format", "text");
+  whisperForm.append("response_format", "verbose_json");
 
   try {
     const res = await fetch("https://api.openai.com/v1/audio/transcriptions", {
@@ -46,8 +48,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Transcription failed." }, { status: 502 });
     }
 
-    const transcript = await res.text();
-    return NextResponse.json({ transcript: transcript.trim() });
+    const data = (await res.json()) as {
+      text?: string;
+      segments?: Array<{ start: number; text: string }>;
+    };
+    const lines = (data.segments ?? [])
+      .map((s) => ({ text: s.text.trim(), start: Math.max(0, s.start) }))
+      .filter((l) => l.text.length > 0);
+
+    return NextResponse.json({ transcript: (data.text ?? "").trim(), lines });
   } catch (err) {
     console.error("[transcribe-lyrics]", err);
     return NextResponse.json({ error: "Transcription failed." }, { status: 500 });
