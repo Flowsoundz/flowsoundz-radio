@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { CreatorHubShell } from "@/components/creator-hub/CreatorHubShell";
 import { CreatorHubDashboardFlow } from "@/components/creator-hub/CreatorHubDashboardFlow";
 import { CreatorCommandCenter } from "@/components/creator-hub/CreatorCommandCenter";
+import { CreatorReadiness } from "@/components/creator-hub/CreatorReadiness";
 import { CreatorOnboarding } from "@/components/creator-hub/CreatorOnboarding";
 import { getCreatorDashboard } from "@/lib/creatorDashboard";
 import { readCatalogSnapshotFromStore } from "@/lib/catalogSnapshotStore";
@@ -42,6 +43,8 @@ export default async function ArtistDashboardPage() {
       {/* ── Personalized command center (returning artists) — renders null for
             new/anonymous visitors, who get the focused onboarding funnel. ── */}
       <CreatorCommandCenter data={dash} />
+
+      {isReturning && <CreatorReadiness />}
 
       {!isReturning && <CreatorOnboarding />}
 
