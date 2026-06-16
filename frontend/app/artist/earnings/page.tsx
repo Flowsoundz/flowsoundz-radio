@@ -49,6 +49,28 @@ export default async function ArtistEarningsPage() {
   const pending = totalEarned - totalPaid;
   const totalPlays = payouts[0]?.totalPlays ?? 0;
 
+  // Live "this month so far": current play share now, and a dollar estimate
+  // referenced to the most recent pool (the share accrues before any pool is
+  // finalized — this makes plays → money tangible instead of a bare $0).
+  const mySongs = await prisma.song.findMany({
+    where: { artistId: artist.id },
+    select: { id: true, title: true, queuePreferences: { select: { playCount: true } } },
+  });
+  const trackPlays = mySongs
+    .map((s) => ({ title: s.title, plays: s.queuePreferences?.playCount ?? 0 }))
+    .sort((a, b) => b.plays - a.plays);
+  const myPlays = trackPlays.reduce((sum, t) => sum + t.plays, 0);
+  const stationAgg = await prisma.queuePreference.aggregate({ _sum: { playCount: true } });
+  const stationPlays = stationAgg._sum.playCount ?? 0;
+  const playSharePct = stationPlays > 0 ? (myPlays / stationPlays) * 100 : 0;
+  const latestPool = await prisma.revenuePool.findFirst({
+    orderBy: { month: "desc" },
+    select: { artistPool: true, month: true },
+  });
+  const projected = latestPool ? (playSharePct / 100) * latestPool.artistPool : null;
+  const topTracks = trackPlays.filter((t) => t.plays > 0).slice(0, 4);
+  const maxTrackPlays = topTracks[0]?.plays ?? 1;
+
   return (
     <AppShell eyebrow="Creator Hub" title="My Earnings">
       {/* Nav */}
@@ -73,6 +95,63 @@ export default async function ArtistEarningsPage() {
           Payments are processed manually — contact us when a month shows a balance.
         </p>
       </div>
+
+      {/* This month so far — live play share + projection */}
+      <section className="mb-6 rounded-[1.8rem] border border-[#7c4dff]/20 bg-[linear-gradient(135deg,rgba(124,77,255,0.08),rgba(0,229,255,0.04))] p-6">
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-200/80">This month so far</p>
+            <p className="mt-1 text-sm text-slate-400">Your live share of the artist pool, by plays.</p>
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <div className="rounded-[1.4rem] border border-white/8 bg-white/[0.03] p-4">
+            <p className="text-3xl font-bold leading-none text-violet-300">{playSharePct.toFixed(2)}%</p>
+            <p className="mt-1.5 text-[11px] text-slate-400">Your play share</p>
+          </div>
+          <div className="rounded-[1.4rem] border border-white/8 bg-white/[0.03] p-4">
+            <p className="text-3xl font-bold leading-none text-[#00e5ff]">{myPlays.toLocaleString()}</p>
+            <p className="mt-1.5 text-[11px] text-slate-400">
+              Your plays{stationPlays > 0 ? ` · of ${stationPlays.toLocaleString()} station-wide` : ""}
+            </p>
+          </div>
+          <div className="rounded-[1.4rem] border border-white/8 bg-white/[0.03] p-4">
+            <p className="text-3xl font-bold leading-none text-emerald-300">
+              {projected !== null ? `$${projected.toFixed(2)}` : "—"}
+            </p>
+            <p className="mt-1.5 text-[11px] text-slate-400">
+              {projected !== null ? `Est. at last pool ($${latestPool!.artistPool.toFixed(0)})` : "Estimate pending first pool"}
+            </p>
+          </div>
+        </div>
+
+        {projected === null && (
+          <p className="mt-3 text-[11px] text-slate-500">
+            Dollar estimates appear once FlowSoundz publishes the first monthly pool — your play share is already accruing.
+          </p>
+        )}
+
+        {topTracks.length > 0 && (
+          <div className="mt-5">
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Your top earners</p>
+            <ul className="space-y-2">
+              {topTracks.map((t) => (
+                <li key={t.title} className="flex items-center gap-3">
+                  <span className="min-w-0 flex-1 truncate text-sm text-slate-200">{t.title}</span>
+                  <div className="h-1.5 w-24 overflow-hidden rounded-full bg-white/[0.06]">
+                    <div
+                      className="h-full rounded-full bg-[linear-gradient(90deg,#00e5ff,#7c4dff)]"
+                      style={{ width: `${Math.round((t.plays / maxTrackPlays) * 100)}%` }}
+                    />
+                  </div>
+                  <span className="w-12 text-right text-xs tabular-nums text-slate-400">{t.plays.toLocaleString()}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </section>
 
       {/* Summary cards */}
       <section className="mb-6 grid grid-cols-3 gap-3">
