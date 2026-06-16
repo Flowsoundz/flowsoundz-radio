@@ -126,6 +126,14 @@ export async function proxy(req: NextRequest) {
     }
   }
 
+  // Lock the entire admin API surface to admins. The /admin check above doesn't
+  // cover /api/admin/*, and several of those routes had weak or no per-route
+  // auth — this is the single gate that closes them all. (Cron routes live
+  // under /api/cron and authenticate with CRON_SECRET, so they're unaffected.)
+  if (pathname.startsWith("/api/admin") && !isAdmin) {
+    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  }
+
   if (pathname.startsWith("/artist/metrics") && !isAuthed) {
     return NextResponse.redirect(new URL(`/signin?next=${pathname}`, req.url));
   }
@@ -141,6 +149,7 @@ export const config = {
   matcher: [
     "/audio/:path*",
     "/admin/:path*",
+    "/api/admin/:path*",
     "/artist/metrics/:path*",
     "/artist/submissions/:path*",
     "/((?!_next/static|_next/image|favicon.ico|brand/|splash/|covers/|FSRLogo).*)",
