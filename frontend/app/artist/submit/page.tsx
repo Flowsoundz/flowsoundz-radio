@@ -255,7 +255,12 @@ export default function SubmitPage() {
 
   // Per-step gates so we can validate before letting the artist advance —
   // these are strict subsets of canSubmit, so the final guard still holds.
-  const STEP_LABELS = ["Your track", "Music & links", "Rights & submit"] as const;
+const STEP_LABELS = ["Your track", "Music & links", "Rights & submit"] as const;
+const STEP_HELP = [
+  "Tell us what the song is and who should be contacted about it.",
+  "Add the listening link and release materials we need to review and promote it.",
+  "Confirm rights, send the song, and get your creator follow-up page.",
+] as const;
   const step1Valid = Boolean(
     form.artistName.trim() &&
       form.contactName.trim() &&
@@ -423,6 +428,12 @@ export default function SubmitPage() {
             );
           })}
         </div>
+        <div className="mt-4 rounded-[1rem] border border-white/8 bg-white/[0.03] px-4 py-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-200/80">
+            What happens in this step
+          </p>
+          <p className="mt-2 text-sm leading-6 text-slate-300">{STEP_HELP[step - 1]}</p>
+        </div>
       </div>
 
       {/* ── Intro (step 1 only) ── */}
@@ -439,6 +450,14 @@ export default function SubmitPage() {
           review your track for curated rotation — the kind of discovery moment that
           reaches listeners who are actively looking for what&apos;s next.
         </p>
+        <div className="mt-5 rounded-[1.2rem] border border-cyan-300/16 bg-cyan-300/[0.05] px-4 py-4">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-200/80">
+            Fast version
+          </p>
+          <p className="mt-2 text-sm leading-6 text-slate-200">
+            Fill in the required fields, add one solid song link, answer the AI question honestly, and confirm your rights. That is enough to get into review.
+          </p>
+        </div>
 
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
           <div className="rounded-[1.2rem] border border-emerald-400/20 bg-emerald-400/[0.06] px-4 py-4">
@@ -482,6 +501,23 @@ export default function SubmitPage() {
       {/* ── Form ── */}
       {step !== 3 && (
       <div className="mb-10 glass-card rounded-[1.8rem] p-6 sm:p-8">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-[1.2rem] border border-white/8 bg-white/[0.03] px-4 py-4">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">Progress check</p>
+            <p className="mt-2 text-sm leading-6 text-slate-200">
+              {step === 1
+                ? "Finish the basic song and contact details first."
+                : "You are in the materials step. Add the link we should review and the extra assets if you have them."}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleContinue}
+            className="inline-flex min-h-11 items-center justify-center rounded-full bg-[linear-gradient(135deg,#00e5ff_0%,#7c4dff_100%)] px-5 py-2.5 text-sm font-bold text-white shadow-[0_0_18px_rgba(0,229,255,0.26)] transition hover:shadow-[0_0_28px_rgba(0,229,255,0.46)]"
+          >
+            {step === 1 ? "Continue to links" : "Continue to rights"}
+          </button>
+        </div>
         <div className="grid gap-5">
 
           {step === 1 && (

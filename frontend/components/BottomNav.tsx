@@ -3,7 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { useSession, signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
+
+type DrawerLink = {
+  href: string;
+  label: string;
+  description?: string;
+};
 
 const STATIC_TABS = [
   {
@@ -38,23 +44,23 @@ const CREATOR_ICON = (
   </svg>
 );
 
-const MORE_LINKS = [
-  { href: "/artist/dashboard", label: "Creator Hub" },
-  { href: "/artist/kit", label: "AI Release Kit" },
+const LISTENER_LINKS: readonly DrawerLink[] = [
+  { href: "/schedule", label: "Schedule", description: "See which block or show is coming up next." },
+  { href: "/drops", label: "Drops", description: "Open featured music moments and fresh releases." },
+  { href: "/membership", label: "Membership", description: "Upgrade for insider access and replay perks." },
+  { href: "/visualizer", label: "Visualizer", description: "Run the station with a visual companion." },
+];
+
+const HELP_LINKS: readonly DrawerLink[] = [
   { href: "/profile", label: "My Profile" },
   { href: "/search", label: "Search" },
-  { href: "/drops", label: "Drops" },
   { href: "/label/register", label: "Label / Agency" },
-  { href: "/for-artists", label: "For Artists" },
-  { href: "/membership", label: "Membership" },
-  { href: "/visualizer", label: "Visualizer" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
+  { href: "/support", label: "Support" },
   { href: "/privacy", label: "Privacy" },
   { href: "/terms", label: "Terms" },
-  { href: "/support", label: "Support" },
-  { href: "/schedule", label: "Schedule" },
-] as const;
+];
 
 export default function BottomNav() {
   const pathname = usePathname();
@@ -64,29 +70,54 @@ export default function BottomNav() {
   const isArtist = (session?.user as { role?: string } | undefined)?.role === "ARTIST";
   const creatorHref = isArtist ? "/artist/dashboard" : "/for-artists";
   const creatorMatchPrefixes = ["/artist", "/for-artists"];
+  const creatorLinks: DrawerLink[] = isArtist
+    ? [
+        { href: "/artist/dashboard", label: "Creator Hub", description: "Review station outcomes and next actions." },
+        { href: "/artist/submit", label: "Submit Music", description: "Send a release into the station pipeline." },
+        { href: "/artist/kit", label: "AI Release Kit", description: "Generate promo copy, hooks, and ideas fast." },
+        { href: "/artist/submissions", label: "My Submissions", description: "Track reviews, approvals, and airplay." },
+      ]
+    : [
+        { href: "/for-artists", label: "For Artists", description: "Understand how the creator side works." },
+        { href: "/artist/create", label: "Start A Release", description: "Open the guided creator flow." },
+        { href: "/artist/kit", label: "AI Release Kit", description: "Try the AI release helper before submitting." },
+        { href: "/label/register", label: "Label / Agency", description: "Register a roster, collective, or team." },
+      ];
+  const quickActions: DrawerLink[] = [
+    { href: "/radio", label: "Listen Live", description: "Jump straight into the station." },
+    { href: "/songs", label: "Browse Music", description: "Explore current tracks and artists." },
+    {
+      href: creatorHref,
+      label: isArtist ? "Open Creator Hub" : "Creator Side",
+      description: isArtist
+        ? "Pick up your release flow where you left off."
+        : "Learn how artists submit and get programmed.",
+    },
+    { href: "/search", label: "Search", description: "Find artists, songs, and pages fast." },
+  ];
 
   function isActive(href: string, matchPrefixes?: readonly string[]) {
     if (href === "/") return pathname === "/";
-    if (matchPrefixes) return matchPrefixes.some((p) => pathname.startsWith(p));
+    if (matchPrefixes) return matchPrefixes.some((prefix) => pathname.startsWith(prefix));
     return pathname === href || pathname.startsWith(`${href}/`);
   }
 
-  const moreIsActive = MORE_LINKS.some((l) => pathname.startsWith(l.href));
-  const creatorActive = creatorMatchPrefixes.some((p) => pathname.startsWith(p));
-  const primaryMoreLinks = MORE_LINKS.slice(0, 6);
-  const secondaryMoreLinks = MORE_LINKS.slice(6);
+  const creatorActive = creatorMatchPrefixes.some((prefix) => pathname.startsWith(prefix));
+  const menuActivePaths = [
+    ...LISTENER_LINKS.map((link) => link.href),
+    ...HELP_LINKS.map((link) => link.href),
+  ];
+  const menuIsActive = menuActivePaths.some((href) => pathname.startsWith(href));
 
   return (
     <>
-      {/* Backdrop */}
-      {drawerOpen && (
+      {drawerOpen ? (
         <div
           className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
           onClick={() => setDrawerOpen(false)}
         />
-      )}
+      ) : null}
 
-      {/* More drawer */}
       <div
         className={`fixed inset-x-0 bottom-[72px] z-50 transition-transform duration-300 ease-out ${
           drawerOpen ? "translate-y-0" : "translate-y-[110%]"
@@ -96,27 +127,62 @@ export default function BottomNav() {
           <div className="mb-4 flex justify-center">
             <div className="h-1 w-10 rounded-full bg-white/20" />
           </div>
-          <p className="mb-3 px-2 text-[10px] font-semibold uppercase tracking-[0.26em] text-white/35">
-            More
-          </p>
+
+          <div className="mb-4 px-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.26em] text-white/35">
+              Menu
+            </p>
+            <p className="mt-2 text-sm text-slate-300">
+              Pick the main thing you want to do, then jump into creator tools, listening tools, or account pages.
+            </p>
+          </div>
+
           <div className="space-y-4">
+            <div>
+              <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/25">
+                Start Here
+              </p>
+              <div className="grid gap-2">
+                {quickActions.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => setDrawerOpen(false)}
+                    className={`rounded-[1.35rem] border px-4 py-3 text-left transition ${
+                      pathname.startsWith(link.href)
+                        ? "border-cyan-300/24 bg-cyan-300/[0.08] text-white"
+                        : "border-white/8 bg-white/[0.03] text-slate-300 hover:border-white/14 hover:text-white"
+                    }`}
+                  >
+                    <p className="text-sm font-semibold">{link.label}</p>
+                    {link.description ? (
+                      <p className="mt-1 text-xs leading-5 text-inherit/75">{link.description}</p>
+                    ) : null}
+                  </Link>
+                ))}
+              </div>
+            </div>
+
             <div>
               <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/25">
                 Creator
               </p>
               <div className="grid grid-cols-2 gap-2">
-                {primaryMoreLinks.map((link) => (
+                {creatorLinks.map((link) => (
                   <Link
                     key={link.href}
                     href={link.href}
                     onClick={() => setDrawerOpen(false)}
-                    className={`flex min-h-12 items-center justify-center rounded-2xl border px-4 text-sm font-semibold transition ${
+                    className={`rounded-2xl border px-4 py-3 text-left transition ${
                       pathname.startsWith(link.href)
                         ? "border-[#00FF88]/25 bg-[#00FF88]/10 text-white"
                         : "border-white/8 bg-white/[0.03] text-slate-300 hover:border-white/14 hover:text-white"
                     }`}
                   >
-                    {link.label}
+                    <p className="text-sm font-semibold">{link.label}</p>
+                    {link.description ? (
+                      <p className="mt-1 text-[11px] leading-5 text-inherit/75">{link.description}</p>
+                    ) : null}
                   </Link>
                 ))}
               </div>
@@ -124,68 +190,79 @@ export default function BottomNav() {
 
             <div>
               <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/25">
-                Listen
+                Listen More
+              </p>
+              <div className="grid gap-2">
+                {LISTENER_LINKS.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => setDrawerOpen(false)}
+                    className={`rounded-[1.2rem] border px-4 py-3 text-left transition ${
+                      pathname.startsWith(link.href)
+                        ? "border-fuchsia-400/24 bg-fuchsia-400/[0.08] text-white"
+                        : "border-white/8 bg-white/[0.03] text-slate-300 hover:border-white/14 hover:text-white"
+                    }`}
+                  >
+                    <p className="text-sm font-semibold">{link.label}</p>
+                    {link.description ? (
+                      <p className="mt-1 text-xs leading-5 text-inherit/75">{link.description}</p>
+                    ) : null}
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/25">
+                Account & Help
               </p>
               <div className="grid grid-cols-2 gap-2">
-                {secondaryMoreLinks.map((link) => (
+                {HELP_LINKS.map((link) => (
                   <Link
                     key={link.href}
                     href={link.href}
                     onClick={() => setDrawerOpen(false)}
                     className={`flex min-h-12 items-center justify-center rounded-2xl border px-4 text-sm font-semibold transition ${
                       pathname.startsWith(link.href)
-                        ? "border-[#00FF88]/25 bg-[#00FF88]/10 text-white"
+                        ? "border-white/16 bg-white/[0.08] text-white"
                         : "border-white/8 bg-white/[0.03] text-slate-300 hover:border-white/14 hover:text-white"
                     }`}
                   >
                     {link.label}
                   </Link>
                 ))}
+                {session?.user ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDrawerOpen(false);
+                      void signOut({ callbackUrl: "/" });
+                    }}
+                    className="col-span-2 flex min-h-12 items-center justify-center rounded-2xl border border-white/8 bg-white/[0.03] px-4 text-sm font-semibold text-slate-300 transition hover:border-white/14 hover:text-red-400"
+                  >
+                    Sign out
+                  </button>
+                ) : (
+                  <Link
+                    href="/signin"
+                    onClick={() => setDrawerOpen(false)}
+                    className="col-span-2 flex min-h-12 items-center justify-center rounded-2xl border border-[#FF2DA6]/25 bg-[#FF2DA6]/[0.07] px-4 text-sm font-semibold text-[#FF2DA6] transition hover:bg-[#FF2DA6]/[0.13]"
+                  >
+                    Sign in
+                  </Link>
+                )}
               </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <Link
-                href="/radio"
-                onClick={() => setDrawerOpen(false)}
-                className="flex min-h-12 items-center justify-center rounded-2xl border border-cyan-300/22 bg-cyan-300/[0.08] px-4 text-sm font-semibold text-cyan-100 transition hover:border-cyan-300/35 hover:text-white"
-              >
-                Live Radio
-              </Link>
-              <Link
-                href="/membership"
-                onClick={() => setDrawerOpen(false)}
-                className="flex min-h-12 items-center justify-center rounded-2xl border border-fuchsia-400/22 bg-fuchsia-400/[0.08] px-4 text-sm font-semibold text-fuchsia-100 transition hover:border-fuchsia-400/35 hover:text-white"
-              >
-                Membership
-              </Link>
-              {session?.user ? (
-                <button
-                  type="button"
-                  onClick={() => { setDrawerOpen(false); void signOut({ callbackUrl: "/" }); }}
-                  className="col-span-2 flex min-h-12 items-center justify-center rounded-2xl border border-white/8 bg-white/[0.03] px-4 text-sm font-semibold text-slate-300 transition hover:border-white/14 hover:text-red-400"
-                >
-                  Sign out
-                </button>
-              ) : (
-                <Link
-                  href="/signin"
-                  onClick={() => setDrawerOpen(false)}
-                  className="col-span-2 flex min-h-12 items-center justify-center rounded-2xl border border-[#FF2DA6]/25 bg-[#FF2DA6]/[0.07] px-4 text-sm font-semibold text-[#FF2DA6] transition hover:bg-[#FF2DA6]/[0.13]"
-                >
-                  Sign in
-                </Link>
-              )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Bottom tab bar */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/8 bg-[#050816]/90 backdrop-blur-2xl">
         <div className="mx-auto grid max-w-lg grid-cols-4 px-2 pb-safe pt-1">
           {STATIC_TABS.map((tab) => {
             const active = isActive(tab.href, "matchPrefixes" in tab ? tab.matchPrefixes : undefined);
+
             return (
               <Link
                 key={tab.href}
@@ -203,7 +280,6 @@ export default function BottomNav() {
             );
           })}
 
-          {/* Creator tab — routes to dashboard for artists, for-artists page for others */}
           <Link
             href={creatorHref}
             className={`flex flex-col items-center gap-1 rounded-2xl px-2 py-2 text-[10px] font-semibold transition ${
@@ -217,24 +293,28 @@ export default function BottomNav() {
             <span className="uppercase tracking-[0.14em]">Creator</span>
           </Link>
 
-          {/* More tab */}
           <button
             type="button"
-            aria-label="More navigation options"
-            onClick={() => setDrawerOpen((o) => !o)}
+            aria-label="Open app menu"
+            onClick={() => setDrawerOpen((open) => !open)}
             className={`flex flex-col items-center gap-1 rounded-2xl px-2 py-2 text-[10px] font-semibold transition ${
-              drawerOpen || moreIsActive ? "text-[#00e5ff]" : "text-slate-400 hover:text-slate-200"
+              drawerOpen || menuIsActive ? "text-[#00e5ff]" : "text-slate-400 hover:text-slate-200"
             }`}
           >
             <svg
               aria-hidden="true"
               className={`h-5 w-5 transition-transform duration-200 ${drawerOpen ? "rotate-45" : ""}`}
-              viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
             >
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
-            <span className="uppercase tracking-[0.14em]">More</span>
+            <span className="uppercase tracking-[0.14em]">Menu</span>
           </button>
         </div>
       </nav>

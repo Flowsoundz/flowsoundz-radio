@@ -7,10 +7,10 @@ import {
 } from "@/lib/creatorDashboard";
 
 const STATUS: Record<CreatorTrackStatus, { label: string; cls: string }> = {
-  live: { label: "● Live", cls: "border-[#00FF88]/30 bg-[#00FF88]/10 text-[#00FF88]" },
-  priority_review: { label: "Priority review", cls: "border-[#FF2DA6]/30 bg-[#FF2DA6]/10 text-[#FF2DA6]" },
-  in_review: { label: "In review", cls: "border-amber-300/30 bg-amber-300/10 text-amber-200" },
-  processing: { label: "Mastering", cls: "border-cyan-300/30 bg-cyan-300/10 text-cyan-200" },
+  live: { label: "On station", cls: "border-[#00FF88]/30 bg-[#00FF88]/10 text-[#00FF88]" },
+  priority_review: { label: "Review first", cls: "border-[#FF2DA6]/30 bg-[#FF2DA6]/10 text-[#FF2DA6]" },
+  in_review: { label: "Under review", cls: "border-amber-300/30 bg-amber-300/10 text-amber-200" },
+  processing: { label: "Getting prepared", cls: "border-cyan-300/30 bg-cyan-300/10 text-cyan-200" },
   not_selected: { label: "Not selected", cls: "border-white/15 bg-white/5 text-slate-400" },
 };
 
@@ -42,6 +42,9 @@ export async function CreatorCommandCenter({ data: provided }: { data?: CreatorD
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-cyan-300/80">Your Music HQ</p>
           <h2 className="mt-1 text-2xl font-semibold text-white">Welcome back, {data.artistName}</h2>
+          <p className="mt-2 max-w-xl text-sm leading-6 text-slate-300">
+            This page is your control room. Check your strongest current track, then use the main action on the right to keep your next release moving.
+          </p>
         </div>
         {data.nextAction ? (
           <div className="max-w-sm text-right">
@@ -54,6 +57,21 @@ export async function CreatorCommandCenter({ data: provided }: { data?: CreatorD
             <p className="mt-2 text-xs leading-5 text-slate-400">{data.nextAction.description}</p>
           </div>
         ) : null}
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div className="rounded-[1.4rem] border border-white/8 bg-white/[0.03] px-4 py-4">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">1. Check status</p>
+          <p className="mt-2 text-sm leading-6 text-slate-200">Look at the current station outcome card first. That tells you what FlowSoundz is doing with your music right now.</p>
+        </div>
+        <div className="rounded-[1.4rem] border border-white/8 bg-white/[0.03] px-4 py-4">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">2. Take the next action</p>
+          <p className="mt-2 text-sm leading-6 text-slate-200">Use the main button to submit, promote, or review the release that is closest to airplay.</p>
+        </div>
+        <div className="rounded-[1.4rem] border border-white/8 bg-white/[0.03] px-4 py-4">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">3. Keep momentum</p>
+          <p className="mt-2 text-sm leading-6 text-slate-200">Once one track is moving, start the next one. The creator side works best as a steady release rhythm.</p>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -132,15 +150,15 @@ export async function CreatorCommandCenter({ data: provided }: { data?: CreatorD
                   </>
                 ) : t.status === "in_review" && !t.reviewPaid ? (
                   <p className="mt-2 text-[11px] text-slate-400">
-                    In the review queue.{" "}
+                    We have the song and it is waiting in the review queue.{" "}
                     <Link href="/artist/confirmation" className="text-[#FF2DA6] hover:underline">
                       Get priority review →
                     </Link>
                   </p>
                 ) : t.status === "priority_review" ? (
-                  <p className="mt-2 text-[11px] text-[#FF2DA6]">Priority review — feedback within 48h.</p>
+                  <p className="mt-2 text-[11px] text-[#FF2DA6]">Priority review is active. Expect curator feedback within 48h.</p>
                 ) : t.status === "processing" ? (
-                  <p className="mt-2 text-[11px] text-cyan-200/80">Approved — mastering now, on air shortly.</p>
+                  <p className="mt-2 text-[11px] text-cyan-200/80">Approved and being prepared for station use now.</p>
                 ) : null}
               </li>
             );

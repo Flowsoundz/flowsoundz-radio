@@ -150,6 +150,15 @@ export function RadioOverview() {
               {headline} FlowSoundz works best when listeners tune in together, react in the same
               moment, and discover artists before the rest of the feed catches up.
             </p>
+            <div className="mt-5 rounded-[1.35rem] border border-cyan-300/14 bg-cyan-300/[0.06] px-4 py-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-cyan-200/80">
+                Start here
+              </p>
+              <p className="mt-2 text-sm leading-6 text-slate-100">
+                Hit <span className="font-semibold text-white">Start Station</span>, watch the
+                current block, then open artists or the schedule once you are in the mood of the room.
+              </p>
+            </div>
 
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
               {[
@@ -333,13 +342,13 @@ export function RadioOverview() {
 
             <div className="rounded-[1.8rem] border border-white/8 bg-white/[0.03] p-5">
               <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-fuchsia-200/75">
-                Live layer
+                What to do here
               </p>
               <div className="mt-4 grid gap-3">
                 {[
-                  "Use the AI DJ to ask what is playing and why it fits the current vibe.",
+                  "Ask the AI DJ what is playing if you want context without breaking the station mood.",
                   "Vote, tip, and react while the same track is on air for everyone else.",
-                  "Open artist profiles from the player without leaving the station mood.",
+                  "Open artist profiles from the player when a record catches you in the moment.",
                 ].map((item) => (
                   <div
                     key={item}
@@ -392,6 +401,9 @@ export function RadioOverview() {
         <div className="rounded-[1.8rem] border border-white/8 bg-white/[0.03] p-5 sm:p-6">
           <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-fuchsia-200/75">
             Show Calendar
+          </p>
+          <p className="mt-3 text-sm leading-6 text-slate-300">
+            Use the schedule when you want to come back for a specific vibe instead of leaving the station on shuffle logic.
           </p>
           <div className="mt-5 space-y-3">
             {schedule?.current ? (

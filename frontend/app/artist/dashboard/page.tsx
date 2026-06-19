@@ -93,6 +93,20 @@ export default async function ArtistDashboardPage() {
             <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-slate-300">
               {heroBody}
             </p>
+            <div className="mx-auto mt-5 grid max-w-4xl gap-3 sm:grid-cols-3">
+              <div className="rounded-[1.2rem] border border-white/8 bg-white/[0.03] px-4 py-4 text-left">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">Start here</p>
+                <p className="mt-2 text-sm leading-6 text-slate-200">Open the command center first. It shows the release that needs your attention most.</p>
+              </div>
+              <div className="rounded-[1.2rem] border border-white/8 bg-white/[0.03] px-4 py-4 text-left">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">Best next move</p>
+                <p className="mt-2 text-sm leading-6 text-slate-200">{dash?.nextAction?.description ?? "Create a release package, then move it toward review."}</p>
+              </div>
+              <div className="rounded-[1.2rem] border border-white/8 bg-white/[0.03] px-4 py-4 text-left">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">Fast path</p>
+                <p className="mt-2 text-sm leading-6 text-slate-200">If you just want one thing: create, build the AI kit, then submit for review.</p>
+              </div>
+            </div>
             <div className="mt-5 flex flex-wrap justify-center gap-2">
               <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-100">
                 {snapshot.stationMode === "live"
@@ -119,19 +133,19 @@ export default async function ArtistDashboardPage() {
               href="/artist/create"
               className="inline-flex min-h-11 items-center justify-center rounded-full bg-[linear-gradient(135deg,#00e5ff_0%,#7c4dff_100%)] px-6 py-2.5 text-sm font-bold text-white shadow-[0_0_22px_rgba(0,229,255,0.3)] transition hover:shadow-[0_0_36px_rgba(0,229,255,0.5)]"
             >
-              Create Release
+              Start a Release
             </Link>
             <Link
               href="/artist/kit"
               className="inline-flex min-h-11 items-center justify-center rounded-full border border-fuchsia-400/20 bg-fuchsia-400/[0.06] px-6 py-2.5 text-sm font-medium text-fuchsia-200 transition hover:border-fuchsia-400/35 hover:text-white"
             >
-              AI Release Kit
+              Build AI Kit
             </Link>
             <Link
               href="/artist/submit"
               className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/15 px-6 py-2.5 text-sm font-semibold text-white transition hover:border-white/25 hover:bg-white/5"
             >
-              Submit Track
+              Submit for Review
             </Link>
             <Link
               href="/artist/rights"

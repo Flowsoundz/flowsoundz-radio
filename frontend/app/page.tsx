@@ -36,6 +36,27 @@ const COMMUNITY_LINKS = [
   { label: "YouTube", href: "https://www.youtube.com/@flowsoundzradio" },
 ];
 
+const START_HERE_LINKS = [
+  {
+    eyebrow: "New here",
+    title: "Start the station",
+    body: "Open the live radio first if you want the full FlowSoundz feel.",
+    href: "/radio",
+  },
+  {
+    eyebrow: "Browse first",
+    title: "Explore songs",
+    body: "Jump into tracks and artist pages if you want to discover quickly.",
+    href: "/songs",
+  },
+  {
+    eyebrow: "Create",
+    title: "Artist tools",
+    body: "Use the guided creator flow and AI kit if you are releasing music.",
+    href: "/for-artists",
+  },
+] as const;
+
 
 export default async function HomePage() {
   const { siteName, heroSubtitle, ctaButtons, valueCards, trustStripText, footerTagline } =
@@ -105,6 +126,21 @@ export default async function HomePage() {
               English and Spanish in one rotation. Programmed by humans, before the algorithm catches on.
             </p>
             <HomepageCtaGroup ctaButtons={ctaButtons} />
+            <div className="mt-6 grid gap-3 sm:grid-cols-3">
+              {START_HERE_LINKS.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="rounded-[1.3rem] border border-white/[0.08] bg-white/[0.03] px-4 py-4 text-left transition hover:border-white/[0.14] hover:bg-white/[0.05]"
+                >
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-300/80">
+                    {item.eyebrow}
+                  </p>
+                  <p className="mt-2 text-base font-semibold text-white">{item.title}</p>
+                  <p className="mt-2 text-sm leading-6 text-slate-300">{item.body}</p>
+                </Link>
+              ))}
+            </div>
             <div className="mt-6 grid gap-3 sm:grid-cols-3">
               {[
                 { label: "Station feel", value: "Live, paced, and shared." },

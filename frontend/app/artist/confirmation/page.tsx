@@ -233,6 +233,20 @@ export default function ConfirmationPage() {
         <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-[#00e5ff]/20 bg-[#00e5ff]/8 px-4 py-1.5 text-xs font-semibold text-[#00e5ff]">
           ✦ AI promo assets generated below — edit freely
         </div>
+        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+          <div className="rounded-[1.2rem] border border-white/8 bg-white/[0.03] px-4 py-4">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">1. Track the review</p>
+            <p className="mt-2 text-sm leading-6 text-slate-200">Open My Submissions if you want the real status of this release.</p>
+          </div>
+          <div className="rounded-[1.2rem] border border-white/8 bg-white/[0.03] px-4 py-4">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">2. Save promo copy</p>
+            <p className="mt-2 text-sm leading-6 text-slate-200">Keep the AI assets that feel useful and ignore the rest. They are starting points, not final copy.</p>
+          </div>
+          <div className="rounded-[1.2rem] border border-white/8 bg-white/[0.03] px-4 py-4">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">3. Keep moving</p>
+            <p className="mt-2 text-sm leading-6 text-slate-200">While this track is in review, build the next visual or start the next release.</p>
+          </div>
+        </div>
 
         {/* Priority review upsell — buys guaranteed feedback, not airplay */}
         {submission?.submissionId ? (
@@ -343,6 +357,35 @@ export default function ConfirmationPage() {
         >
           {activeEditors.vibe ? "Done" : "Edit"}
         </button>
+      </div>
+
+      <div className="mb-8 rounded-[1.6rem] border border-white/8 bg-white/[0.03] px-6 py-5">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/45">
+          Best next moves
+        </p>
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          <Link
+            href="/artist/submissions"
+            className="rounded-[1.4rem] border border-cyan-300/16 bg-cyan-300/[0.05] p-4 transition hover:border-cyan-300/28 hover:bg-cyan-300/[0.08]"
+          >
+            <p className="text-sm font-semibold text-white">Check this submission</p>
+            <p className="mt-1 text-xs leading-5 text-slate-300">Use this first if you care most about the review outcome and station updates.</p>
+          </Link>
+          <Link
+            href="/artist/video"
+            className="rounded-[1.4rem] border border-fuchsia-400/16 bg-fuchsia-400/[0.05] p-4 transition hover:border-fuchsia-400/28 hover:bg-fuchsia-400/[0.08]"
+          >
+            <p className="text-sm font-semibold text-white">Make promo visuals</p>
+            <p className="mt-1 text-xs leading-5 text-slate-300">Use this if you want short-form content ready before the curator reply lands.</p>
+          </Link>
+          <Link
+            href="/artist/create"
+            className="rounded-[1.4rem] border border-white/10 bg-white/[0.03] p-4 transition hover:border-white/18 hover:bg-white/[0.05]"
+          >
+            <p className="text-sm font-semibold text-white">Start the next release</p>
+            <p className="mt-1 text-xs leading-5 text-slate-300">Use this if you are treating the creator side like an active release pipeline.</p>
+          </Link>
+        </div>
       </div>
 
       {/* ── Editable promo cards ── */}
@@ -517,7 +560,7 @@ export default function ConfirmationPage() {
           href="/artist/dashboard"
           className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/15 px-6 py-2.5 text-sm font-semibold text-white transition hover:border-white/25 hover:bg-white/5"
         >
-          ← Back to Dashboard
+          Back to Dashboard
         </Link>
         <Link
           href="/artist/submit"

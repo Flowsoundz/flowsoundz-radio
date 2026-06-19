@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { CreatorHubShell } from "@/components/creator-hub/CreatorHubShell";
 
 const SOCIAL_PLATFORMS = [
@@ -158,10 +159,36 @@ export default function ArtistProfilePage() {
   return (
     <CreatorHubShell eyebrow="Creator Hub" title="Your Profile">
       <form onSubmit={(e) => { void handleSave(e); }} className="space-y-8 max-w-2xl">
+        <section className="rounded-[1.8rem] border border-white/8 bg-[linear-gradient(135deg,#0c1328_0%,#07111f_55%,#050816_100%)] p-6 sm:p-7">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-200/80">Artist profile setup</p>
+          <h2 className="mt-3 text-xl font-semibold text-white sm:text-2xl">
+            Make your public artist page easier to trust and easier to support.
+          </h2>
+          <p className="mt-3 text-sm leading-7 text-slate-300">
+            This page controls how listeners see you across FlowSoundz. Start with your image, bio, and spotlight track. Then add socials and payout details once the basics feel right.
+          </p>
+          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-[1.2rem] border border-white/8 bg-white/[0.03] px-4 py-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">1. First impression</p>
+              <p className="mt-2 text-sm leading-6 text-slate-200">Upload an image and pick the one track you want new listeners to notice first.</p>
+            </div>
+            <div className="rounded-[1.2rem] border border-white/8 bg-white/[0.03] px-4 py-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">2. Tell your story</p>
+              <p className="mt-2 text-sm leading-6 text-slate-200">Write a short bio and a simple statement that explains your sound without overthinking it.</p>
+            </div>
+            <div className="rounded-[1.2rem] border border-white/8 bg-white/[0.03] px-4 py-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">3. Add support links</p>
+              <p className="mt-2 text-sm leading-6 text-slate-200">Give people a direct way to follow, support, and pay you once the song catches them.</p>
+            </div>
+          </div>
+        </section>
 
         {/* Profile image & spotlight */}
         <section className="rounded-[1.8rem] border border-white/8 bg-[#0B1020]/80 p-6 space-y-5">
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">Profile Image &amp; Spotlight</h2>
+          <p className="text-sm leading-6 text-slate-300">
+            This is the fastest win on the page. If you only do one thing today, set a clean image and choose one spotlight track.
+          </p>
           <div className="flex flex-wrap items-center gap-5">
             <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-[1.2rem] border border-white/10 bg-white/[0.03]">
               {heroImageUrl ? (
@@ -201,6 +228,9 @@ export default function ArtistProfilePage() {
         {/* Identity */}
         <section className="rounded-[1.8rem] border border-white/8 bg-[#0B1020]/80 p-6 space-y-5">
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">Identity</h2>
+          <p className="text-sm leading-6 text-slate-300">
+            Keep this simple and readable. Listeners should understand who you are in a few seconds.
+          </p>
           <Field label="Artist Name">
             <input value={name} onChange={(e) => setName(e.target.value)} className={INPUT} />
           </Field>
@@ -218,6 +248,9 @@ export default function ArtistProfilePage() {
         {/* Social links */}
         <section className="rounded-[1.8rem] border border-white/8 bg-[#0B1020]/80 p-6 space-y-4">
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">Social Links</h2>
+          <p className="text-sm leading-6 text-slate-300">
+            Add the platforms you actually want fans to visit. It is better to have three solid links than seven empty ones.
+          </p>
           {SOCIAL_PLATFORMS.map(({ key, label, placeholder }) => (
             <Field key={key} label={label}>
               <input
@@ -238,6 +271,9 @@ export default function ArtistProfilePage() {
               + Add link
             </button>
           </div>
+          <p className="text-sm leading-6 text-slate-300">
+            These are the direct support buttons listeners can use when they want to back your work right away.
+          </p>
           {supportLinks.length === 0 && (
             <p className="text-sm text-slate-500">No tip links yet. These show up when listeners tap &quot;Tip&quot; on your songs.</p>
           )}
@@ -291,7 +327,13 @@ export default function ArtistProfilePage() {
 
         {/* Save */}
         {error && <p className="text-sm text-red-400">{error}</p>}
-        <div className="flex items-center gap-4">
+        <div className="rounded-[1.4rem] border border-cyan-300/14 bg-cyan-300/[0.05] px-5 py-4">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-200/80">Before you save</p>
+          <p className="mt-2 text-sm leading-6 text-slate-200">
+            The minimum useful profile is: artist name, short bio, image, spotlight track, and at least one social link.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-4">
           <button
             type="submit"
             disabled={saving}
@@ -300,6 +342,12 @@ export default function ArtistProfilePage() {
             {saving ? "Saving…" : "Save Profile"}
           </button>
           {saved && <span className="text-sm text-emerald-400">Saved ✓</span>}
+          <Link
+            href="/artists"
+            className="inline-flex min-h-11 items-center justify-center rounded-full border border-white/15 px-6 py-2.5 text-sm font-semibold text-white transition hover:border-white/25 hover:bg-white/5"
+          >
+            Preview artist pages
+          </Link>
         </div>
       </form>
     </CreatorHubShell>
