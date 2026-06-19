@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { getSiteUrl } from "@/lib/siteUrl";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -52,6 +53,7 @@ export default async function PressKitPage({ params }: Props) {
   const totalPlays = artist.songs.reduce((s, t) => s + (t.queuePreferences?.playCount ?? 0), 0);
   const totalRequests = songIds.reduce((s, id) => s + (reqMap.get(id) ?? 0), 0);
   const totalShares = songIds.reduce((s, id) => s + (shareMap.get(id) ?? 0), 0);
+  const siteUrl = getSiteUrl();
 
   const VIBE_COLOR: Record<string, string> = {
     CHILL: "bg-cyan-400/10 text-cyan-200 border-cyan-400/20",
@@ -161,10 +163,10 @@ export default async function PressKitPage({ params }: Props) {
         <div className="border-t border-white/8 pt-8 text-center print:text-left">
           <p className="text-xs text-slate-500">
             Hosted on{" "}
-            <a href="https://flowsoundzradio.com" className="text-[#7c4dff] hover:text-[#a78bfa] transition">
+            <a href={siteUrl} className="text-[#7c4dff] hover:text-[#a78bfa] transition">
               FlowSoundz Radio
             </a>
-            {" "}· flowsoundzradio.com/artists/{slug}
+            {" "}· {siteUrl.replace(/^https?:\/\//, "")}/artists/{slug}
           </p>
         </div>
       </div>

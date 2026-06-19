@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import Stripe from "stripe";
+import { getSiteUrl } from "@/lib/siteUrl";
 
 export const runtime = "nodejs";
 
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
       mockBody = {};
     }
     const mockTier = str(mockBody.package_tier) || "basic";
-    const mockOrigin = str(mockBody.origin) || request.headers.get("origin") || "https://flowsoundzradio.com";
+    const mockOrigin = str(mockBody.origin) || request.headers.get("origin") || getSiteUrl();
     const mockArtist = str(mockBody.artist_name);
     const mockSong = str(mockBody.song_title);
 
@@ -82,7 +83,7 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "Invalid package tier." }, { status: 422 });
   }
 
-  const origin = str(body.origin) || request.headers.get("origin") || "https://flowsoundzradio.com";
+  const origin = str(body.origin) || request.headers.get("origin") || getSiteUrl();
   const pkg = PACKAGES[tier];
   const artistName = str(body.artist_name);
   const songTitle = str(body.song_title);

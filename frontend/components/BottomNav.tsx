@@ -39,6 +39,8 @@ const CREATOR_ICON = (
 );
 
 const MORE_LINKS = [
+  { href: "/artist/dashboard", label: "Creator Hub" },
+  { href: "/artist/kit", label: "AI Release Kit" },
   { href: "/profile", label: "My Profile" },
   { href: "/search", label: "Search" },
   { href: "/drops", label: "Drops" },
@@ -71,6 +73,8 @@ export default function BottomNav() {
 
   const moreIsActive = MORE_LINKS.some((l) => pathname.startsWith(l.href));
   const creatorActive = creatorMatchPrefixes.some((p) => pathname.startsWith(p));
+  const primaryMoreLinks = MORE_LINKS.slice(0, 6);
+  const secondaryMoreLinks = MORE_LINKS.slice(6);
 
   return (
     <>
@@ -95,38 +99,84 @@ export default function BottomNav() {
           <p className="mb-3 px-2 text-[10px] font-semibold uppercase tracking-[0.26em] text-white/35">
             More
           </p>
-          <div className="grid grid-cols-2 gap-2">
-            {MORE_LINKS.map((link) => (
+          <div className="space-y-4">
+            <div>
+              <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/25">
+                Creator
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {primaryMoreLinks.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => setDrawerOpen(false)}
+                    className={`flex min-h-12 items-center justify-center rounded-2xl border px-4 text-sm font-semibold transition ${
+                      pathname.startsWith(link.href)
+                        ? "border-[#00FF88]/25 bg-[#00FF88]/10 text-white"
+                        : "border-white/8 bg-white/[0.03] text-slate-300 hover:border-white/14 hover:text-white"
+                    }`}
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/25">
+                Listen
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {secondaryMoreLinks.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => setDrawerOpen(false)}
+                    className={`flex min-h-12 items-center justify-center rounded-2xl border px-4 text-sm font-semibold transition ${
+                      pathname.startsWith(link.href)
+                        ? "border-[#00FF88]/25 bg-[#00FF88]/10 text-white"
+                        : "border-white/8 bg-white/[0.03] text-slate-300 hover:border-white/14 hover:text-white"
+                    }`}
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
               <Link
-                key={link.href}
-                href={link.href}
+                href="/radio"
                 onClick={() => setDrawerOpen(false)}
-                className={`flex min-h-12 items-center justify-center rounded-2xl border px-4 text-sm font-semibold transition ${
-                  pathname.startsWith(link.href)
-                    ? "border-[#00FF88]/25 bg-[#00FF88]/10 text-white"
-                    : "border-white/8 bg-white/[0.03] text-slate-300 hover:border-white/14 hover:text-white"
-                }`}
+                className="flex min-h-12 items-center justify-center rounded-2xl border border-cyan-300/22 bg-cyan-300/[0.08] px-4 text-sm font-semibold text-cyan-100 transition hover:border-cyan-300/35 hover:text-white"
               >
-                {link.label}
+                Live Radio
               </Link>
-            ))}
-            {session?.user ? (
-              <button
-                type="button"
-                onClick={() => { setDrawerOpen(false); void signOut({ callbackUrl: "/" }); }}
-                className="flex min-h-12 items-center justify-center rounded-2xl border border-white/8 bg-white/[0.03] px-4 text-sm font-semibold text-slate-300 transition hover:border-white/14 hover:text-red-400"
-              >
-                Sign out
-              </button>
-            ) : (
               <Link
-                href="/signin"
+                href="/membership"
                 onClick={() => setDrawerOpen(false)}
-                className="flex min-h-12 items-center justify-center rounded-2xl border border-[#FF2DA6]/25 bg-[#FF2DA6]/[0.07] px-4 text-sm font-semibold text-[#FF2DA6] transition hover:bg-[#FF2DA6]/[0.13]"
+                className="flex min-h-12 items-center justify-center rounded-2xl border border-fuchsia-400/22 bg-fuchsia-400/[0.08] px-4 text-sm font-semibold text-fuchsia-100 transition hover:border-fuchsia-400/35 hover:text-white"
               >
-                Sign in
+                Membership
               </Link>
-            )}
+              {session?.user ? (
+                <button
+                  type="button"
+                  onClick={() => { setDrawerOpen(false); void signOut({ callbackUrl: "/" }); }}
+                  className="col-span-2 flex min-h-12 items-center justify-center rounded-2xl border border-white/8 bg-white/[0.03] px-4 text-sm font-semibold text-slate-300 transition hover:border-white/14 hover:text-red-400"
+                >
+                  Sign out
+                </button>
+              ) : (
+                <Link
+                  href="/signin"
+                  onClick={() => setDrawerOpen(false)}
+                  className="col-span-2 flex min-h-12 items-center justify-center rounded-2xl border border-[#FF2DA6]/25 bg-[#FF2DA6]/[0.07] px-4 text-sm font-semibold text-[#FF2DA6] transition hover:bg-[#FF2DA6]/[0.13]"
+                >
+                  Sign in
+                </Link>
+              )}
+            </div>
           </div>
         </div>
       </div>

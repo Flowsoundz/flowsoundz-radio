@@ -29,7 +29,8 @@ export type CreatorDashboard = {
   artistName: string;
   tracks: CreatorTrack[];
   totals: { plays: number; fires: number; favorites: number; liveTracks: number; bestRank: number | null };
-  nextAction: { label: string; href: string } | null;
+  nextAction: { label: string; href: string; description: string } | null;
+  spotlightTrack: CreatorTrack | null;
 };
 
 // Everything a signed-in artist's command center needs, resolved from their
@@ -110,14 +111,46 @@ export async function getCreatorDashboard(email: string): Promise<CreatorDashboa
     liveTracks: live.length,
     bestRank: live.length ? Math.round(Math.max(...live.map((t) => t.rotationScore))) : null,
   };
+  const spotlightTrack =
+    live
+      .slice()
+      .sort((a, b) => {
+        if (a.nextAiring && !b.nextAiring) return -1;
+        if (!a.nextAiring && b.nextAiring) return 1;
+        return b.rotationScore - a.rotationScore;
+      })[0] ??
+    tracks.find((t) => t.status === "priority_review") ??
+    tracks.find((t) => t.status === "in_review") ??
+    null;
 
   // Single best next action.
   let nextAction: CreatorDashboard["nextAction"] = null;
   const unpaidInReview = tracks.find((t) => t.status === "in_review" && !t.reviewPaid);
-  if (tracks.length === 0) nextAction = { label: "Submit your first track", href: "/artist/submit" };
-  else if (unpaidInReview) nextAction = { label: "Get priority review on your track", href: "/artist/confirmation" };
-  else if (live.length === 0) nextAction = { label: "Submit another track", href: "/artist/submit" };
-  else nextAction = { label: "Share your next air time with fans", href: "/artist/dashboard" };
+  if (tracks.length === 0) {
+    nextAction = {
+      label: "Submit your first track",
+      href: "/artist/submit",
+      description: "Start the review lane and generate your first station-ready promo package.",
+    };
+  } else if (unpaidInReview) {
+    nextAction = {
+      label: "Get priority review on your track",
+      href: "/artist/submissions",
+      description: "Move the strongest in-review submission to the front of the feedback queue.",
+    };
+  } else if (live.length === 0) {
+    nextAction = {
+      label: "Submit another track",
+      href: "/artist/submit",
+      description: "Keep the pipeline moving while the current releases work through review.",
+    };
+  } else {
+    nextAction = {
+      label: "Share your next air time with fans",
+      href: "/artist/submissions",
+      description: "Use the live station outcome data to promote the next broadcast window.",
+    };
+  }
 
-  return { artistName: submissions[0].artistName, tracks, totals, nextAction };
+  return { artistName: submissions[0].artistName, tracks, totals, nextAction, spotlightTrack };
 }

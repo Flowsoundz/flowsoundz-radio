@@ -3,9 +3,12 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { CoverArt } from "@/components/CoverArt";
+import { useGlobalAudioRefs, useGlobalAudioState } from "@/components/GlobalAudioProvider";
 import { getCoverUrl } from "@/lib/api";
+import { canUserTierAccessTrack } from "@/lib/access";
 import type { ArtistProfile } from "@/lib/artists";
 import { formatDuration, formatVibeLabel } from "@/lib/format";
+import { useUserTier } from "@/lib/useUserTier";
 
 type Props = {
   artist: ArtistProfile;
@@ -49,9 +52,13 @@ function WaveformBar({ index }: { index: number }) {
   );
 }
 
-export function ArtistDiscoveryProfile({ artist }: Props) {
+export function ArtistDiscoveryProfile({ artist, isFallbackCatalog }: Props) {
   const [selectedMood, setSelectedMood] = useState<string>("all");
+  const { tier: currentUserTier } = useUserTier();
+  const { requestOnDemandRef } = useGlobalAudioRefs();
+  const { currentTrack, isPlaying } = useGlobalAudioState();
   const socialLinks = useMemo(() => buildSocialLinks(artist), [artist]);
+  const canOnDemand = currentUserTier === "insider" || currentUserTier === "vault";
 
   const filteredEntries = useMemo(() => {
     if (selectedMood === "all") {
@@ -64,6 +71,21 @@ export function ArtistDiscoveryProfile({ artist }: Props) {
   const featuredStory =
     artist.featuredSong?.behind_the_mix_text ??
     "A spotlight record from the current FlowSoundz discovery rotation.";
+  const featuredSong = artist.featuredSong;
+  const canPlayFeaturedOnDemand = featuredSong
+    ? canOnDemand && canUserTierAccessTrack(featuredSong, currentUserTier)
+    : false;
+  const isFeaturedPlaying = featuredSong ? currentTrack?.id === featuredSong.id : false;
+  const stationHeadline = isFallbackCatalog
+    ? "Curated archive context"
+    : artist.rotationEntries.length > 0
+      ? "Active station context"
+      : "Discovery profile";
+  const stationCopy = isFallbackCatalog
+    ? "The main station is leaning on the curated archive right now, but this artist stays playable and visible while live rotation syncs back in."
+    : featuredSong
+      ? `${featuredSong.title} is the strongest current station entry for this artist. Use the player or radio page to hear how it lands inside the mix.`
+      : "This profile is wired into the current discovery lane and updates as the station catalog changes.";
 
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1.32fr)_340px]">
@@ -184,22 +206,41 @@ export function ArtistDiscoveryProfile({ artist }: Props) {
         </section>
 
         <section className="glass-card rounded-[1.85rem] p-5">
+          <div className="mb-4 rounded-[1.3rem] border border-cyan-300/14 bg-cyan-300/[0.05] px-4 py-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-200/75">
+              {stationHeadline}
+            </p>
+            <p className="mt-2 text-sm leading-6 text-slate-300">{stationCopy}</p>
+          </div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-200/75">
             Featured Track
           </p>
           <div className="mt-3 flex flex-wrap items-center justify-between gap-4">
             <h3 className="text-2xl font-semibold text-white">
-              {artist.featuredSong?.title ?? "Current spotlight"}
+              {featuredSong?.title ?? "Current spotlight"}
             </h3>
-            <Link
-              href={artist.featuredSong ? `/radio?song=${artist.featuredSong.id}` : "/radio"}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#00e5ff_0%,#7c4dff_100%)] px-6 py-2.5 text-sm font-semibold text-white shadow-[0_0_22px_rgba(0,229,255,0.22)] transition hover:shadow-[0_0_34px_rgba(0,229,255,0.38)]"
-            >
-              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor">
-                <polygon points="5,3 19,12 5,21" />
-              </svg>
-              Play on Radio
-            </Link>
+            {canPlayFeaturedOnDemand && featuredSong ? (
+              <button
+                type="button"
+                onClick={() => requestOnDemandRef.current?.(featuredSong)}
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#00e5ff_0%,#7c4dff_100%)] px-6 py-2.5 text-sm font-semibold text-white shadow-[0_0_22px_rgba(0,229,255,0.22)] transition hover:shadow-[0_0_34px_rgba(0,229,255,0.38)]"
+              >
+                <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor">
+                  <polygon points="5,3 19,12 5,21" />
+                </svg>
+                {isFeaturedPlaying ? (isPlaying ? "Playing now" : "Resume now") : "Play now"}
+              </button>
+            ) : (
+              <Link
+                href={featuredSong ? `/radio?song=${featuredSong.id}` : "/radio"}
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#00e5ff_0%,#7c4dff_100%)] px-6 py-2.5 text-sm font-semibold text-white shadow-[0_0_22px_rgba(0,229,255,0.22)] transition hover:shadow-[0_0_34px_rgba(0,229,255,0.38)]"
+              >
+                <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor">
+                  <polygon points="5,3 19,12 5,21" />
+                </svg>
+                Play on Radio
+              </Link>
+            )}
           </div>
 
           <div className="mt-4 flex items-center gap-1 overflow-hidden rounded-[1rem] border border-white/8 bg-black/20 px-4 py-3">
@@ -233,33 +274,48 @@ export function ArtistDiscoveryProfile({ artist }: Props) {
           </div>
 
           <div className="mt-5 space-y-3">
-            {filteredEntries.map(({ song }) => (
-              <article
-                key={song.id}
-                className="flex items-center gap-4 rounded-[1.45rem] border border-white/8 bg-white/[0.03] p-4"
-              >
-                <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-[0.9rem] bg-gradient-to-br from-cyan-400/20 to-fuchsia-500/20">
-                  <CoverArt
-                    src={getCoverUrl(song)}
-                    alt={`${song.title} cover`}
-                    sizes="56px"
-                    className="object-cover"
-                  />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h4 className="truncate text-sm font-semibold text-white">{song.title}</h4>
-                  <p className="mt-0.5 text-xs text-slate-400">
-                    {song.genre ?? "Independent"} · {formatDuration(song.duration_sec ?? 0)}
-                  </p>
-                </div>
-                <Link
-                  href={`/radio?song=${song.id}`}
-                  className="shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-white transition hover:border-cyan-300/30 hover:bg-cyan-300/[0.08]"
+            {filteredEntries.map(({ song }) => {
+              const canPlayNow = canOnDemand && canUserTierAccessTrack(song, currentUserTier);
+              const isCurrentTrack = currentTrack?.id === song.id;
+
+              return (
+                <article
+                  key={song.id}
+                  className={`flex items-center gap-4 rounded-[1.45rem] border border-white/8 bg-white/[0.03] p-4 ${isCurrentTrack ? "ring-1 ring-cyan-300/30" : ""}`}
                 >
-                  Play
-                </Link>
-              </article>
-            ))}
+                  <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-[0.9rem] bg-gradient-to-br from-cyan-400/20 to-fuchsia-500/20">
+                    <CoverArt
+                      src={getCoverUrl(song)}
+                      alt={`${song.title} cover`}
+                      sizes="56px"
+                      className="object-cover"
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h4 className="truncate text-sm font-semibold text-white">{song.title}</h4>
+                    <p className="mt-0.5 text-xs text-slate-400">
+                      {song.genre ?? "Independent"} · {formatDuration(song.duration_sec ?? 0)}
+                    </p>
+                  </div>
+                  {canPlayNow ? (
+                    <button
+                      type="button"
+                      onClick={() => requestOnDemandRef.current?.(song)}
+                      className="shrink-0 rounded-full border border-cyan-300/20 bg-cyan-300/[0.08] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-white transition hover:border-cyan-300/30 hover:bg-cyan-300/[0.14]"
+                    >
+                      {isCurrentTrack ? (isPlaying ? "Playing" : "Resume") : "Play now"}
+                    </button>
+                  ) : (
+                    <Link
+                      href={`/radio?song=${song.id}`}
+                      className="shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-white transition hover:border-cyan-300/30 hover:bg-cyan-300/[0.08]"
+                    >
+                      Play
+                    </Link>
+                  )}
+                </article>
+              );
+            })}
           </div>
         </section>
       </div>

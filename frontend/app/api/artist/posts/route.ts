@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { getSiteUrl } from "@/lib/siteUrl";
 import { getWebPush } from "@/lib/webpush";
 
 export const runtime = "nodejs";
@@ -64,7 +65,7 @@ export async function POST(req: NextRequest) {
   });
 
   // Send push notifications to followers who have subscriptions
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://flowsoundzradio.com";
+  const siteUrl = getSiteUrl();
   const notifPayload = JSON.stringify({
     title: `${artist.name} posted`,
     body: body.length > 100 ? body.slice(0, 97) + "…" : body,

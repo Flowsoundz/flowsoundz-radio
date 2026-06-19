@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { mergeCreatorDraft, readCreatorDraft } from "@/lib/creatorHub/draft";
 
 const STORAGE_KEY = "fsz-release-kit";
 import { CreatorHubShell } from "@/components/creator-hub/CreatorHubShell";
@@ -95,7 +96,28 @@ export default function ReleaseKitPage() {
     } catch {
       /* ignore corrupt cache */
     }
+
+    const draft = readCreatorDraft();
+    setArtistName((prev) => prev || draft.artistName || "");
+    setSongTitle((prev) => prev || draft.songTitle || "");
+    setGenre((prev) => prev || draft.genre || "");
+    setVibe((prev) => prev || draft.vibe || "Chill");
+    setArtistType((prev) => prev || draft.artistType || "Independent");
+    setDescription((prev) => prev || draft.description || "");
+    setCoreThemes((prev) => prev || draft.coreThemes || "");
   }, []);
+
+  useEffect(() => {
+    mergeCreatorDraft({
+      artistName,
+      songTitle,
+      genre,
+      vibe,
+      artistType,
+      description,
+      coreThemes,
+    });
+  }, [artistName, songTitle, genre, vibe, artistType, description, coreThemes]);
 
   async function saveBioToProfile(bio: string) {
     setSavingBio(true);
@@ -160,7 +182,7 @@ export default function ReleaseKitPage() {
   }
 
   return (
-    <CreatorHubShell eyebrow="Creator Hub" title="AI Release Kit">
+    <CreatorHubShell eyebrow="Creator Hub" title="AI Release Kit" flowStep="kit">
       <p className="mb-8 text-sm text-slate-400 max-w-xl">
         Fill in your track details and generate your full release package — promo copy, radio intro, social captions, hook ideas, and a video prompt — in one shot.
       </p>

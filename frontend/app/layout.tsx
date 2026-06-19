@@ -10,6 +10,7 @@ import { InstallPrompt } from "@/components/InstallPrompt";
 import RadioPlayer from "@/components/RadioPlayer";
 import { SessionProvider } from "next-auth/react";
 import { auth } from "@/auth";
+import { getSiteUrl } from "@/lib/siteUrl";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -30,9 +31,7 @@ const bebasNeue = Bebas_Neue({
   display: "swap",
 });
 
-const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ||
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://127.0.0.1:3001");
+const siteUrl = getSiteUrl();
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),

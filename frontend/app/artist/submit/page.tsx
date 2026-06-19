@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CreatorHubShell } from "@/components/creator-hub/CreatorHubShell";
+import { ReleaseChecklist } from "@/components/creator-hub/ReleaseChecklist";
 import { track } from "@/lib/analytics";
 import { generateArtistPromoAssets } from "@/lib/creatorHub/generators";
 import type { ArtistPromoOutput } from "@/lib/creatorHub/generators";
+import { mergeCreatorDraft, readCreatorDraft } from "@/lib/creatorHub/draft";
 
 type SubmitResponse = ArtistPromoOutput & {
   submission_id?: string;
@@ -57,6 +60,47 @@ const ARTIST_TYPES = [
   "AI-Assisted Artist",
   "Virtual Artist",
   "Producer / Sound Designer",
+] as const;
+
+const DISTRIBUTORS = [
+  { name: "DistroKid", href: "https://distrokid.com", tag: "Fast uploads" },
+  { name: "TuneCore", href: "https://www.tunecore.com", tag: "Publishing tools" },
+  { name: "CD Baby", href: "https://cdbaby.com", tag: "One-time releases" },
+  { name: "UnitedMasters", href: "https://unitedmasters.com", tag: "Brand sync" },
+] as const;
+
+const PRE_DISTRO_CHECKLIST = [
+  "Final WAV or high-quality master ready for programming",
+  "Cover art sized and export-ready",
+  "Exact artist name, song title, and featured artist credits confirmed",
+  "Explicit or clean version chosen",
+  "Songwriter, producer, and collaborator credits documented",
+  "Release date and smart-link plan ready if the track is going wide",
+] as const;
+
+const RIGHTS_SECTIONS = [
+  {
+    title: "Publishing royalties",
+    body: "PROs like ASCAP, BMI, and SESAC collect songwriter and composition royalties when your music is publicly performed.",
+    links: [
+      { label: "ASCAP", href: "https://www.ascap.com" },
+      { label: "BMI", href: "https://www.bmi.com" },
+      { label: "SESAC", href: "https://www.sesac.com" },
+    ],
+  },
+  {
+    title: "Sound recording royalties",
+    body: "SoundExchange handles digital performance royalties for the master side when your music is played on non-interactive digital radio.",
+    links: [{ label: "SoundExchange", href: "https://www.soundexchange.com" }],
+  },
+  {
+    title: "Mechanical royalties",
+    body: "The MLC and publishing administrators help collect mechanical royalties from streams and reproductions of your composition.",
+    links: [
+      { label: "The MLC", href: "https://themlc.com" },
+      { label: "Songtrust", href: "https://songtrust.com" },
+    ],
+  },
 ] as const;
 
 const REQUIRED_CHECKS = [
@@ -149,7 +193,51 @@ export default function SubmitPage() {
         setPrefilledFromStep1(true);
       }
     } catch {}
+
+    const draft = readCreatorDraft();
+    setForm((prev) => ({
+      ...prev,
+      artistName: prev.artistName || draft.artistName || "",
+      contactName: prev.contactName || draft.contactName || "",
+      email: prev.email || draft.email || "",
+      songTitle: prev.songTitle || draft.songTitle || "",
+      genre: prev.genre || draft.genre || "",
+      vibe: (prev.vibe || draft.vibe || "Chill") as FormState["vibe"],
+      artistType: prev.artistType || draft.artistType || "Independent Artist",
+      description: prev.description || draft.description || draft.songIdea || "",
+      songLink: prev.songLink || draft.songLink || "",
+      versionType: (prev.versionType || draft.versionType || "Clean") as FormState["versionType"],
+      producerCredit: prev.producerCredit || draft.producerCredit || "",
+      streamingLink: prev.streamingLink || draft.streamingLink || "",
+      coverArtLink: prev.coverArtLink || draft.coverArtLink || "",
+      socialLink: prev.socialLink || draft.socialLink || "",
+      aiTool: prev.aiTool || draft.aiTool || "",
+      notes: prev.notes || draft.notes || "",
+      aiUsed: prev.aiUsed || ((draft.aiUsed as FormState["aiUsed"]) ?? ""),
+    }));
   }, []);
+
+  useEffect(() => {
+    mergeCreatorDraft({
+      artistName: form.artistName,
+      contactName: form.contactName,
+      email: form.email,
+      songTitle: form.songTitle,
+      genre: form.genre,
+      vibe: form.vibe,
+      artistType: form.artistType,
+      description: form.description,
+      songLink: form.songLink,
+      versionType: form.versionType,
+      producerCredit: form.producerCredit,
+      streamingLink: form.streamingLink,
+      coverArtLink: form.coverArtLink,
+      socialLink: form.socialLink,
+      aiUsed: form.aiUsed,
+      aiTool: form.aiTool,
+      notes: form.notes,
+    });
+  }, [form]);
 
   const allChecked = REQUIRED_CHECKS.every((c) => checks[c.id]);
   const canSubmit =
@@ -301,7 +389,7 @@ export default function SubmitPage() {
   }
 
   return (
-    <CreatorHubShell eyebrow="Creator Hub" title="Submit to FlowSoundz Radio">
+    <CreatorHubShell eyebrow="Creator Hub" title="Submit to FlowSoundz Radio" flowStep="submit">
 
       {/* ── Wizard progress ── */}
       <div className="mb-6 glass-card rounded-[1.4rem] px-5 py-4">
@@ -554,6 +642,54 @@ export default function SubmitPage() {
 
           {step === 2 && (
           <>
+          <div className="rounded-[1.3rem] border border-cyan-300/16 bg-cyan-300/[0.05] p-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-200/80">
+              Distribution prep
+            </p>
+            <p className="mt-2 text-sm leading-6 text-slate-300">
+              This step now includes the distribution basics so you do not have to leave the flow. If the track is also heading to stores, make sure the release package is complete before you submit it here for radio review.
+            </p>
+            <div className="mt-4 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+              <div className="rounded-[1.1rem] border border-white/8 bg-white/[0.03] p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/55">Release prep checklist</p>
+                <ul className="mt-3 space-y-2.5">
+                  {PRE_DISTRO_CHECKLIST.map((item) => (
+                    <li key={item} className="flex items-start gap-2 text-sm text-slate-300">
+                      <span className="mt-0.5 text-cyan-300">✓</span>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="rounded-[1.1rem] border border-white/8 bg-white/[0.03] p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/55">Popular distributors</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {DISTRIBUTORS.map((distributor) => (
+                    <a
+                      key={distributor.name}
+                      href={distributor.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-semibold text-white/75 transition hover:border-white/18 hover:text-white"
+                    >
+                      {distributor.name}
+                      <span className="text-white/35">{distributor.tag}</span>
+                    </a>
+                  ))}
+                </div>
+                <div className="mt-4">
+                  <ReleaseChecklist group="distribution" />
+                </div>
+                <Link
+                  href="/artist/distribution"
+                  className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-cyan-200/85 transition hover:text-white"
+                >
+                  Open the full distribution guide →
+                </Link>
+              </div>
+            </div>
+          </div>
+
           {/* Song + Platform Links */}
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="grid gap-2">
@@ -672,35 +808,79 @@ export default function SubmitPage() {
 
       {/* ── Required Checkboxes (step 3) ── */}
       {step === 3 && (
-      <div className="mb-8 glass-card rounded-[1.8rem] p-6 sm:p-8">
-        <h2 className="text-base font-semibold text-white">
-          Required Confirmations
-        </h2>
-        <p className="mt-1 text-xs text-slate-400">
-          Please review these carefully. They make the submission process clear without promising placement.
-        </p>
-        <ul className="mt-4 space-y-4">
-          {REQUIRED_CHECKS.map((item) => (
-            <li key={item.id}>
-              <label className="flex cursor-pointer items-start gap-3">
-                <input
-                  type="checkbox"
-                  checked={checks[item.id]}
-                  onChange={(e) =>
-                    setChecks((prev) => ({
-                      ...prev,
-                      [item.id]: e.target.checked,
-                    }))
-                  }
-                  className="mt-0.5 h-4.5 w-4.5 shrink-0 cursor-pointer accent-[#00e5ff]"
-                />
-                <span className="text-sm leading-6 text-slate-300">
-                  {item.label}
-                </span>
-              </label>
-            </li>
+      <div className="mb-8 space-y-6">
+        <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+          <div className="space-y-4">
+            <ReleaseChecklist group="rights" />
+            <div className="rounded-[1.4rem] border border-[#7c4dff]/18 bg-[#7c4dff]/[0.06] p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-violet-200/85">
+                Rights note
+              </p>
+              <p className="mt-2 text-sm leading-6 text-slate-300">
+                FlowSoundz can help structure your release, but this is still your rights package. If collaborators, samples, stems, AI voice models, or publishing splits are unclear, fix that before the track goes anywhere.
+              </p>
+              <Link
+                href="/artist/rights"
+                className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-violet-200 transition hover:text-white"
+              >
+                Open the full rights guide →
+              </Link>
+            </div>
+          </div>
+
+          <div className="glass-card rounded-[1.8rem] p-6 sm:p-8">
+            <h2 className="text-base font-semibold text-white">
+              Required Confirmations
+            </h2>
+            <p className="mt-1 text-xs text-slate-400">
+              Please review these carefully. They make the submission process clear without promising placement.
+            </p>
+            <ul className="mt-4 space-y-4">
+              {REQUIRED_CHECKS.map((item) => (
+                <li key={item.id}>
+                  <label className="flex cursor-pointer items-start gap-3">
+                    <input
+                      type="checkbox"
+                      checked={checks[item.id]}
+                      onChange={(e) =>
+                        setChecks((prev) => ({
+                          ...prev,
+                          [item.id]: e.target.checked,
+                        }))
+                      }
+                      className="mt-0.5 h-4.5 w-4.5 shrink-0 cursor-pointer accent-[#00e5ff]"
+                    />
+                    <span className="text-sm leading-6 text-slate-300">
+                      {item.label}
+                    </span>
+                  </label>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-3">
+          {RIGHTS_SECTIONS.map((section) => (
+            <div key={section.title} className="rounded-[1.4rem] border border-white/8 bg-white/[0.03] p-4">
+              <p className="text-sm font-semibold text-white">{section.title}</p>
+              <p className="mt-2 text-xs leading-5 text-slate-400">{section.body}</p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {section.links.map((link) => (
+                  <a
+                    key={link.label}
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-semibold text-white/70 transition hover:border-white/20 hover:text-white"
+                  >
+                    {link.label} ↗
+                  </a>
+                ))}
+              </div>
+            </div>
           ))}
-        </ul>
+        </div>
       </div>
       )}
 

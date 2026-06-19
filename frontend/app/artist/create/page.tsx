@@ -8,6 +8,7 @@ import {
   type LyricIdeasInput,
   type LyricIdeasOutput,
 } from "@/lib/creatorHub/generators";
+import { mergeCreatorDraft, readCreatorDraft } from "@/lib/creatorHub/draft";
 
 async function fetchLyricIdeas(input: ExtendedLyricForm): Promise<LyricIdeasOutput> {
   const res = await fetch("/api/artist/generate-lyrics", {
@@ -58,12 +59,36 @@ export default function CreatePage() {
   const [loadingStage, setLoadingStage] = useState(0);
 
   useEffect(() => {
+    const draft = readCreatorDraft();
+    setForm((prev) => ({
+      ...prev,
+      artistName: draft.artistName || prev.artistName,
+      songIdea: draft.songIdea || draft.description || prev.songIdea,
+      genre: draft.genre || prev.genre,
+      mood: draft.mood || draft.vibe || prev.mood,
+      coreThemes: draft.coreThemes || prev.coreThemes,
+    }));
+  }, []);
+
+  useEffect(() => {
     if (!isLoading) return;
     const timer = window.setInterval(() => {
       setLoadingStage((s) => (s + 1) % LOADING_STAGES.length);
     }, 1400);
     return () => window.clearInterval(timer);
   }, [isLoading]);
+
+  useEffect(() => {
+    mergeCreatorDraft({
+      artistName: form.artistName,
+      genre: form.genre,
+      vibe: form.mood,
+      description: form.songIdea,
+      songIdea: form.songIdea,
+      mood: form.mood,
+      coreThemes: form.coreThemes,
+    });
+  }, [form]);
 
   function update<K extends keyof ExtendedLyricForm>(
     key: K,
@@ -79,6 +104,16 @@ export default function CreatePage() {
     try {
       const result = await fetchLyricIdeas(form);
       setOutput(result);
+      mergeCreatorDraft({
+        artistName: form.artistName,
+        genre: form.genre,
+        vibe: form.mood,
+        description: form.songIdea,
+        songIdea: form.songIdea,
+        mood: form.mood,
+        coreThemes: form.coreThemes,
+        songTitle: result.titleIdeas[0] || "",
+      });
       try {
         sessionStorage.setItem(
           "fsz-hub-concept",
@@ -95,6 +130,16 @@ export default function CreatePage() {
     } catch {
       const fallback = generateLyricIdeas(form);
       setOutput(fallback);
+      mergeCreatorDraft({
+        artistName: form.artistName,
+        genre: form.genre,
+        vibe: form.mood,
+        description: form.songIdea,
+        songIdea: form.songIdea,
+        mood: form.mood,
+        coreThemes: form.coreThemes,
+        songTitle: fallback.titleIdeas[0] || "",
+      });
       try {
         sessionStorage.setItem(
           "fsz-hub-concept",
@@ -117,7 +162,7 @@ export default function CreatePage() {
   }
 
   return (
-    <CreatorHubShell eyebrow="Creator Hub" title="Create Music">
+    <CreatorHubShell eyebrow="Creator Hub" title="Create Music" flowStep="create">
       {/* ── Intro ── */}
       <div className="mb-10 glass-card rounded-[1.8rem] p-6 sm:p-8">
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200/75">

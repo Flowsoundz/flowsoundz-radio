@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CreatorHubShell } from "@/components/creator-hub/CreatorHubShell";
 import { ToolCard } from "@/components/creator-hub/ToolCard";
 import {
@@ -9,6 +9,7 @@ import {
   type VideoPromptOutput,
 } from "@/lib/creatorHub/generators";
 import Link from "next/link";
+import { mergeCreatorDraft, readCreatorDraft } from "@/lib/creatorHub/draft";
 
 async function fetchVideoPrompt(input: ExtendedVideoForm): Promise<VideoPromptOutput> {
   const res = await fetch("/api/artist/generate-video-prompt", {
@@ -145,6 +146,30 @@ export default function VideoPage() {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
+  useEffect(() => {
+    const draft = readCreatorDraft();
+    setForm((prev) => ({
+      ...prev,
+      artistName: draft.artistName || prev.artistName,
+      songTitle: draft.songTitle || prev.songTitle,
+      genre: draft.genre || prev.genre,
+      vibe: draft.vibe || prev.vibe,
+      coreThemes: draft.coreThemes || prev.coreThemes,
+      lyricSnippet: draft.lyricSnippet || prev.lyricSnippet,
+    }));
+  }, []);
+
+  useEffect(() => {
+    mergeCreatorDraft({
+      artistName: form.artistName,
+      songTitle: form.songTitle,
+      genre: form.genre,
+      vibe: form.vibe,
+      coreThemes: form.coreThemes,
+      lyricSnippet: form.lyricSnippet,
+    });
+  }, [form]);
+
   async function handleGenerate() {
     if (!form.artistName.trim() || !form.songTitle.trim()) return;
     setIsLoading(true);
@@ -162,7 +187,7 @@ export default function VideoPage() {
   }
 
   return (
-    <CreatorHubShell eyebrow="Creator Hub" title="Visuals & Promo Video">
+    <CreatorHubShell eyebrow="Creator Hub" title="Visuals & Promo Video" flowStep="video">
       {/* ── Intro ── */}
       <div className="mb-10 glass-card rounded-[1.8rem] p-6 sm:p-8">
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200/75">

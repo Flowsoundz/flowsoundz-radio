@@ -83,7 +83,7 @@ export default async function HomePage() {
       </header>
 
       {/* ── Hero ── */}
-      <section className="mx-auto max-w-7xl px-4 pb-4 pt-10 sm:px-6 lg:pb-6 lg:pt-14">
+      <section className="mx-auto max-w-7xl px-4 pb-6 pt-10 sm:px-6 lg:pb-8 lg:pt-14">
         <div className="grid items-center gap-8 lg:grid-cols-2 lg:gap-16">
           {/* Left — copy */}
           <div>
@@ -105,36 +105,65 @@ export default async function HomePage() {
               English and Spanish in one rotation. Programmed by humans, before the algorithm catches on.
             </p>
             <HomepageCtaGroup ctaButtons={ctaButtons} />
+            <div className="mt-6 grid gap-3 sm:grid-cols-3">
+              {[
+                { label: "Station feel", value: "Live, paced, and shared." },
+                { label: "Discovery lane", value: "Artists before the feed catches up." },
+                { label: "Creator upside", value: "Submission to on-air moment." },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  className="rounded-[1.2rem] border border-white/[0.08] bg-white/[0.03] px-4 py-4 backdrop-blur-sm"
+                >
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/35">
+                    {item.label}
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-slate-200">{item.value}</p>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Right — logo + EQ bars stacked */}
-          <div className="flex flex-col items-center gap-5 sm:gap-6">
-            {/* Logo */}
-            <Image
-              src="/FSRLogo.svg"
-              alt="FlowSoundz Radio"
-              width={540}
-              height={540}
-              sizes="(max-width: 1024px) 100vw, 540px"
-              className="h-auto w-full max-w-[540px]"
-              style={{
-                mixBlendMode: "screen",
-                filter: "drop-shadow(0 0 28px rgba(0,230,255,0.4))",
-              }}
-            />
-            {/* EQ bars */}
-            <div className="relative flex h-[180px] w-full items-end justify-center gap-[3px] overflow-hidden rounded-2xl border border-white/[0.07] bg-white/[0.015] px-4 py-5 sm:px-6 sm:py-6 lg:h-[246px]">
-              {EQ_BARS.map(([h, dur, delay], i) => (
-                <div
-                  key={i}
-                  className="eq-bar flex-1 rounded-sm"
-                  style={{
-                    height: `${h}%`,
-                    animationDuration: `${dur}s`,
-                    animationDelay: `${delay}s`,
-                  }}
-                />
-              ))}
+          <div className="rounded-[2rem] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.015))] p-4 shadow-[0_24px_90px_rgba(0,0,0,0.32)] backdrop-blur-sm sm:p-5">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-[1.2rem] border border-white/[0.08] bg-black/25 px-4 py-3">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-cyan-300/80">Station pulse</p>
+                <p className="mt-1 text-sm font-semibold text-white">Programmed like a real late-night station.</p>
+              </div>
+              <div className="flex items-center gap-2 rounded-full border border-[#ff2da6]/20 bg-[#ff2da6]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-[#ff9bd4]">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#ff2da6]" />
+                On air
+              </div>
+            </div>
+
+            <div className="flex flex-col items-center gap-5 sm:gap-6">
+              <Image
+                src="/FSRLogo.svg"
+                alt="FlowSoundz Radio"
+                width={540}
+                height={540}
+                sizes="(max-width: 1024px) 100vw, 540px"
+                className="h-auto w-full max-w-[540px]"
+                style={{
+                  mixBlendMode: "screen",
+                  filter: "drop-shadow(0 0 28px rgba(0,230,255,0.4))",
+                }}
+              />
+              <div className="relative flex h-[180px] w-full items-end justify-center gap-[3px] overflow-hidden rounded-2xl border border-white/[0.07] bg-white/[0.015] px-4 py-5 sm:px-6 sm:py-6 lg:h-[246px]">
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-[linear-gradient(180deg,rgba(0,229,255,0.08),transparent)]" />
+                {EQ_BARS.map(([h, dur, delay], i) => (
+                  <div
+                    key={i}
+                    className="eq-bar flex-1 rounded-sm"
+                    style={{
+                      height: `${h}%`,
+                      animationDuration: `${dur}s`,
+                      animationDelay: `${delay}s`,
+                    }}
+                  />
+                ))}
+              </div>
             </div>
           </div>
         </div>

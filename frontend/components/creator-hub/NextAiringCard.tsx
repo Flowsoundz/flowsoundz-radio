@@ -5,6 +5,7 @@ import { getStaticCatalog } from "@/lib/staticCatalog";
 import { normalizeStationSong } from "@/lib/stationPlayback";
 import { getUpcomingAirings, formatAiring } from "@/lib/airTime";
 import { ShareAiringButtons } from "@/components/creator-hub/ShareAiringButtons";
+import { getSiteUrl } from "@/lib/siteUrl";
 
 // "Your track airs at 9:42 PM tonight" — the deterministic station clock lets
 // us promise artists exact air times. Renders nothing when the signed-in user
@@ -39,7 +40,7 @@ export async function NextAiringCard() {
     .slice(0, 3);
   if (upcoming.length === 0) return null;
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.flowsoundzradio.com";
+  const siteUrl = getSiteUrl();
   const next = upcoming[0];
 
   return (

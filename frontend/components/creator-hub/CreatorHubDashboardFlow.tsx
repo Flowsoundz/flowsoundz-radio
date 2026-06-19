@@ -25,7 +25,7 @@ type Persona = {
 
 type StepId =
   | "create"
-  | "lyrics"
+  | "kit"
   | "distribution"
   | "rights"
   | "visuals"
@@ -117,19 +117,19 @@ const FLOW_STEPS: FlowStep[] = [
     },
   },
   {
-    id: "lyrics",
-    title: "Prepare lyrics and artist bio",
+    id: "kit",
+    title: "Build your AI release kit",
     description:
-      "Build the short-form context that helps radio, promo, and discovery land correctly.",
-    href: "/artist/create",
+      "Generate promo copy, hook ideas, radio intro lines, and social captions in one pass.",
+    href: "/artist/kit",
     accent: "#7c4dff",
-    icon: "✍️",
-    cta: "Prepare copy",
+    icon: "✨",
+    cta: "Generate release kit",
     detail:
-      "Write a concise artist bio, clean lyrics, and a one-line explanation of what makes the release worth programming.",
+      "This is the fastest way to turn a rough release idea into a coherent package for radio, social, and artist profile use.",
     personaNotes: {
       virtual:
-        "For virtual projects, keep the lore tight. A short identity statement is stronger than a long backstory.",
+        "For virtual projects, use the AI kit to lock your public-facing identity language before you post anything.",
       independent:
         "Treat this like your A&R one-sheet. Clear, specific, and easy to reuse across promo.",
     },

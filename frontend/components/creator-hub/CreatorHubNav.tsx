@@ -10,10 +10,12 @@ import { usePathname } from "next/navigation";
 // admin-only views and don't belong in the creator nav.
 const STEPS = [
   { href: "/artist/dashboard", label: "Dashboard", short: "Hub" },
+  { href: "/artist/create", label: "Create", short: "Create" },
+  { href: "/artist/kit", label: "AI Kit", short: "AI Kit" },
+  { href: "/artist/video", label: "Visuals", short: "Visuals" },
   { href: "/artist/submit", label: "Submit", short: "Submit" },
   { href: "/artist/submissions", label: "My Tracks", short: "Tracks" },
   { href: "/artist/my-stats", label: "Stats", short: "Stats" },
-  { href: "/artist/create", label: "Create", short: "Create" },
   { href: "/artist/profile", label: "Profile", short: "Profile" },
 ] as const;
 

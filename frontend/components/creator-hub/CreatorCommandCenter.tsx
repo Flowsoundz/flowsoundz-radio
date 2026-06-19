@@ -44,12 +44,15 @@ export async function CreatorCommandCenter({ data: provided }: { data?: CreatorD
           <h2 className="mt-1 text-2xl font-semibold text-white">Welcome back, {data.artistName}</h2>
         </div>
         {data.nextAction ? (
-          <Link
-            href={data.nextAction.href}
-            className="rounded-full bg-gradient-to-r from-[#00e5ff] to-[#7c4dff] px-5 py-2.5 text-sm font-bold text-white transition hover:brightness-110"
-          >
-            {data.nextAction.label} →
-          </Link>
+          <div className="max-w-sm text-right">
+            <Link
+              href={data.nextAction.href}
+              className="rounded-full bg-gradient-to-r from-[#00e5ff] to-[#7c4dff] px-5 py-2.5 text-sm font-bold text-white transition hover:brightness-110"
+            >
+              {data.nextAction.label} →
+            </Link>
+            <p className="mt-2 text-xs leading-5 text-slate-400">{data.nextAction.description}</p>
+          </div>
         ) : null}
       </div>
 
@@ -59,6 +62,44 @@ export async function CreatorCommandCenter({ data: provided }: { data?: CreatorD
         <Stat value={data.totals.liveTracks} label="Live tracks" accent="text-[#00FF88]" />
         <Stat value={data.totals.bestRank ?? "—"} label="Best rotation rank" accent="text-violet-300" />
       </div>
+
+      {data.spotlightTrack ? (
+        <div className="rounded-[1.8rem] border border-cyan-300/14 bg-[linear-gradient(135deg,rgba(0,229,255,0.07),rgba(124,77,255,0.05))] p-5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-200/80">
+            Current station outcome
+          </p>
+          <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-white">{data.spotlightTrack.title}</h3>
+              <p className="mt-1 text-sm text-slate-300">
+                {data.spotlightTrack.status === "live"
+                  ? data.spotlightTrack.nextAiring
+                    ? `Next airing: ${data.spotlightTrack.nextAiring}`
+                    : "Live in the station catalog now."
+                  : data.spotlightTrack.status === "priority_review"
+                    ? "Priority review is active. Watch for the next curator update."
+                    : "This release is the closest track to the next station decision."}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2 text-xs text-slate-200">
+              {data.spotlightTrack.status === "live" ? (
+                <>
+                  <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1">{data.spotlightTrack.plays} plays</span>
+                  <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1">🔥 {data.spotlightTrack.fires}</span>
+                  <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1">rank {Math.round(data.spotlightTrack.rotationScore)}</span>
+                </>
+              ) : (
+                <Link
+                  href="/artist/submissions"
+                  className="rounded-full border border-cyan-300/18 bg-cyan-300/[0.10] px-4 py-2 font-semibold text-cyan-100 transition hover:bg-cyan-300/[0.15]"
+                >
+                  Open submission status →
+                </Link>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <div className="rounded-[1.8rem] border border-white/8 bg-[#0B1020]/70 p-5">
         <p className="mb-4 text-xs font-semibold uppercase tracking-[0.24em] text-white/40">Your Tracks</p>

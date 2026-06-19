@@ -102,6 +102,12 @@ export default function ForArtistsPage() {
             >
               Full Creator Hub (AI promo assets)
             </Link>
+            <Link
+              href="/artist/kit"
+              className="inline-flex w-full items-center justify-center rounded-full border border-fuchsia-400/20 bg-fuchsia-400/[0.06] py-2.5 text-xs font-semibold text-fuchsia-200 transition hover:border-fuchsia-400/35 hover:text-white"
+            >
+              Generate AI Release Kit
+            </Link>
           </div>
         </div>
 

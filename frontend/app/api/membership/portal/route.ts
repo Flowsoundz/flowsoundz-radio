@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { getSiteUrl } from "@/lib/siteUrl";
 
 export const runtime = "nodejs";
 
@@ -16,7 +17,7 @@ export async function POST(req: NextRequest) {
   const Stripe = (await import("stripe")).default;
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-  const origin = req.headers.get("origin") ?? process.env.NEXT_PUBLIC_SITE_URL ?? "https://flowsoundzradio.com";
+  const origin = req.headers.get("origin") ?? getSiteUrl();
 
   // Find the Stripe customer by email
   const customers = await stripe.customers.list({ email: session.user.email, limit: 1 });

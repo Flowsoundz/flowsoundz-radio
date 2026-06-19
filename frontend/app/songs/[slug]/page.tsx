@@ -3,7 +3,11 @@ import Link from "next/link";
 import Image from "next/image";
 import type { Metadata } from "next";
 import { AppShell } from "@/components/AppShell";
+import { readCatalogSnapshotFromStore } from "@/lib/catalogSnapshotStore";
 import { prisma } from "@/lib/prisma";
+import { getSiteUrl } from "@/lib/siteUrl";
+import { getUpcomingAirings, formatAiring } from "@/lib/airTime";
+import { normalizeStationSong } from "@/lib/stationPlayback";
 import { FollowButton } from "@/components/FollowButton";
 import { CopyEmbedCode } from "@/components/CopyEmbedCode";
 import FavoriteButton from "@/components/FavoriteButton";
@@ -31,7 +35,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   });
   if (!song) return { title: "Song Not Found" };
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://flowsoundzradio.com";
+  const siteUrl = getSiteUrl();
   const ogImage = `${siteUrl}/api/og/track?title=${encodeURIComponent(song.title)}&artist=${encodeURIComponent(song.artist.name)}&vibe=${encodeURIComponent(song.vibe.toLowerCase())}&cover=${encodeURIComponent(song.coverUrl ?? "")}`;
 
   return {
@@ -65,7 +69,7 @@ export default async function SongPage({ params }: PageProps) {
           _count: { select: { followers: true } },
         },
       },
-      queuePreferences: { select: { playCount: true, completeRate: true, skipRate: true, hypeCount: true } },
+      queuePreferences: { select: { playCount: true, completeRate: true, skipRate: true, hypeCount: true, rotationScore: true } },
       milestones: { where: { isActive: true }, orderBy: { sortOrder: "asc" } },
     },
   });
@@ -88,8 +92,19 @@ export default async function SongPage({ params }: PageProps) {
     }),
   ]);
 
+  let nextAirings: string[] = [];
+  try {
+    const snapshot = await readCatalogSnapshotFromStore();
+    const catalog = snapshot.songs.map(normalizeStationSong);
+    nextAirings = getUpcomingAirings(catalog, song.id, Date.now(), { limit: 2 }).map((airing) =>
+      formatAiring(airing),
+    );
+  } catch {
+    nextAirings = [];
+  }
+
   const vibeKey = song.vibe.toUpperCase().replace(/ /g, "_");
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://flowsoundzradio.com";
+  const siteUrl = getSiteUrl();
   const embedCode = `<iframe src="${siteUrl}/embed/${song.id}" width="100%" height="80" frameborder="0" allow="autoplay" style="border-radius:16px;overflow:hidden"></iframe>`;
 
   return (
@@ -182,6 +197,67 @@ export default async function SongPage({ params }: PageProps) {
           <p className="text-sm leading-6 text-slate-300">{song.behindTheMixText}</p>
         </section>
       )}
+
+      <section className="mb-6 overflow-hidden rounded-[1.8rem] border border-white/8 bg-[#0B1020]/80">
+        <div className="border-b border-white/[0.05] px-6 py-4">
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">Station Status</h2>
+          <p className="mt-1 text-xs text-slate-500">What this track looks like from the radio side.</p>
+        </div>
+        <div className="grid gap-4 px-6 py-4 lg:grid-cols-[0.95fr_1.05fr]">
+          <div className="rounded-[1.3rem] border border-white/8 bg-white/[0.03] p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/50">Rotation signal</p>
+            <p className="mt-2 text-lg font-semibold text-white">
+              {nextAirings.length > 0 ? "Live in rotation" : "Catalog page live"}
+            </p>
+            <p className="mt-2 text-sm leading-6 text-slate-300">
+              {nextAirings.length > 0
+                ? "This track is currently part of the deterministic station clock. Fans can catch it on-air and you can share the next window with confidence."
+                : "This track is published on FlowSoundz. As rotation and broadcast timing expand, the next on-air window will appear here."}
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-300">
+              <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1">
+                {song.queuePreferences?.playCount?.toLocaleString() ?? "0"} plays
+              </span>
+              <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1">
+                {requestCount.toLocaleString()} requests
+              </span>
+              <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1">
+                rank {Math.round(song.queuePreferences?.rotationScore ?? 0)}
+              </span>
+            </div>
+          </div>
+          <div className="rounded-[1.3rem] border border-cyan-300/14 bg-cyan-300/[0.05] p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-200/80">Next on air</p>
+            {nextAirings.length > 0 ? (
+              <ul className="mt-3 space-y-3">
+                {nextAirings.map((airing) => (
+                  <li key={airing} className="rounded-[1rem] border border-white/8 bg-white/[0.03] px-4 py-3 text-sm text-slate-100">
+                    {airing}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-3 text-sm leading-6 text-slate-300">
+                The next broadcast slot is not available yet. The live radio page still carries the current station state and upcoming blocks.
+              </p>
+            )}
+            <div className="mt-4 flex flex-wrap gap-3">
+              <Link
+                href="/radio"
+                className="inline-flex items-center rounded-full bg-[linear-gradient(135deg,#00e5ff_0%,#7c4dff_100%)] px-4 py-2 text-xs font-semibold text-white shadow-[0_0_18px_rgba(0,229,255,0.22)]"
+              >
+                Listen live →
+              </Link>
+              <Link
+                href="/schedule"
+                className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs font-semibold text-white/80 transition hover:text-white"
+              >
+                View schedule
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Milestones */}
       {song.milestones.length > 0 && (

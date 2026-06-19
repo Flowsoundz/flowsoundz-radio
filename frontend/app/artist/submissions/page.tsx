@@ -14,6 +14,14 @@ type Submission = {
   genre: string;
   vibe: string;
   artist_feedback?: string | null;
+  review_paid: boolean;
+  song_id: string | null;
+  plays: number;
+  fires: number;
+  favorites: number;
+  requests: number;
+  rotation_score: number;
+  next_airing: string | null;
 };
 
 const STATUS_CONFIG = {
@@ -107,6 +115,81 @@ function SubmissionTimeline({ status }: { status: Submission["status"] }) {
           )}
         </Fragment>
       ))}
+    </div>
+  );
+}
+
+function StationOutcomeCard({ submission }: { submission: Submission }) {
+  if (submission.status === "approved" && submission.song_id) {
+    return (
+      <div className="rounded-[1rem] border border-emerald-400/20 bg-emerald-400/[0.07] px-4 py-3">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-300 mb-1">
+          Station outcome
+        </p>
+        <p className="text-sm text-slate-100">
+          This track is approved and connected to the station catalog.
+          {submission.next_airing ? ` Next airing: ${submission.next_airing}.` : " Rotation timing will appear here once the next block is resolved."}
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-300">
+          <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1">
+            {submission.plays.toLocaleString()} plays
+          </span>
+          <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1">
+            {submission.fires.toLocaleString()} fires
+          </span>
+          <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1">
+            {submission.requests.toLocaleString()} requests
+          </span>
+          <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1">
+            rank {Math.round(submission.rotation_score)}
+          </span>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-3">
+          <Link
+            href="/radio"
+            className="inline-flex items-center rounded-full border border-emerald-300/20 bg-emerald-300/10 px-4 py-2 text-xs font-semibold text-emerald-100 transition hover:bg-emerald-300/16"
+          >
+            Hear the station →
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (submission.status === "reviewing" && submission.review_paid) {
+    return (
+      <div className="rounded-[1rem] border border-cyan-400/20 bg-cyan-400/[0.07] px-4 py-3">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-300 mb-1">
+          Review lane
+        </p>
+        <p className="text-sm text-slate-200">
+          Priority review is active on this submission. The next creator-side update will appear here before the track reaches rotation.
+        </p>
+      </div>
+    );
+  }
+
+  if (submission.status === "rejected") {
+    return (
+      <div className="rounded-[1rem] border border-red-400/20 bg-red-400/[0.06] px-4 py-3">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-red-300 mb-1">
+          Station outcome
+        </p>
+        <p className="text-sm text-slate-200">
+          This track did not enter the current rotation. Use the feedback, tighten the package, and submit the next release when it is ready.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-[1rem] border border-white/8 bg-white/[0.03] px-4 py-3">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/45 mb-1">
+        What happens next
+      </p>
+      <p className="text-sm text-slate-300">
+        Once review is complete, FlowSoundz will show whether the track moved into rotation, what its first station outcome was, and when listeners can expect to hear it next.
+      </p>
     </div>
   );
 }
@@ -213,6 +296,7 @@ export default function MySubmissionsPage() {
                 <div className="border-t border-white/[0.06] pt-3">
                   <SubmissionTimeline status={s.status} />
                 </div>
+                <StationOutcomeCard submission={s} />
                 {s.artist_feedback ? (
                   <div className="rounded-[1rem] border border-[#7c4dff]/20 bg-[#7c4dff]/[0.06] px-4 py-3">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#a78bfa] mb-1">Feedback from FlowSoundz</p>

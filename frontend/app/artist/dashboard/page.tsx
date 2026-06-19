@@ -33,6 +33,32 @@ export default async function ArtistDashboardPage() {
       : snapshot.stationMode === "playable_archive"
         ? "playable archive rotation"
         : "radio rotation";
+  const spotlightTrack = dash?.spotlightTrack ?? null;
+  const heroTitle = spotlightTrack
+    ? spotlightTrack.status === "live"
+      ? `Your release is in ${stationModeCopy}.`
+      : spotlightTrack.status === "priority_review"
+        ? "Your release is in the priority lane."
+        : "Your next station outcome is in motion."
+    : "FlowSoundz turns unknown songs into curated discovery moments.";
+  const heroBody = spotlightTrack
+    ? spotlightTrack.status === "live"
+      ? spotlightTrack.nextAiring
+        ? `${spotlightTrack.title} is live now, with the next airing scheduled for ${spotlightTrack.nextAiring}. Use the Hub to promote the slot and keep the next release moving.`
+        : `${spotlightTrack.title} is connected to the station and now part of the active catalog. Use the Hub to build promo around the current release and feed the next one into review.`
+      : spotlightTrack.status === "priority_review"
+        ? `${spotlightTrack.title} is already in priority review. Keep the release package tight, watch the submissions lane, and be ready to promote the track the moment it clears.`
+        : `${spotlightTrack.title} is the closest release to the next station decision. Use the Hub to tighten visuals, rights, and promo while the review lane moves.`
+    : "Build your release, confirm your rights, generate promo assets with AI, and submit your track for FlowSoundz Radio curation review.";
+  const heroBadge = spotlightTrack
+    ? spotlightTrack.status === "live"
+      ? `Now live: ${spotlightTrack.title}`
+      : spotlightTrack.status === "priority_review"
+        ? `Priority review: ${spotlightTrack.title}`
+        : `In motion: ${spotlightTrack.title}`
+    : featuredRelease
+      ? `Spotlight: ${featuredRelease.artistName} — ${featuredRelease.title}`
+      : null;
 
   return (
     <CreatorHubShell
@@ -62,11 +88,10 @@ export default async function ArtistDashboardPage() {
           </span>
           <div>
             <h2 className="text-[clamp(1.4rem,3.5vw,2.2rem)] font-semibold text-white">
-              FlowSoundz turns unknown songs into curated discovery moments.
+              {heroTitle}
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-slate-300">
-              Build your release, confirm your rights, generate promo assets with AI, and submit
-              your track for FlowSoundz Radio curation review.
+              {heroBody}
             </p>
             <div className="mt-5 flex flex-wrap justify-center gap-2">
               <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-100">
@@ -82,9 +107,9 @@ export default async function ArtistDashboardPage() {
               <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-medium text-slate-200">
                 {snapshot.releases.length} release{snapshot.releases.length === 1 ? "" : "s"} tracked
               </span>
-              {featuredRelease ? (
+              {heroBadge ? (
                 <span className="rounded-full border border-fuchsia-400/18 bg-fuchsia-400/10 px-3 py-1 text-[11px] font-medium text-fuchsia-100">
-                  Spotlight: {featuredRelease.artistName} — {featuredRelease.title}
+                  {heroBadge}
                 </span>
               ) : null}
             </div>
@@ -95,6 +120,12 @@ export default async function ArtistDashboardPage() {
               className="inline-flex min-h-11 items-center justify-center rounded-full bg-[linear-gradient(135deg,#00e5ff_0%,#7c4dff_100%)] px-6 py-2.5 text-sm font-bold text-white shadow-[0_0_22px_rgba(0,229,255,0.3)] transition hover:shadow-[0_0_36px_rgba(0,229,255,0.5)]"
             >
               Create Release
+            </Link>
+            <Link
+              href="/artist/kit"
+              className="inline-flex min-h-11 items-center justify-center rounded-full border border-fuchsia-400/20 bg-fuchsia-400/[0.06] px-6 py-2.5 text-sm font-medium text-fuchsia-200 transition hover:border-fuchsia-400/35 hover:text-white"
+            >
+              AI Release Kit
             </Link>
             <Link
               href="/artist/submit"
@@ -179,6 +210,12 @@ export default async function ArtistDashboardPage() {
               className="inline-flex min-h-11 items-center justify-center rounded-full bg-[linear-gradient(135deg,#00e5ff_0%,#7c4dff_100%)] px-6 py-2.5 text-sm font-bold text-white shadow-[0_0_18px_rgba(0,229,255,0.35)] transition hover:shadow-[0_0_28px_rgba(0,229,255,0.55)]"
             >
               Start Creating
+            </Link>
+            <Link
+              href="/artist/kit"
+              className="inline-flex min-h-11 items-center justify-center rounded-full border border-fuchsia-400/20 bg-fuchsia-400/[0.06] px-6 py-2.5 text-sm font-semibold text-fuchsia-200 transition hover:border-fuchsia-400/35 hover:bg-fuchsia-400/[0.1]"
+            >
+              Build AI Release Kit
             </Link>
             <Link
               href="/artist/submit"

@@ -5,6 +5,7 @@ import {
 } from "@/lib/adminWaitlistStore";
 import { sendLaunchAnnouncement } from "@/lib/mailer";
 import { prisma } from "@/lib/prisma";
+import { getSiteUrl } from "@/lib/siteUrl";
 
 export const runtime = "nodejs";
 
@@ -32,7 +33,7 @@ function randomToken(): string {
 }
 
 async function generateMagicLink(email: string): Promise<string> {
-  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://flowsoundzradio.com").replace(/\/$/, "");
+  const siteUrl = getSiteUrl().replace(/\/$/, "");
   const rawToken = randomToken();
   const hashedToken = await hashToken(rawToken);
   const expires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours

@@ -320,7 +320,7 @@ export default async function AnalyticsPage() {
           </div>
           <div className="divide-y divide-white/[0.04]">
             {rows.slice(0, 5).map((row) => {
-              const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://flowsoundzradio.com";
+              const siteUrl = getSiteUrl();
               const embedUrl = `${siteUrl}/embed/${row.id}`;
               const code = `<iframe src="${embedUrl}" width="100%" height="80" frameborder="0" allow="autoplay" style="border-radius:16px;overflow:hidden"></iframe>`;
               return (
@@ -343,3 +343,4 @@ export default async function AnalyticsPage() {
     </AppShell>
   );
 }
+import { getSiteUrl } from "@/lib/siteUrl";

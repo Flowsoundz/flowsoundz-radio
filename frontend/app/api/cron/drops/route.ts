@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getSiteUrl } from "@/lib/siteUrl";
 import { getWebPush } from "@/lib/webpush";
 
 export const runtime = "nodejs";
@@ -52,7 +53,7 @@ export async function GET(req: Request) {
       });
       if (!sub) continue;
 
-      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://flowsoundzradio.com";
+      const siteUrl = getSiteUrl();
       const payload = JSON.stringify({
         title: `🎵 ${song.title} just dropped`,
         body: `${song.artist.name} · Now on FlowSoundz Radio`,

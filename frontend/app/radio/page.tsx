@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
-import BottomNav from "@/components/BottomNav";
+import { AppShell } from "@/components/AppShell";
+import { RadioOverview } from "@/components/radio/RadioOverview";
 import { getStaticCatalog } from "@/lib/staticCatalog";
+import { getSiteUrl } from "@/lib/siteUrl";
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
@@ -8,11 +10,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   const params = await searchParams;
   const songId = typeof params.song === "string" ? params.song : null;
 
-  const base =
-    process.env.NEXT_PUBLIC_SITE_URL ??
-    process.env.NEXT_PUBLIC_BASE_URL ??
-    (process.env.NEXT_PUBLIC_VERCEL_URL ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}` : null) ??
-    (process.env.NEXTAUTH_URL ?? "https://flowsoundz.com");
+  const base = getSiteUrl();
 
   if (songId) {
     const catalog = getStaticCatalog();
@@ -59,5 +57,13 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 }
 
 export default function RadioPage() {
-  return <BottomNav />;
+  return (
+    <AppShell
+      eyebrow="Live Radio"
+      title="Shared-time radio for listeners who want discovery to feel live."
+      subtitle="The player stays with you across the site. This page turns the station into a destination with context, schedule, and what is happening right now."
+    >
+      <RadioOverview />
+    </AppShell>
+  );
 }

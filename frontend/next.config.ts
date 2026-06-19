@@ -31,6 +31,7 @@ const isDev = process.env.NODE_ENV === "development";
 const coverOrigin = backendCoverPattern
   ? `${backendCoverPattern.protocol}://${backendCoverPattern.hostname}${backendCoverPattern.port ? `:${backendCoverPattern.port}` : ""}`
   : "";
+const canonicalSiteOrigin = "https://flowsoundzradio.com";
 
 function buildCsp(frameAncestors: string, opts?: { wasm?: boolean }): string {
   // The Visualizer Studio runs ffmpeg.wasm to transcode promo videos to MP4 in
@@ -96,21 +97,21 @@ const nextConfig: NextConfig = {
         // Audio stream routes — only the site itself should embed these
         source: "/api/stream/:path*",
         headers: [
-          { key: "Access-Control-Allow-Origin", value: "https://www.flowsoundzradio.com" },
+          { key: "Access-Control-Allow-Origin", value: canonicalSiteOrigin },
           { key: "Vary", value: "Origin" },
         ],
       },
       {
         source: "/audio/:path*",
         headers: [
-          { key: "Access-Control-Allow-Origin", value: "https://www.flowsoundzradio.com" },
+          { key: "Access-Control-Allow-Origin", value: canonicalSiteOrigin },
           { key: "Vary", value: "Origin" },
         ],
       },
       {
         source: "/api/sse/:path*",
         headers: [
-          { key: "Access-Control-Allow-Origin", value: "https://www.flowsoundzradio.com" },
+          { key: "Access-Control-Allow-Origin", value: canonicalSiteOrigin },
           { key: "Cache-Control", value: "no-store" },
           { key: "X-Accel-Buffering", value: "no" },
         ],

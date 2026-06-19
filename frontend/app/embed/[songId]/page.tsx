@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { EmbedPlayer } from "@/components/EmbedPlayer";
+import { getSiteUrl } from "@/lib/siteUrl";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,7 @@ export default async function EmbedPage({
   const audioUrl = song.publicAudioUrl || song.audioUrl;
   const coverUrl = song.coverUrl ?? null;
   const artistSlug = song.artist.slug;
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://flowsoundzradio.com";
+  const siteUrl = getSiteUrl();
 
   return (
     <EmbedPlayer

@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { getSiteUrl } from "@/lib/siteUrl";
 
 function getTransporter() {
   const user = process.env.GMAIL_USER?.trim();
@@ -13,13 +14,6 @@ function getNotifyEmail() {
     process.env.GMAIL_USER?.trim() ||
     ""
   );
-}
-
-function getSiteUrl() {
-  return (
-    process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
-    "https://flowsoundzradio.com"
-  ).replace(/\/$/, "");
 }
 
 // Internal ops alert to the FlowSoundz admin inbox (no-op if mail unconfigured).
@@ -51,7 +45,7 @@ export async function sendContactNotification(msg: {
   if (!transporter) return;
 
   const to = getNotifyEmail();
-  const siteUrl = getSiteUrl();
+  const siteUrl = getSiteUrl().replace(/\/$/, "");
   const topicLabel =
     msg.topic === "artist"
       ? "Artist Submission"

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { getSiteUrl } from "@/lib/siteUrl";
 
 export const runtime = "nodejs";
 
@@ -22,7 +23,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid tier." }, { status: 400 });
   }
 
-  const origin = req.headers.get("origin") ?? process.env.NEXT_PUBLIC_SITE_URL ?? "https://flowsoundzradio.com";
+  const origin = req.headers.get("origin") ?? getSiteUrl();
 
   // Dev bypass — no Stripe key. NEVER in production: fail loudly rather than
   // fake an active membership.

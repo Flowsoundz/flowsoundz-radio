@@ -7,10 +7,11 @@ import { FollowButton } from "@/components/FollowButton";
 import { ArtistPostFeed } from "@/components/ArtistPostFeed";
 import { readCatalogSnapshotFromStore } from "@/lib/catalogSnapshotStore";
 import { prisma } from "@/lib/prisma";
+import { getSiteUrl } from "@/lib/siteUrl";
 
 export const dynamic = "force-dynamic";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.flowsoundzradio.com";
+const SITE_URL = getSiteUrl();
 
 function absUrl(path: string | null | undefined): string {
   if (!path) return `${SITE_URL}/brand/flowsoundz-fr-appicon-dark.png`;
@@ -91,6 +92,15 @@ export default async function ArtistProfilePage(
   }
   const trackCount = songIds.length;
   const followerCount = artistDb?._count.followers ?? 0;
+  const featuredSong = artist.featuredSong ?? artist.latestSong ?? null;
+  const rotationState =
+    snapshot.stationMode === "live"
+      ? featuredSong
+        ? `${featuredSong.title} is part of the active station rotation right now.`
+        : "This artist is currently part of the active station rotation."
+      : snapshot.stationMode === "playable_archive"
+        ? "The live station is in archive mode right now, but this artist remains playable across the curated catalog."
+        : "The station is between live blocks right now. This profile stays up as a discovery lane while rotation syncs back in.";
 
   return (
     <AppShell
@@ -128,6 +138,10 @@ export default async function ArtistProfilePage(
               ▸ Listen on FlowSoundz
             </Link>
           </div>
+        </div>
+        <div className="mt-4 rounded-[1.2rem] border border-cyan-300/14 bg-cyan-300/[0.06] px-4 py-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-200/80">Station context</p>
+          <p className="mt-1 text-sm text-slate-200">{rotationState}</p>
         </div>
         {followerCount > 0 && (
           <p className="mt-4 text-xs text-slate-500">

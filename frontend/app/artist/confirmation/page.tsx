@@ -12,6 +12,17 @@ type StoredSubmission = {
   submittedAt: string;
 };
 
+type SubmissionStatusSnapshot = {
+  submission_id: string;
+  status: "new" | "reviewing" | "approved" | "rejected";
+  review_paid: boolean;
+  next_airing: string | null;
+  plays: number;
+  fires: number;
+  requests: number;
+  rotation_score: number;
+};
+
 function CopyButton({ text, label }: { text: string; label: string }) {
   const [copied, setCopied] = useState(false);
   return (
@@ -104,6 +115,7 @@ export default function ConfirmationPage() {
   const [buyingPriority, setBuyingPriority] = useState(false);
   const [priorityActive, setPriorityActive] = useState(false);
   const [checkoutCancelled, setCheckoutCancelled] = useState(false);
+  const [statusSnapshot, setStatusSnapshot] = useState<SubmissionStatusSnapshot | null>(null);
 
   // Returning from a successful (or mock) priority-review checkout, or a cancel.
   useEffect(() => {
@@ -142,6 +154,20 @@ export default function ConfirmationPage() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!submission?.submissionId) {
+      return;
+    }
+
+    void fetch("/api/artist/my-submissions")
+      .then((response) => (response.ok ? response.json() : Promise.reject(response.status)))
+      .then((data: { submissions?: SubmissionStatusSnapshot[] }) => {
+        const match = data.submissions?.find((item) => item.submission_id === submission.submissionId) ?? null;
+        setStatusSnapshot(match);
+      })
+      .catch(() => undefined);
+  }, [submission?.submissionId]);
 
   if (!loaded) {
     return (
@@ -257,6 +283,35 @@ export default function ConfirmationPage() {
         ) : null}
       </div>
 
+      {statusSnapshot ? (
+        <div className="mb-8 rounded-[1.6rem] border border-cyan-300/16 bg-cyan-300/[0.05] px-6 py-5">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-200/80">
+            Current station status
+          </p>
+          <p className="mt-2 text-sm leading-6 text-slate-200">
+            {statusSnapshot.status === "approved"
+              ? statusSnapshot.next_airing
+                ? `Approved and connected to the station. Next airing: ${statusSnapshot.next_airing}.`
+                : "Approved and connected to the station catalog. Airing details will appear as the next rotation window resolves."
+              : statusSnapshot.status === "reviewing"
+                ? statusSnapshot.review_paid
+                  ? "Priority review is active on this submission. Watch the submissions page for the next curator update."
+                  : "This track is in the review queue. You can track the status and any curator notes from My Submissions."
+                : statusSnapshot.status === "rejected"
+                  ? "This submission is not in the current station lane. Use the feedback, tighten the package, and submit the next release."
+                  : "Your submission is in queue and waiting for the next review action."}
+          </p>
+          {statusSnapshot.status === "approved" ? (
+            <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-200">
+              <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1">{statusSnapshot.plays} plays</span>
+              <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1">🔥 {statusSnapshot.fires}</span>
+              <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1">{statusSnapshot.requests} requests</span>
+              <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1">rank {Math.round(statusSnapshot.rotation_score)}</span>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
       {/* ── Vibe badge ── */}
       <div className="mb-8 flex flex-wrap items-center gap-3">
         <span className="text-sm font-medium text-slate-400">Suggested vibe:</span>
@@ -366,6 +421,33 @@ export default function ConfirmationPage() {
         <p className="mt-3 text-sm leading-6 text-cyan-100/70">
           These AI-assisted assets help present your music professionally. Final placement is subject to FlowSoundz Radio review.
         </p>
+      </div>
+
+      <div className="mb-8 grid gap-4 sm:grid-cols-3">
+        <Link
+          href="/artist/submissions"
+          className="rounded-[1.4rem] border border-white/8 bg-white/[0.03] p-4 transition hover:border-white/16 hover:bg-white/[0.05]"
+        >
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-200/80">Track status</p>
+          <p className="mt-2 text-sm font-semibold text-white">Open My Submissions</p>
+          <p className="mt-1 text-xs leading-5 text-slate-400">See review status, station outcomes, and next airings in one place.</p>
+        </Link>
+        <Link
+          href="/artist/video"
+          className="rounded-[1.4rem] border border-white/8 bg-white/[0.03] p-4 transition hover:border-white/16 hover:bg-white/[0.05]"
+        >
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-fuchsia-200/80">Promote it</p>
+          <p className="mt-2 text-sm font-semibold text-white">Create a visual next</p>
+          <p className="mt-1 text-xs leading-5 text-slate-400">Turn this submission into a short-form promo loop while the review lane runs.</p>
+        </Link>
+        <Link
+          href="/radio"
+          className="rounded-[1.4rem] border border-white/8 bg-white/[0.03] p-4 transition hover:border-white/16 hover:bg-white/[0.05]"
+        >
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-emerald-200/80">Stay in context</p>
+          <p className="mt-2 text-sm font-semibold text-white">Listen to the station</p>
+          <p className="mt-1 text-xs leading-5 text-slate-400">Hear the sound, pacing, and curation lane your release is trying to enter.</p>
+        </Link>
       </div>
 
       {/* ── Actions ── */}

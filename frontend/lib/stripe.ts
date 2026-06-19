@@ -1,3 +1,5 @@
+import { getSiteUrl } from "@/lib/siteUrl";
+
 export type PromoTier = "basic" | "featured" | "sponsored";
 
 type CreateCheckoutSessionResponse = {
@@ -11,7 +13,7 @@ export async function createPromoCheckoutSession(
   const origin =
     typeof window !== "undefined"
       ? window.location.origin
-      : "https://flowsoundzradio.com";
+      : getSiteUrl();
 
   const response = await fetch("/api/promo/create-checkout-session", {
     method: "POST",

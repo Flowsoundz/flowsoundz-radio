@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { getSiteUrl } from "@/lib/siteUrl";
 import type { Song } from "@/lib/types";
 
 // Lightweight live-rotation player for third-party iframes (e.g. GymTwin).
@@ -9,6 +10,7 @@ import type { Song } from "@/lib/types";
 type Phase = "idle" | "loading" | "playing" | "paused" | "error";
 
 export function EmbedRadioPlayer() {
+  const siteUrl = getSiteUrl();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const queueRef = useRef<Song[]>([]);
   const indexRef = useRef(0);
@@ -116,7 +118,7 @@ export function EmbedRadioPlayer() {
           </p>
         </div>
         <a
-          href="https://flowsoundzradio.com"
+          href={siteUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="text-[10px] font-semibold text-slate-500 transition hover:text-white"
@@ -139,7 +141,7 @@ export function EmbedRadioPlayer() {
         <div className="text-center">
           <p className="text-sm text-slate-300">The live rotation isn&apos;t available here right now.</p>
           <a
-            href="https://flowsoundzradio.com/radio"
+            href={`${siteUrl}/radio`}
             target="_blank"
             rel="noopener noreferrer"
             className="mt-2 inline-block rounded-full border border-[#00E5FF]/30 bg-[#00E5FF]/10 px-4 py-1.5 text-xs font-semibold text-[#00E5FF] transition hover:bg-[#00E5FF]/20"

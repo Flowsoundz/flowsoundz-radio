@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { getSiteUrl } from "@/lib/siteUrl";
 import { getWebPush } from "@/lib/webpush";
 
 export const runtime = "nodejs";
@@ -32,7 +33,7 @@ export async function POST(request: NextRequest) {
   const notification = JSON.stringify({
     title: payload.title,
     body: payload.body,
-    url: payload.url ?? "https://flowsoundzradio.com/radio",
+    url: payload.url ?? `${getSiteUrl()}/radio`,
     icon: payload.icon ?? "/brand/flowsoundz-fr-appicon-dark.png",
     badge: "/brand/flowsoundz-fr-icon-dark.png",
   });

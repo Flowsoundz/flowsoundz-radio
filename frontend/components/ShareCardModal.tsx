@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { getSiteUrl } from "@/lib/siteUrl";
 import type { Song } from "@/lib/types";
 
 type Props = {
@@ -20,7 +21,7 @@ export function ShareCardModal({ song, onClose }: Props) {
     : "";
 
   const cardUrl = `/api/share/card?title=${encodeURIComponent(song.title)}&artist=${encodeURIComponent(song.artist)}${song.vibe ? `&vibe=${encodeURIComponent(song.vibe)}` : ""}${coverParam}`;
-  const radioUrl = `${typeof window !== "undefined" ? window.location.origin : "https://flowsoundzradio.com"}/radio?song=${song.id}`;
+  const radioUrl = `${typeof window !== "undefined" ? window.location.origin : getSiteUrl()}/radio?song=${song.id}`;
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {

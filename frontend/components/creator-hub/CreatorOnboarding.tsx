@@ -3,18 +3,18 @@ import Link from "next/link";
 const STEPS = [
   {
     n: 1,
-    title: "Upload your track",
-    body: "One song, your cover art, and the rights confirmation. Takes about two minutes.",
+    title: "Shape the release",
+    body: "Start with the concept, AI release kit, and the strongest angle for the song before you submit anything.",
   },
   {
     n: 2,
-    title: "We curate & master it",
-    body: "Our team reviews every submission by hand and masters approved tracks to broadcast loudness — no algorithm-only gatekeeping.",
+    title: "Package the rollout",
+    body: "Build your visuals, rights notes, and promo copy so the release is radio-ready and share-ready at the same time.",
   },
   {
     n: 3,
-    title: "Go on the air",
-    body: "Approved tracks enter the live rotation. You get a shareable artist page and weekly stats on plays, fires, and air times.",
+    title: "Submit for curation",
+    body: "Once the package is clean, FlowSoundz reviews it for rotation, artist discovery placement, and future station moments.",
   },
 ] as const;
 
@@ -58,16 +58,16 @@ export function CreatorOnboarding() {
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Link
-              href="/artist/submit"
+              href="/artist/create"
               className="inline-flex min-h-12 items-center justify-center rounded-full bg-[linear-gradient(135deg,#00e5ff_0%,#7c4dff_100%)] px-7 py-3 text-sm font-bold text-white shadow-[0_0_22px_rgba(0,229,255,0.3)] transition hover:shadow-[0_0_36px_rgba(0,229,255,0.5)]"
             >
-              Submit your first track →
+              Start the creator flow →
             </Link>
             <Link
-              href="/artist/create"
+              href="/artist/submit"
               className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/15 px-6 py-3 text-sm font-semibold text-white transition hover:border-white/25 hover:bg-white/5"
             >
-              Make one with AI first
+              Submit your first track
             </Link>
             <Link
               href="/radio"

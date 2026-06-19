@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
+import { getSiteUrl } from "@/lib/siteUrl";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "Priority review already purchased." }, { status: 409 });
   }
 
-  const origin = str(body.origin) || request.headers.get("origin") || "https://www.flowsoundzradio.com";
+  const origin = str(body.origin) || request.headers.get("origin") || getSiteUrl();
   const secretKey = process.env.STRIPE_SECRET_KEY?.trim();
 
   // Dev bypass when Stripe isn't configured — mark paid and bounce to success.
