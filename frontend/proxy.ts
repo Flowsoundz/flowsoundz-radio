@@ -89,15 +89,13 @@ export async function proxy(req: NextRequest) {
     }
   }
 
-  // Launch mode: gate /radio and /audio/* behind INSIDER/VAULT tier (admin + embed bypass)
-  if (LAUNCH_MODE && !isAdmin && !isEmbedAudio && (pathname.startsWith("/radio") || pathname.startsWith("/audio/"))) {
+  // Launch mode: keep the radio destination public, but gate the protected
+  // audio stream itself behind INSIDER/VAULT (admin + embed bypass).
+  if (LAUNCH_MODE && !isAdmin && !isEmbedAudio && pathname.startsWith("/audio/")) {
     const tier = (token as { tier?: string } | null)?.tier ?? "";
     const hasAccess = tier === "INSIDER" || tier === "VAULT";
     if (!hasAccess) {
-      if (pathname.startsWith("/audio/")) {
-        return new NextResponse("Early access only.", { status: 403 });
-      }
-      return NextResponse.redirect(new URL("/?early=1", req.url));
+      return new NextResponse("Early access only.", { status: 403 });
     }
   }
 
