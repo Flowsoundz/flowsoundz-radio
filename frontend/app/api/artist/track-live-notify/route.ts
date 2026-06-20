@@ -4,6 +4,8 @@ import { getStaticCatalog } from "@/lib/staticCatalog";
 import { normalizeStationSong } from "@/lib/stationPlayback";
 import { getUpcomingAirings, formatAiring } from "@/lib/airTime";
 import { sendTrackLiveEmail } from "@/lib/mailer";
+import { getSiteUrl } from "@/lib/siteUrl";
+import { getWebPush } from "@/lib/webpush";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,7 +37,21 @@ export async function POST(req: Request) {
 
   const song = await prisma.song.findUnique({
     where: { id: songId },
-    select: { id: true, title: true, packagingStatus: true, artist: { select: { name: true } } },
+    select: {
+      id: true,
+      slug: true,
+      title: true,
+      packagingStatus: true,
+      artist: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          email: true,
+          followers: { select: { userId: true } },
+        },
+      },
+    },
   });
   if (!song || song.packagingStatus !== "READY") {
     return Response.json({ ok: false, reason: "not_ready" });
@@ -72,5 +88,52 @@ export async function POST(req: Request) {
     airings,
   });
 
-  return Response.json({ ok: true, airings });
+  const creatorUserIds = song.artist.email
+    ? (
+        await prisma.user.findMany({
+          where: { email: song.artist.email },
+          select: { id: true },
+        })
+      ).map((user) => user.id)
+    : [];
+
+  const followerUserIds = song.artist.followers
+    .map((follow) => follow.userId)
+    .filter((userId): userId is string => Boolean(userId));
+
+  const targetUserIds = [...new Set([...creatorUserIds, ...followerUserIds])];
+
+  let pushSent = 0;
+  if (targetUserIds.length > 0) {
+    const subscriptions = await prisma.pushSubscription.findMany({
+      where: { userId: { in: targetUserIds } },
+      select: { endpoint: true, p256dh: true, auth: true },
+    });
+
+    const siteUrl = getSiteUrl();
+    const firstAiring = airings[0] ?? "The current FlowSoundz block";
+    const notification = JSON.stringify({
+      title: `${song.artist.name} is live on FlowSoundz`,
+      body: `${song.title} is on air now. Next window: ${firstAiring}.`,
+      url: `${siteUrl}/songs/${song.slug}`,
+      icon: `${siteUrl}/FSRLogo.svg`,
+      badge: `${siteUrl}/brand/flowsoundz-fr-icon-dark.png`,
+    });
+
+    const webpush = getWebPush();
+    if (webpush) {
+      const results = await Promise.allSettled(
+        subscriptions.map((sub) =>
+          webpush.sendNotification(
+            { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+            notification,
+          )
+        )
+      );
+
+      pushSent = results.filter((result) => result.status === "fulfilled").length;
+    }
+  }
+
+  return Response.json({ ok: true, airings, pushSent });
 }

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { Show } from "@/lib/showSchedule";
 import { useGlobalAudioRefs, useGlobalAudioState } from "@/components/GlobalAudioProvider";
+import { RecentlyAiredRail } from "@/components/radio/RecentlyAiredRail";
 
 type StationNowResponse =
   | {
@@ -454,6 +455,8 @@ export function RadioOverview() {
           </div>
         </div>
       </section>
+
+      <RecentlyAiredRail />
     </div>
   );
 }

@@ -62,6 +62,11 @@ import type Hls from "hls.js";
 import { getLyrics } from "@/lib/lyrics";
 import { useVibePoints } from "@/lib/useVibePoints";
 import { useUserTier } from "@/lib/useUserTier";
+import {
+  readRecentlyPlayed,
+  type RecentlyPlayedSong as PersistedRecentlyPlayedSong,
+  writeRecentlyPlayed,
+} from "@/lib/recentlyPlayed";
 import { isSpecialNarrationMoment } from "@/lib/radioContext";
 import { ExplicitToggle } from "@/components/ExplicitToggle";
 import { useListenerSession } from "@/lib/useListenerSession";
@@ -213,13 +218,7 @@ const STRIP_WAVE_PURPLE = buildSinePath(200, 32, 6, 7.0, Math.PI * 0.6);
 const FORCE_DROP_TEST_MODE = false;
 const FORCED_DROP_TEST_VOLUME = 1;
 const SHOW_COVER_ART = true;
-type PlayedSong = {
-  id: string;
-  title: string;
-  artist: string;
-  vibe?: string;
-  coverUrl: string | string[] | null;
-};
+type PlayedSong = PersistedRecentlyPlayedSong;
 
 type PreparedStationEvent = {
   forSongId: string;
@@ -610,6 +609,14 @@ export default function RadioPlayer() {
       postTransitionDelayMs: DROP_TO_TRACK_DELAY_MS,
     });
   }, []);
+
+  useEffect(() => {
+    setRecentlyPlayed(readRecentlyPlayed().slice(0, 6));
+  }, []);
+
+  useEffect(() => {
+    writeRecentlyPlayed(recentlyPlayed.slice(0, 6));
+  }, [recentlyPlayed]);
 
   useEffect(() => {
     const persisted = getInitialSelectedVibe();
@@ -1626,10 +1633,27 @@ export default function RadioPlayer() {
             title: outgoingSong.title,
             artist: outgoingSong.artist,
             vibe: outgoingSong.vibe,
+            genre: outgoingSong.genre,
+            audio_file: outgoingSong.audio_file,
+            public_audio_url: outgoingSong.public_audio_url,
+            hls_url: outgoingSong.hls_url,
+            cover_url: outgoingSong.cover_url,
+            cover_file: outgoingSong.cover_file,
+            artist_visual_url: outgoingSong.artist_visual_url,
+            artist_visual_file: outgoingSong.artist_visual_file,
+            is_playable: outgoingSong.is_playable,
+            access_tier: outgoingSong.access_tier,
+            member_release_at: outgoingSong.member_release_at,
+            public_release_at: outgoingSong.public_release_at,
+            is_vault: outgoingSong.is_vault,
+            is_featured: outgoingSong.is_featured,
+            featured: outgoingSong.featured,
+            is_ai_generated: outgoingSong.is_ai_generated,
             coverUrl: getCoverUrl(outgoingSong),
+            playedAtMs: Date.now(),
           },
           ...current.filter((song) => song.id !== outgoingSong.id),
-        ].slice(0, 4);
+        ].slice(0, 6);
       });
     }
 

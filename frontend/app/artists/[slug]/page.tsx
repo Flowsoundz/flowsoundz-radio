@@ -5,6 +5,8 @@ import { AppShell } from "@/components/AppShell";
 import { ArtistDiscoveryProfile } from "@/components/artists/ArtistDiscoveryProfile";
 import { FollowButton } from "@/components/FollowButton";
 import { ArtistPostFeed } from "@/components/ArtistPostFeed";
+import { PushBell } from "@/components/PushBell";
+import { WatchArtistButton } from "@/components/WatchArtistButton";
 import { readCatalogSnapshotFromStore } from "@/lib/catalogSnapshotStore";
 import { prisma } from "@/lib/prisma";
 import { getSiteUrl } from "@/lib/siteUrl";
@@ -130,7 +132,17 @@ export default async function ArtistProfilePage(
             </div>
           </div>
           <div className="flex shrink-0 flex-wrap items-center gap-3">
+            <WatchArtistButton
+              artist={artist.name}
+              artistSlug={slug}
+              lastTrackTitle={featuredSong?.title ?? artist.name}
+              coverUrl={(Array.isArray(artist.heroImage) ? artist.heroImage[0] : artist.heroImage) ?? featuredSong?.cover_url ?? null}
+              lastHeardAtMs={Date.now()}
+              vibe={featuredSong?.vibe}
+              isAiGenerated={featuredSong?.is_ai_generated ?? false}
+            />
             {artistDb && <FollowButton artistId={artistDb.id} initialCount={followerCount} />}
+            <PushBell />
             <Link
               href="/radio"
               className="inline-flex min-h-11 items-center justify-center rounded-full bg-[linear-gradient(135deg,#00e5ff_0%,#7c4dff_100%)] px-6 py-2.5 text-sm font-bold text-white shadow-[0_0_22px_rgba(0,229,255,0.3)] transition hover:shadow-[0_0_36px_rgba(0,229,255,0.5)]"
@@ -142,6 +154,9 @@ export default async function ArtistProfilePage(
         <div className="mt-4 rounded-[1.2rem] border border-cyan-300/14 bg-cyan-300/[0.06] px-4 py-3">
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-200/80">Station context</p>
           <p className="mt-1 text-sm text-slate-200">{rotationState}</p>
+          <p className="mt-2 text-xs text-slate-300">
+            Follow this artist and turn on alerts if you want a real pull back into the station when their next live moment lands.
+          </p>
         </div>
         {followerCount > 0 && (
           <p className="mt-4 text-xs text-slate-500">

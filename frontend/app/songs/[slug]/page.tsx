@@ -11,6 +11,8 @@ import { normalizeStationSong } from "@/lib/stationPlayback";
 import { FollowButton } from "@/components/FollowButton";
 import { CopyEmbedCode } from "@/components/CopyEmbedCode";
 import FavoriteButton from "@/components/FavoriteButton";
+import { PushBell } from "@/components/PushBell";
+import { WatchArtistButton } from "@/components/WatchArtistButton";
 
 const VIBE_COLOR: Record<string, string> = {
   CHILL:      "border-cyan-400/25 bg-cyan-400/10 text-cyan-200",
@@ -186,7 +188,20 @@ export default async function SongPage({ params }: PageProps) {
             </Link>
             <FavoriteButton songId={song.id} />
             <FollowButton artistId={song.artist.id} initialCount={song.artist._count.followers} />
+            <WatchArtistButton
+              artist={song.artist.name}
+              artistSlug={song.artist.slug}
+              lastTrackTitle={song.title}
+              coverUrl={song.coverUrl ?? null}
+              lastHeardAtMs={Date.now()}
+              vibe={song.vibe}
+              isAiGenerated={song.isAiGenerated ?? false}
+            />
+            <PushBell />
           </div>
+          <p className="text-xs text-slate-400">
+            Follow plus alerts handles the real station callback. Watch artist saves this lane locally so you can come back fast.
+          </p>
         </div>
       </div>
 
@@ -255,6 +270,9 @@ export default async function SongPage({ params }: PageProps) {
                 View schedule
               </Link>
             </div>
+            <p className="mt-3 text-xs text-slate-300">
+              If this is the kind of track you want brought back to you, follow the artist and keep station alerts on.
+            </p>
           </div>
         </div>
       </section>
