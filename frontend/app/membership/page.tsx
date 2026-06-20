@@ -7,10 +7,10 @@ import { MembershipCheckoutButton } from "@/components/MembershipCheckoutButton"
 export const metadata: Metadata = {
   title: "Membership — FlowSoundz Radio",
   description:
-    "Join FlowSoundz Radio as an Insider or Vault member. Get early access to drops, exclusive tracks, and direct support for underground artists.",
+    "Start free with live radio and discovery. Upgrade to Insider or Vault for replay, deeper access, and premium FlowSoundz moments.",
   openGraph: {
     title: "FlowSoundz Membership — Insider & Vault",
-    description: "Support underground music. Get early drops and exclusive access.",
+    description: "Live radio first. On-demand depth and premium access when you want more control.",
   },
 };
 
@@ -28,9 +28,9 @@ const tiers = [
     cta: { label: "Start listening", href: "/radio" },
     ctaStyle: "outlined" as "outlined" | "gradient" | "fuchsia",
     perks: [
-      "Full public radio rotation and discovery-first programming.",
-      "Featured releases and new music across all station vibes.",
-      "Public Friday drops — when records open to all listeners.",
+      "Public live radio with discovery-first programming.",
+      "Artist pages, song pages, and station schedule.",
+      "The full FlowSoundz front door without a paywall.",
     ],
   },
   {
@@ -47,9 +47,9 @@ const tiers = [
     cta: { label: "Get notified when Insider opens", href: "#early-access" },
     ctaStyle: "gradient" as "outlined" | "gradient" | "fuchsia",
     perks: [
-      "Day One Access — hear new records before Public Friday opens.",
-      "Behind the Mix: creator context and production-story texture.",
-      "Priority access to Midnight Drops before the public window.",
+      "Everything in Free.",
+      "Recent replay and more control after a song airs.",
+      "Early access windows, Behind the Mix notes, and deeper artist context.",
     ],
   },
   {
@@ -66,9 +66,9 @@ const tiers = [
     cta: { label: "Get notified when Vault opens", href: "#early-access" },
     ctaStyle: "fuchsia" as "outlined" | "gradient" | "fuchsia",
     perks: [
-      "Full Vault access: exclusive records never in the public lane.",
-      "Earliest entry into every Day One Access window.",
-      "Deep production context and front-of-line Midnight Drop access.",
+      "Everything in Insider.",
+      "Deep archive and premium member-only station moments.",
+      "Earliest access to exclusives, drops, and premium listening layers.",
     ],
   },
 ];
@@ -84,11 +84,12 @@ const ctaClasses = {
 
 const comparisonRows = [
   { feature: "Public radio rotation", listener: "Included", insider: "Included", vault: "Included" },
-  { feature: "Day One Access", listener: "—", insider: "Early entry", vault: "Priority window" },
-  { feature: "Behind the Mix", listener: "—", insider: "Included", vault: "Full access" },
-  { feature: "Vault exclusives", listener: "—", insider: "Selected drops", vault: "Full library" },
-  { feature: "Midnight Drop access", listener: "Public only", insider: "Early", vault: "Earliest" },
-  { feature: "Community status", listener: "Listener", insider: "Insider", vault: "Founder Circle" },
+  { feature: "Artist and song discovery", listener: "Included", insider: "Included", vault: "Included" },
+  { feature: "Recent replay", listener: "Limited / none", insider: "Included", vault: "Included" },
+  { feature: "On-demand depth", listener: "Radio-first only", insider: "Selective access", vault: "Deep access" },
+  { feature: "Behind the Mix", listener: "—", insider: "Included", vault: "Expanded" },
+  { feature: "Exclusive drops", listener: "Public window only", insider: "Early access", vault: "Earliest + premium" },
+  { feature: "Membership lane", listener: "Listener", insider: "Insider", vault: "Vault" },
 ];
 
 export default function MembershipPage() {
@@ -96,16 +97,38 @@ export default function MembershipPage() {
     <AppShell
       eyebrow="Membership"
       title="Join the FlowSoundz circle"
-      subtitle="Built for music discovery before the algorithm catches up. Membership moves you out of the public lane and into early access, Vault exclusives, and Midnight Drops that don't exist anywhere else."
+      subtitle="FlowSoundz is built in layers: live radio first, more control second, premium access on top. Start free, then upgrade when you want replay, deeper access, and member-only moments."
     >
       <div className="mb-8 rounded-[1.8rem] border border-cyan-300/18 bg-[linear-gradient(135deg,rgba(0,229,255,0.09),rgba(124,77,255,0.08),rgba(255,45,166,0.06))] px-6 py-5">
         <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-200/75">
-          Now open
+          How it works
         </p>
         <p className="mt-2 text-sm leading-6 text-slate-200">
-          Insider and Vault memberships are live. Cancel any time — no contracts, no hidden fees.
+          The station stays public. Membership is for listeners who want more control, more replay, and more access after discovery happens.
         </p>
       </div>
+
+      <section className="mb-10 grid gap-4 lg:grid-cols-3">
+        {[
+          {
+            title: "Free gets you in",
+            body: "No one should have to pay just to understand FlowSoundz. Live radio, discovery, and artist context stay open.",
+          },
+          {
+            title: "Insider adds control",
+            body: "Insider is for people who hear something on radio and want replay, context, and a stronger connection to the station.",
+          },
+          {
+            title: "Vault goes deeper",
+            body: "Vault is for the listener who wants the archive, premium drops, and the deepest version of the culture layer.",
+          },
+        ].map((item) => (
+          <div key={item.title} className="rounded-[1.5rem] border border-white/8 bg-white/[0.03] px-5 py-5">
+            <p className="text-sm font-semibold text-white">{item.title}</p>
+            <p className="mt-2 text-sm leading-6 text-slate-300">{item.body}</p>
+          </div>
+        ))}
+      </section>
 
       <section className="grid gap-4 lg:grid-cols-3">
         {tiers.map((tier) => (

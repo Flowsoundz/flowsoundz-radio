@@ -5,7 +5,7 @@ import { AppShell } from "@/components/AppShell";
 export const metadata: Metadata = {
   title: "For Artists — FlowSoundz Radio",
   description:
-    "Your song deserves more than a link. Submit for free or choose a paid promo lane — FlowSoundz turns unknown songs into curated discovery moments.",
+    "Start with the standard submit flow, then use paid creator tools only when you want faster feedback, promo leverage, or stronger release support.",
 };
 
 const FREE_INCLUDES = [
@@ -16,10 +16,10 @@ const FREE_INCLUDES = [
 ];
 
 const PAID_INCLUDES = [
-  "Everything in free submission",
+  "Everything in standard submission",
   "Priority queue — reviewed within 48–72 hours",
   "Direct feedback on your submission",
-  "Higher tiers open the door for featured placement and boosted rotation",
+  "AI release tools, promo leverage, and faster creator support",
 ];
 
 const TRUTH_ITEMS = [
@@ -44,6 +44,15 @@ const TRUTH_ITEMS = [
 export default function ForArtistsPage() {
   return (
     <AppShell eyebrow="For Artists" title="Your Song Deserves More Than a Link.">
+
+      <div className="mb-8 rounded-[1.8rem] border border-cyan-300/18 bg-[linear-gradient(135deg,rgba(0,229,255,0.09),rgba(124,77,255,0.08),rgba(255,45,166,0.06))] px-6 py-5">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-200/75">
+          Creator model
+        </p>
+        <p className="mt-2 text-sm leading-6 text-slate-200">
+          Basic presence and standard review should never feel locked away. Paid creator tools are for speed, leverage, and better release packaging — not for basic dignity.
+        </p>
+      </div>
 
       {/* ── Positioning strip ── */}
       <div className="mb-10 grid gap-3 sm:grid-cols-3">
@@ -76,7 +85,7 @@ export default function ForArtistsPage() {
             </span>
             <h2 className="mt-4 text-2xl font-semibold text-white">Submit for Review</h2>
             <p className="mt-2 text-sm leading-6 text-slate-400">
-              No payment required. Fill out the submission form and let our curation team decide.
+              Start here first. No payment required. This is the standard path into the FlowSoundz station.
             </p>
           </div>
 
@@ -119,7 +128,7 @@ export default function ForArtistsPage() {
             </span>
             <h2 className="mt-4 text-2xl font-semibold text-white">Priority + Featured Consideration</h2>
             <p className="mt-2 text-sm leading-6 text-slate-400">
-              Skip the queue, get direct feedback, and open the door for featured placement. From $15.
+              Use paid tools when you want faster answers, stronger promo support, or more leverage around a release that is already moving.
             </p>
           </div>
 
@@ -140,7 +149,7 @@ export default function ForArtistsPage() {
               See Promo Packages
             </Link>
             <p className="text-center text-[11px] text-white/30">
-              Approval is not guaranteed on any tier. Curation standards still apply.
+              Approval is not guaranteed on any tier. You are paying for speed and support, not guaranteed airplay.
             </p>
           </div>
         </div>
@@ -175,7 +184,7 @@ export default function ForArtistsPage() {
               Start with the free form. It takes 3 minutes.
             </h2>
             <p className="mt-1.5 text-sm text-slate-300">
-              No payment. No account. Just your track and the FlowSoundz team.
+              Standard submit first. Add paid creator tools only when you need faster feedback or stronger promotion around the release.
             </p>
           </div>
           <div className="flex shrink-0 flex-wrap justify-center gap-3 sm:justify-end">

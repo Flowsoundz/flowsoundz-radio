@@ -323,7 +323,7 @@ export default async function HomePage() {
             <h2 className="mt-3 font-headline text-[clamp(32px,4.5vw,56px)] uppercase leading-tight tracking-tight text-white">
               Pick Your Lane
             </h2>
-            <p className="mt-3 text-sm text-white/45">Start free. Upgrade when you&apos;re ready.</p>
+            <p className="mt-3 text-sm text-white/45">Start free with live radio. Upgrade when you want more control and deeper access.</p>
           </div>
 
           <div className="grid gap-5 lg:grid-cols-3">
@@ -334,12 +334,12 @@ export default async function HomePage() {
                 <span className="font-headline text-5xl text-white">$0</span>
                 <span className="mb-1 text-sm text-white/35">/mo</span>
               </div>
-              <p className="mt-2 text-sm text-white/40">For casual listeners.</p>
+              <p className="mt-2 text-sm text-white/40">The full front door.</p>
               <ul className="mt-6 flex flex-col gap-3">
                 <PricingFeature text="Full access to 24/7 radio stream" />
-                <PricingFeature text="Browse artist profiles" />
+                <PricingFeature text="Browse artist and song pages" />
                 <PricingFeature text="Public show schedule" />
-                <PricingFeature text="Community playlist access" />
+                <PricingFeature text="Discover the FlowSoundz sound before paying" />
               </ul>
               <Link
                 href="/radio"
@@ -361,12 +361,12 @@ export default async function HomePage() {
                 <span className="font-headline text-5xl text-white">$7.99</span>
                 <span className="mb-1 text-sm text-white/35">/mo</span>
               </div>
-              <p className="mt-2 text-sm text-white/40">The discovery sweet spot.</p>
+              <p className="mt-2 text-sm text-white/40">More control after discovery.</p>
               <ul className="mt-6 flex flex-col gap-3">
                 <PricingFeature text="Everything in Free" highlighted />
-                <PricingFeature text="Day One Access — before Public Friday" highlighted />
+                <PricingFeature text="Recent replay after songs air" highlighted />
                 <PricingFeature text="Behind the Mix — creator context" highlighted />
-                <PricingFeature text="Priority Midnight Drop access" highlighted />
+                <PricingFeature text="Early access windows and member drops" highlighted />
               </ul>
               <Link
                 href="/membership"
@@ -383,12 +383,12 @@ export default async function HomePage() {
                 <span className="font-headline text-5xl text-white">$14.99</span>
                 <span className="mb-1 text-sm text-white/35">/mo</span>
               </div>
-              <p className="mt-2 text-sm text-white/40">For listeners who want everything.</p>
+              <p className="mt-2 text-sm text-white/40">The deepest listening layer.</p>
               <ul className="mt-6 flex flex-col gap-3">
                 <PricingFeature text="Everything in Insider" />
-                <PricingFeature text="Full Vault — exclusive records" />
-                <PricingFeature text="Earliest Midnight Drop entry" />
-                <PricingFeature text="Founder Circle status" />
+                <PricingFeature text="Deeper archive and premium station moments" />
+                <PricingFeature text="Earliest access to exclusives and drops" />
+                <PricingFeature text="Best version of the FlowSoundz member lane" />
               </ul>
               <Link
                 href="/membership"

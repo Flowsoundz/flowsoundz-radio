@@ -51,8 +51,8 @@ export default async function MembershipSuccessPage({
                 Your membership is active. Here&apos;s what you unlocked:
               </p>
               <ul className="mx-auto mt-4 max-w-sm space-y-2 text-left text-sm text-slate-300">
-                <li className="flex items-start gap-2"><span className="mt-0.5 text-[#00FF88]">✓</span> Member access to the live station &amp; full audio</li>
-                <li className="flex items-start gap-2"><span className="mt-0.5 text-[#00FF88]">✓</span> Early Drops — new records before the public window</li>
+                <li className="flex items-start gap-2"><span className="mt-0.5 text-[#00FF88]">✓</span> Public radio stays open, and your member lane adds deeper access on top</li>
+                <li className="flex items-start gap-2"><span className="mt-0.5 text-[#00FF88]">✓</span> More control after discovery, including member-only access windows</li>
                 <li className="flex items-start gap-2"><span className="mt-0.5 text-[#00FF88]">✓</span> Cancel any time from Manage membership</li>
               </ul>
             </>
