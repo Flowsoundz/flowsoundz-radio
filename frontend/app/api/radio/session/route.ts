@@ -19,26 +19,36 @@ export async function POST(request: NextRequest) {
 
   const songId = typeof body.songId === "string" ? body.songId : null;
 
-  await prisma.radioSession.upsert({
-    where: { sessionId },
-    create: {
-      sessionId,
-      lastSeenAt: new Date(),
-      ...(songId ? { currentSongId: songId } : {}),
-    },
-    update: {
-      lastSeenAt: new Date(),
-      ...(songId ? { currentSongId: songId } : {}),
-    },
-  });
+  try {
+    await prisma.radioSession.upsert({
+      where: { sessionId },
+      create: {
+        sessionId,
+        lastSeenAt: new Date(),
+        ...(songId ? { currentSongId: songId } : {}),
+      },
+      update: {
+        lastSeenAt: new Date(),
+        ...(songId ? { currentSongId: songId } : {}),
+      },
+    });
+  } catch (error) {
+    console.error("[api/radio/session] failed to upsert radio session", error);
+    return Response.json({ ok: false, degraded: true });
+  }
 
   return Response.json({ ok: true });
 }
 
 export async function GET() {
   const since = new Date(Date.now() - ACTIVE_WINDOW_MS);
-  const count = await prisma.radioSession.count({
-    where: { lastSeenAt: { gte: since } },
-  });
-  return Response.json({ count });
+  try {
+    const count = await prisma.radioSession.count({
+      where: { lastSeenAt: { gte: since } },
+    });
+    return Response.json({ count });
+  } catch (error) {
+    console.error("[api/radio/session] failed to count live sessions", error);
+    return Response.json({ count: 0, degraded: true });
+  }
 }
