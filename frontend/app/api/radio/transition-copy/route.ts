@@ -33,6 +33,28 @@ function getString(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function buildFallbackDjLine(input: {
+  currentSongTitle: string;
+  currentSongArtist: string;
+  nextSongTitle: string;
+  nextSongArtist: string;
+  transitionType: string;
+  hostName: string;
+}) {
+  const host = input.hostName || "FlowSoundz";
+  const next = `"${input.nextSongTitle}" by ${input.nextSongArtist}`;
+
+  if (input.transitionType === "reset") {
+    return `${host} resets the room with ${next}.`;
+  }
+
+  if (input.currentSongTitle && input.currentSongArtist) {
+    return `From "${input.currentSongTitle}" by ${input.currentSongArtist} into ${next}.`;
+  }
+
+  return `${host} brings in ${next}.`;
+}
+
 function extractOutputText(payload: OpenAIResponse) {
   if (typeof payload.output_text === "string" && payload.output_text.trim()) {
     return payload.output_text.trim();
@@ -75,15 +97,25 @@ export async function POST(request: Request) {
   const nextSongTitle = getString(body.nextSongTitle);
   const nextSongArtist = getString(body.nextSongArtist);
   const nextSongVibe = getString(body.nextSongVibe);
-  const hostName = getString(body.hostName);
+  const hostName = getString(body.hostName) || "FlowSoundz";
   const hostTone = getString(body.hostTone);
-  const transitionType = getString(body.transitionType);
+  const transitionType = getString(body.transitionType) || "direct";
   const timeOfDay = getString(body.timeOfDay) || "night";
 
-  if (!nextSongTitle || !nextSongArtist || !hostName || !transitionType) {
+  if (!nextSongTitle || !nextSongArtist) {
     return NextResponse.json(
-      { error: "Missing required transition context." },
-      { status: 422 },
+      {
+        djLine: buildFallbackDjLine({
+          currentSongTitle,
+          currentSongArtist,
+          nextSongTitle: nextSongTitle || "the next track",
+          nextSongArtist: nextSongArtist || "FlowSoundz",
+          transitionType,
+          hostName,
+        }),
+        degraded: true,
+      },
+      { status: 200 },
     );
   }
 
@@ -136,19 +168,38 @@ export async function POST(request: Request) {
   if (!response.ok) {
     return NextResponse.json(
       {
+        djLine: buildFallbackDjLine({
+          currentSongTitle,
+          currentSongArtist,
+          nextSongTitle,
+          nextSongArtist,
+          transitionType,
+          hostName,
+        }),
+        degraded: true,
         error:
           payload.error?.message ||
           "OpenAI request failed. Please try again.",
       },
-      { status: response.status },
+      { status: 200 },
     );
   }
 
   const raw = extractOutputText(payload);
   if (!raw) {
     return NextResponse.json(
-      { error: "No DJ copy was generated." },
-      { status: 502 },
+      {
+        djLine: buildFallbackDjLine({
+          currentSongTitle,
+          currentSongArtist,
+          nextSongTitle,
+          nextSongArtist,
+          transitionType,
+          hostName,
+        }),
+        degraded: true,
+      },
+      { status: 200 },
     );
   }
 
@@ -161,8 +212,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ djLine });
   } catch {
     return NextResponse.json(
-      { error: "Received an invalid DJ copy response." },
-      { status: 502 },
+      {
+        djLine: buildFallbackDjLine({
+          currentSongTitle,
+          currentSongArtist,
+          nextSongTitle,
+          nextSongArtist,
+          transitionType,
+          hostName,
+        }),
+        degraded: true,
+      },
+      { status: 200 },
     );
   }
 }

@@ -209,7 +209,7 @@ export async function POST(req: Request) {
   const nowMs = Date.now();
   const lastDrop = ipLastDropMs.get(ip) ?? 0;
   if (nowMs - lastDrop < DROP_COOLDOWN_MS) {
-    return Response.json({ error: "Too many drop requests." }, { status: 429 });
+    return Response.json({ rateLimited: true, degraded: true }, { status: 200 });
   }
   if (ipLastDropMs.size > MAX_TRACKED_IPS) ipLastDropMs.clear();
   ipLastDropMs.set(ip, nowMs);

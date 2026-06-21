@@ -16,6 +16,17 @@ type SmartNarrateRequest = {
   lon?: number;
 };
 
+function buildFallbackNarration(
+  currentTitle: string,
+  currentArtist: string,
+  nextTitle: string,
+  nextArtist: string,
+  vibe: string,
+) {
+  const vibeLabel = vibe.replace(/_/g, " ");
+  return `That was "${currentTitle}" by ${currentArtist}. Now we slide into "${nextTitle}" by ${nextArtist} on a ${vibeLabel} run.`;
+}
+
 function buildDjScript(
   context: Awaited<ReturnType<typeof getRadioContext>>,
   currentTitle: string,
@@ -122,7 +133,13 @@ export async function POST(request: NextRequest) {
     if (!djLine) throw new Error("Empty Claude response");
   } catch (err) {
     console.error("[smart-narrate] Claude error:", err);
-    return new Response(JSON.stringify({ error: "Script generation failed." }), { status: 502 });
+    djLine = buildFallbackNarration(
+      currentTitle,
+      currentArtist || "the station",
+      nextTitle,
+      nextArtist || "the next artist",
+      vibe,
+    );
   }
 
   // 3. Convert to speech with ElevenLabs
