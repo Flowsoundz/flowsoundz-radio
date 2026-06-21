@@ -92,10 +92,35 @@ export default async function AdminInsightsPage() {
         />
       </div>
 
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard label="Recent Replays" value={summary.totals.replayClicks} />
+        <StatCard label="Artist Watches" value={summary.totals.watchAdds} />
+        <StatCard label="Alerts Enabled" value={summary.totals.alertEnables} />
+        <StatCard label="Alerts Disabled" value={summary.totals.alertDisables} />
+      </div>
+
       <div className="mt-6 grid gap-4 xl:grid-cols-3">
         <RankedList title="Top Tracks" items={summary.topTracks} />
         <RankedList title="Top Vibes" items={summary.topVibes} />
         <RankedList title="Top Events" items={summary.topEvents} />
+      </div>
+
+      <div className="mt-6 grid gap-4 xl:grid-cols-2">
+        <RankedList title="Retention Sources" items={summary.retentionSources} />
+        <div className="glass-card rounded-[1.6rem] border border-white/10 p-5">
+          <h2 className="text-lg font-semibold text-white">Retention Read</h2>
+          <div className="mt-4 space-y-3 text-sm leading-6 text-slate-300">
+            <p>
+              Replays show whether radio discovery is converting into immediate control instead of a bounce.
+            </p>
+            <p>
+              Artist watches show whether listeners want a return path for specific artists after the first impression.
+            </p>
+            <p>
+              Alert enables show whether the station has enough pull for people to let FlowSoundz bring them back later.
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className="glass-card mt-6 rounded-[1.6rem] border border-white/10 p-5">

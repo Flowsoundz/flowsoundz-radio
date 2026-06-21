@@ -240,6 +240,38 @@ export function summarizeAnalyticsEvents(records: AnalyticsEventRecord[]) {
   const submissionCompletes = records.filter(
     (record) => record.event === "artist_submission_completed",
   ).length;
+  const retentionRecords = records.filter(
+    (record) =>
+      record.event === "start_listening_click" &&
+      typeof record.action === "string" &&
+      ["replay_recent_track", "watch_artist", "unwatch_artist", "enable_alerts", "disable_alerts"].includes(record.action),
+  );
+  const replayClicks = retentionRecords.filter(
+    (record) => record.action === "replay_recent_track",
+  ).length;
+  const watchAdds = retentionRecords.filter(
+    (record) => record.action === "watch_artist",
+  ).length;
+  const watchRemoves = retentionRecords.filter(
+    (record) => record.action === "unwatch_artist",
+  ).length;
+  const alertEnables = retentionRecords.filter(
+    (record) => record.action === "enable_alerts",
+  ).length;
+  const alertDisables = retentionRecords.filter(
+    (record) => record.action === "disable_alerts",
+  ).length;
+
+  const retentionSources = Array.from(
+    retentionRecords.reduce((map, record) => {
+      const key = typeof record.source === "string" && record.source.trim() ? record.source : "unknown";
+      map.set(key, (map.get(key) ?? 0) + 1);
+      return map;
+    }, new Map<string, number>()),
+  )
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8)
+    .map(([label, count]) => ({ label, count }));
 
   return {
     totals: {
@@ -251,6 +283,11 @@ export function summarizeAnalyticsEvents(records: AnalyticsEventRecord[]) {
       visualizerOpens,
       submissionStarts,
       submissionCompletes,
+      replayClicks,
+      watchAdds,
+      watchRemoves,
+      alertEnables,
+      alertDisables,
       submitConversion:
         submissionStarts > 0
           ? Math.round((submissionCompletes / submissionStarts) * 100)
@@ -264,6 +301,7 @@ export function summarizeAnalyticsEvents(records: AnalyticsEventRecord[]) {
     ),
     topVibes: topCounts(records, "vibe"),
     topEvents: topCounts(records, "event"),
+    retentionSources,
     recent: records.slice(0, 20),
   };
 }

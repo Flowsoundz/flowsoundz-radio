@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { CoverArt } from "@/components/CoverArt";
 import { PushBell } from "@/components/PushBell";
 import { useGlobalAudioRefs } from "@/components/GlobalAudioProvider";
+import { track } from "@/lib/analytics";
 import { canUserTierAccessTrack } from "@/lib/access";
 import { slugifyArtistName } from "@/lib/artists";
 import {
@@ -94,6 +95,31 @@ export function RecentlyAiredRail() {
 
   if (items.length === 0) {
     return null;
+  }
+
+  function replayItem(item: RecentlyPlayedSong) {
+    track("start_listening_click", {
+      action: "replay_recent_track",
+      source: "recently_aired_rail",
+      title: item.title,
+      artist: item.artist,
+      vibe: item.vibe ?? null,
+      trackId: item.id,
+    });
+    requestOnDemandRef.current?.(toSong(item));
+  }
+
+  function toggleWatch(item: RecentlyPlayedSong) {
+    const result = toggleListenerWatchArtist(toWatchedArtist(item));
+    setWatchedArtists(result.artists.slice(0, 4));
+    track("start_listening_click", {
+      action: result.watched ? "watch_artist" : "unwatch_artist",
+      source: "recently_aired_rail",
+      title: item.title,
+      artist: item.artist,
+      vibe: item.vibe ?? null,
+      trackId: item.id,
+    });
   }
 
   return (
@@ -227,7 +253,7 @@ export function RecentlyAiredRail() {
                 {canReplay ? (
                   <button
                     type="button"
-                    onClick={() => requestOnDemandRef.current?.(toSong(item))}
+                    onClick={() => replayItem(item)}
                     className="inline-flex min-h-10 items-center justify-center rounded-full bg-[linear-gradient(135deg,#00e5ff_0%,#7c4dff_100%)] px-4 text-xs font-bold text-white shadow-[0_0_18px_rgba(0,229,255,0.22)] transition hover:shadow-[0_0_28px_rgba(0,229,255,0.42)]"
                   >
                     Replay now
@@ -248,7 +274,7 @@ export function RecentlyAiredRail() {
                 </Link>
                 <button
                   type="button"
-                  onClick={() => setWatchedArtists(toggleListenerWatchArtist(toWatchedArtist(item)).artists.slice(0, 4))}
+                  onClick={() => toggleWatch(item)}
                   className={`inline-flex min-h-10 items-center justify-center rounded-full px-4 text-xs font-semibold transition ${
                     isWatched
                       ? "border border-fuchsia-400/20 bg-fuchsia-400/[0.1] text-fuchsia-100 hover:border-fuchsia-400/34 hover:bg-fuchsia-400/[0.14]"

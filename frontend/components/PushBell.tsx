@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { track } from "@/lib/analytics";
 
 type SubState = "unknown" | "unsupported" | "denied" | "subscribed" | "unsubscribed";
 
@@ -51,6 +52,10 @@ export function PushBell() {
         }),
       });
       setState("subscribed");
+      track("start_listening_click", {
+        action: "enable_alerts",
+        source: "push_bell",
+      });
     } catch {
       if (Notification.permission === "denied") setState("denied");
     } finally {
@@ -72,6 +77,10 @@ export function PushBell() {
         await sub.unsubscribe();
       }
       setState("unsubscribed");
+      track("start_listening_click", {
+        action: "disable_alerts",
+        source: "push_bell",
+      });
     } finally {
       setLoading(false);
     }

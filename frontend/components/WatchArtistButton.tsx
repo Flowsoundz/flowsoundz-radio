@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { track } from "@/lib/analytics";
 import {
   LISTENER_WATCHLIST_EVENT,
   readListenerWatchlist,
@@ -37,7 +38,17 @@ export function WatchArtistButton(props: Props) {
   return (
     <button
       type="button"
-      onClick={() => setWatched(toggleListenerWatchArtist(artist).watched)}
+      onClick={() => {
+        const result = toggleListenerWatchArtist(artist);
+        setWatched(result.watched);
+        track("start_listening_click", {
+          action: result.watched ? "watch_artist" : "unwatch_artist",
+          source: "public_surface_watch_button",
+          artist: artist.artist,
+          title: artist.lastTrackTitle,
+          vibe: artist.vibe ?? null,
+        });
+      }}
       className={`inline-flex min-h-10 items-center justify-center rounded-full px-4 text-xs font-semibold transition ${
         watched
           ? "border border-fuchsia-400/20 bg-fuchsia-400/[0.1] text-fuchsia-100 hover:border-fuchsia-400/34 hover:bg-fuchsia-400/[0.14]"
