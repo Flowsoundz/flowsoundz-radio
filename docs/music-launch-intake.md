@@ -30,6 +30,7 @@ Default metadata for this batch:
 - Human contribution: FlowSoundz lyrics and melody
 - Production tool: Suno
 - AI disclosure: AI-assisted production; final release reviewed and approved by FlowSoundz
+- Content status: Clean / non-explicit, per founder confirmation
 
 Artwork read:
 
@@ -46,7 +47,7 @@ Complete the following for each unique release:
 - Genre
 - FlowSoundz vibe: Chill, Hype, Late Night, or Emotional
 - Language: English, Spanish, or Spanglish
-- Clean or explicit status
+- Clean or explicit status: currently marked Clean / non-explicit per founder confirmation; re-check lyrics during final editorial review
 - Producer and featured artist credits
 - Cover art
 - Artist profile image or visual
@@ -55,6 +56,13 @@ Complete the following for each unique release:
 - Rights confirmation for the master and composition
 - AI disclosure and platform/source details, if applicable
 - Release date and public access timing
+
+Founder confirmation recorded for this intake:
+
+- The four listed releases are intended to be non-explicit.
+- FlowSoundz supplied the original lyrics and melody and directed the creative result.
+- Suno contributed production assistance; this is an AI-assisted, artist-led release classification.
+- This confirmation is a release-workflow record, not a legal copyright certification.
 
 ## Import Rules
 
