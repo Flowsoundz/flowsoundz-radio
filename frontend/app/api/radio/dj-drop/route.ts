@@ -11,6 +11,8 @@ const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
 const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID ?? "21m00Tcm4TlvDq8ikWAM"; // default: Rachel
 
 type Lang = "en" | "es" | "spanglish";
+type HostSegment = "station_id" | "track_intro" | "artist_spotlight" | "crowd_energy";
+const HOST_SEGMENTS: HostSegment[] = ["station_id", "track_intro", "artist_spotlight", "crowd_energy"];
 
 const SYSTEM_PROMPTS: Record<Lang, string> = {
   en: `You are the host of FlowSoundz Radio — a high-energy, modern internet radio station.
@@ -34,6 +36,13 @@ function templateScript(trackTitle: string, artist: string, vibe: string, lang: 
   if (lang === "es") return `${hype} — "${trackTitle}" de ${artist} en tu cara. Esto es FlowSoundz Radio.`;
   if (lang === "spanglish") return `${hype} — you're locked in with FlowSoundz Radio. "${trackTitle}" by ${artist}, vibe: ${vibe}. Let's go.`;
   return `You're locked in with FlowSoundz Radio. Up next — "${trackTitle}" by ${artist}. Let it ride.`;
+}
+
+function segmentGuidance(segment: HostSegment, lang: Lang): string {
+  if (segment === "station_id") return lang === "es" ? "Identifica FlowSoundz Radio y el mood actual. No vendas nada." : "Identify FlowSoundz Radio and the current mood. Do not sell anything.";
+  if (segment === "artist_spotlight") return lang === "es" ? "Presenta al artista con respeto y menciona que es una seleccion de descubrimiento. No inventes datos." : "Spotlight the artist respectfully and frame the moment as discovery. Do not invent facts.";
+  if (segment === "crowd_energy") return lang === "es" ? "Reconoce la energia de la audiencia sin inventar numeros ni prometer resultados." : "Acknowledge listener energy without inventing numbers or promising results.";
+  return lang === "es" ? "Introduce el track con naturalidad y sin exagerar." : "Introduce the track naturally without exaggeration.";
 }
 
 async function generateWithClaude(system: string, userPrompt: string): Promise<string> {
@@ -127,11 +136,12 @@ async function generateScript(context: {
   lang: Lang;
   listenerCount?: number;
   includeChatContext?: boolean;
+  segment?: HostSegment;
 }): Promise<string> {
-  const { trackId, trackTitle, artist, vibe, lang, listenerCount, includeChatContext } = context;
+  const { trackId, trackTitle, artist, vibe, lang, listenerCount, includeChatContext, segment = "track_intro" } = context;
 
   // Check DB script cache first (survives cold starts)
-  if (trackId) {
+  if (trackId && segment === "track_intro") {
     try {
       const cached = await prisma.djDropScript.findUnique({
         where: { trackId_lang: { trackId, lang } },
@@ -146,25 +156,28 @@ async function generateScript(context: {
   const hypeContext = includeChatContext ? await getHypeContext() : "";
 
   const system = SYSTEM_PROMPTS[lang];
+  const segmentNote = segmentGuidance(segment, lang);
   const userPrompt =
     lang === "es"
       ? `Presenta "${trackTitle}" de ${artist}. Vibe: ${vibe}.${listenerCount ? ` ${listenerCount} personas están escuchando ahora.` : ""}${chatContext}${hypeContext} Dale candela.`
       : `Introduce "${trackTitle}" by ${artist}. Vibe: ${vibe}.${listenerCount ? ` ${listenerCount} people are listening right now.` : ""}${chatContext}${hypeContext} Make it hit.`;
 
+  const guidedPrompt = `${userPrompt} Segment direction: ${segmentNote}`;
+
   if (process.env.ANTHROPIC_API_KEY) {
-    try { return await generateWithClaude(system, userPrompt); } catch (e) {
+    try { return await generateWithClaude(system, guidedPrompt); } catch (e) {
       console.warn("[dj-drop] Claude failed, trying OpenAI:", e);
     }
   }
 
   if (process.env.OPENAI_API_KEY) {
-    try { return await generateWithOpenAI(system, userPrompt); } catch (e) {
+    try { return await generateWithOpenAI(system, guidedPrompt); } catch (e) {
       console.warn("[dj-drop] OpenAI failed, trying Gemini:", e);
     }
   }
 
   if (process.env.GEMINI_API_KEY ?? process.env.GOOGLE_AI_API_KEY ?? process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
-    try { return await generateWithGemini(system, userPrompt); } catch (e) {
+    try { return await generateWithGemini(system, guidedPrompt); } catch (e) {
       console.warn("[dj-drop] Gemini failed, using template:", e);
     }
   }
@@ -172,7 +185,7 @@ async function generateScript(context: {
   const fallback = templateScript(trackTitle, artist, vibe, lang);
 
   // Persist to DB so future cold starts skip the AI call
-  if (trackId) {
+  if (trackId && segment === "track_intro") {
     void prisma.djDropScript.upsert({
       where: { trackId_lang: { trackId, lang } },
       create: { trackId, lang, script: fallback },
@@ -223,6 +236,7 @@ export async function POST(req: Request) {
     listenerCount?: unknown;
     includeChatContext?: unknown;
     preWarm?: unknown;
+    segment?: unknown;
   };
   try {
     body = (await req.json()) as typeof body;
@@ -238,9 +252,12 @@ export async function POST(req: Request) {
   const listenerCount = typeof body.listenerCount === "number" ? body.listenerCount : undefined;
   const includeChatContext = Boolean(body.includeChatContext);
   const preWarm = Boolean(body.preWarm); // if true, generate + cache but don't return audio
+  const segment: HostSegment = HOST_SEGMENTS.includes(body.segment as HostSegment)
+    ? (body.segment as HostSegment)
+    : "track_intro";
 
   // Return cached audio drop for this track if fresh
-  if (trackId) {
+  if (trackId && segment === "track_intro") {
     const cached = dropCache.get(trackId);
     if (cached && Date.now() - cached.ts < CACHE_TTL_MS) {
       return Response.json({ url: cached.url, cached: true });
@@ -250,7 +267,7 @@ export async function POST(req: Request) {
   // Recycle persisted ElevenLabs audio FIRST — before any LLM call. Audio is
   // reused for up to AUDIO_REUSE_TTL regardless of the 45-min script TTL, so
   // each drop is paid for roughly once a week, not once per rotation cycle.
-  if (trackId) {
+  if (trackId && segment === "track_intro") {
     try {
       const row = await prisma.djDropScript.findUnique({
         where: { trackId_lang: { trackId, lang } },
@@ -272,9 +289,9 @@ export async function POST(req: Request) {
 
   let script: string;
   try {
-    script = await generateScript({ trackId, trackTitle, artist, vibe, lang, listenerCount, includeChatContext });
+    script = await generateScript({ trackId, trackTitle, artist, vibe, lang, listenerCount, includeChatContext, segment });
     // Persist fresh AI-generated script to DB
-    if (trackId) {
+    if (trackId && segment === "track_intro") {
       void prisma.djDropScript.upsert({
         where: { trackId_lang: { trackId, lang } },
         create: { trackId, lang, script },
@@ -322,7 +339,7 @@ export async function POST(req: Request) {
   const base64 = Buffer.from(audioBuffer).toString("base64");
   const dataUrl = `data:audio/mpeg;base64,${base64}`;
 
-  if (trackId) {
+  if (trackId && segment === "track_intro") {
     dropCache.set(trackId, { url: dataUrl, ts: Date.now() });
     // Persist the audio alongside the exact script it voices, keyed to the
     // current voice — any future request for this drop skips ElevenLabs.
