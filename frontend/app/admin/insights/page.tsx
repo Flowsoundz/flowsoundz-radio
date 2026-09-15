@@ -106,6 +106,21 @@ export default async function AdminInsightsPage() {
       </div>
 
       <div className="mt-6 grid gap-4 xl:grid-cols-2">
+        <RankedList title="Social Sources" items={summary.socialSources} />
+        <div className="glass-card rounded-[1.6rem] border border-white/10 p-5">
+          <h2 className="text-lg font-semibold text-white">Campaign Read</h2>
+          <div className="mt-4 space-y-3 text-sm leading-6 text-slate-300">
+            <p>
+              Source counts combine UTM campaigns and conversion sources so the team can compare social channels against direct traffic.
+            </p>
+            <p>
+              Use this with completions, shares, waitlist signups, and returning listeners. Reach alone is not a launch result.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-6 grid gap-4 xl:grid-cols-2">
         <RankedList title="Retention Sources" items={summary.retentionSources} />
         <div className="glass-card rounded-[1.6rem] border border-white/10 p-5">
           <h2 className="text-lg font-semibold text-white">Retention Read</h2>

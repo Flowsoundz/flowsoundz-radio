@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { getAttributionSource } from "@/lib/attribution";
+import { track } from "@/lib/analytics";
 
 type Status = "idle" | "loading" | "success" | "duplicate" | "error";
 
@@ -26,6 +27,7 @@ export function WaitlistForm() {
       });
 
       if (res.status === 201) {
+        track("waitlist_signup", { source: getAttributionSource() });
         setStatus("success");
       } else if (res.status === 200) {
         setStatus("duplicate");

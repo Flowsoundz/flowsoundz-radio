@@ -218,6 +218,25 @@ function topCounts(records: AnalyticsEventRecord[], key: "title" | "vibe" | "eve
     .map(([label, count]) => ({ label, count }));
 }
 
+function sourceCounts(records: AnalyticsEventRecord[]) {
+  const counts = new Map<string, number>();
+
+  for (const record of records) {
+    const source =
+      typeof record.utm_source === "string" && record.utm_source.trim()
+        ? record.utm_source
+        : typeof record.source === "string" && record.source.trim()
+          ? record.source
+          : "direct";
+    counts.set(source, (counts.get(source) ?? 0) + 1);
+  }
+
+  return Array.from(counts.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([label, count]) => ({ label, count }));
+}
+
 export function summarizeAnalyticsEvents(records: AnalyticsEventRecord[]) {
   const plays = records.filter(
     (record) =>
@@ -301,6 +320,7 @@ export function summarizeAnalyticsEvents(records: AnalyticsEventRecord[]) {
     ),
     topVibes: topCounts(records, "vibe"),
     topEvents: topCounts(records, "event"),
+    socialSources: sourceCounts(records),
     retentionSources,
     recent: records.slice(0, 20),
   };
