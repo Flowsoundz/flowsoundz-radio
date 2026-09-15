@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { mergeCreatorDraft, readCreatorDraft } from "@/lib/creatorHub/draft";
 
 const STORAGE_KEY = "fsz-release-kit";
@@ -57,6 +58,19 @@ function ListOutputBlock({ label, items }: { label: string; items: string[] }) {
       </ul>
     </div>
   );
+}
+
+function buildLaunchLink(artistName: string, songTitle: string) {
+  if (typeof window === "undefined") return "";
+  const url = new URL("/radio", window.location.origin);
+  url.searchParams.set("utm_source", "artist");
+  url.searchParams.set("utm_medium", "creator_share");
+  url.searchParams.set("utm_campaign", "artist_focus");
+  url.searchParams.set(
+    "utm_content",
+    `${artistName}-${songTitle}`.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80) || "release",
+  );
+  return url.toString();
 }
 
 const TABS = ["Promo", "Radio", "Social", "Hooks", "Video"] as const;
@@ -253,6 +267,34 @@ export default function ReleaseKitPage() {
           )}
           {output && (
             <div className="rounded-[1.8rem] border border-white/8 bg-[#0B1020]/80 overflow-hidden">
+              <div className="border-b border-white/[0.06] bg-white/[0.025] p-5">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <Image src="/FSRLogo.svg" alt="FlowSoundz Radio" width={128} height={32} className="h-6 w-auto" />
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-200/75">Ready to share</p>
+                      <p className="mt-1 text-sm font-semibold text-white">{songTitle} by {artistName}</p>
+                    </div>
+                  </div>
+                  <CopyBtn text={buildLaunchLink(artistName, songTitle)} />
+                </div>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <OutputBlock label="Trackable listening link" content={buildLaunchLink(artistName, songTitle)} />
+                  <OutputBlock
+                    label="Artist repost message"
+                    content={`My track "${songTitle}" is part of the FlowSoundz discovery rotation. Tune in with me and discover what is next: ${buildLaunchLink(artistName, songTitle)}`}
+                  />
+                </div>
+                <div className="mt-3 rounded-[1.2rem] border border-white/8 bg-white/[0.03] p-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">Launch checklist</p>
+                  <ul className="mt-3 grid gap-2 text-sm leading-6 text-slate-300 sm:grid-cols-2">
+                    <li>Use the main FlowSoundz logo on the closing frame.</li>
+                    <li>Name the artist and song in the first caption line.</li>
+                    <li>Use the trackable link for every repost.</li>
+                    <li>Disclose artist-led, AI-assisted production when applicable.</li>
+                  </ul>
+                </div>
+              </div>
               {/* Tabs */}
               <div className="flex border-b border-white/[0.06] overflow-x-auto scrollbar-none">
                 {TABS.map((tab) => (
