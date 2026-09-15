@@ -20,6 +20,8 @@ export function AdminIngestPanel() {
   const [genre, setGenre] = useState("");
   const [vibe, setVibe] = useState<string>("HYPE");
   const [sourceAudioUrl, setSourceAudioUrl] = useState("");
+  const [isAiAssisted, setIsAiAssisted] = useState(false);
+  const [aiPlatform, setAiPlatform] = useState("Suno");
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -57,7 +59,7 @@ export function AdminIngestPanel() {
       const res = await fetch("/api/admin/ingest", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, artist, genre, vibe, sourceAudioUrl }),
+        body: JSON.stringify({ title, artist, genre, vibe, sourceAudioUrl, isAiAssisted, aiPlatform: isAiAssisted ? aiPlatform : "" }),
       });
       const data = (await res.json()) as { song?: { id: string; title: string }; error?: string };
       if (!res.ok || !data.song) {
@@ -67,6 +69,7 @@ export function AdminIngestPanel() {
         setTitle("");
         setGenre("");
         setSourceAudioUrl("");
+        setIsAiAssisted(false);
       }
     } catch (err) {
       setResult({ kind: "err", message: err instanceof Error ? err.message : "Network error" });
@@ -167,6 +170,16 @@ export function AdminIngestPanel() {
             Genre <span className="text-white/25">(optional)</span>
           </label>
           <input className={field} value={genre} onChange={(e) => setGenre(e.target.value)} placeholder="Reggaeton, R&B…" />
+        </div>
+        <div className="sm:col-span-2 flex flex-wrap items-center gap-3 rounded-xl border border-fuchsia-400/15 bg-fuchsia-400/[0.05] px-3 py-3">
+          <label className="flex items-center gap-2 text-xs font-semibold text-fuchsia-100">
+            <input type="checkbox" checked={isAiAssisted} onChange={(e) => setIsAiAssisted(e.target.checked)} className="h-4 w-4 rounded accent-fuchsia-400" />
+            AI-assisted production
+          </label>
+          {isAiAssisted ? (
+            <input className={field + " max-w-xs"} value={aiPlatform} onChange={(e) => setAiPlatform(e.target.value)} placeholder="Production platform" />
+          ) : null}
+          <span className="text-[11px] text-white/45">Keep the artist, lyric, melody, and production contribution transparent.</span>
         </div>
       </div>
 

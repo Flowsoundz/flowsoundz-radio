@@ -41,6 +41,8 @@ export async function POST(req: Request) {
   const artistName = str(body.artist) || "FlowSoundz";
   const genre = str(body.genre) || "Independent";
   const sourceAudioUrl = str(body.sourceAudioUrl);
+  const isAiAssisted = Boolean(body.isAiAssisted);
+  const aiPlatform = str(body.aiPlatform) || null;
   const vibe = (VIBES as readonly string[]).includes(str(body.vibe).toUpperCase())
     ? (str(body.vibe).toUpperCase() as Vibe)
     : "HYPE";
@@ -85,6 +87,8 @@ export async function POST(req: Request) {
         vibe,
         audioUrl: finalAudioUrl, // placeholder; worker writes publicAudioUrl
         sourceAudioUrl: finalAudioUrl,
+        isAiGenerated: isAiAssisted,
+        aiPlatform,
         packagingStatus: "PENDING",
       },
       select: { id: true, slug: true, title: true, packagingStatus: true },
