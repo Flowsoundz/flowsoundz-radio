@@ -412,8 +412,8 @@ export default async function HomePage() {
                 Get your music heard — by people actually looking for it.
               </h2>
               <p className="mt-2 text-sm leading-7 text-slate-300">
-                FlowSoundz is human-curated radio. Submit a track for free, or grab a priority lane for
-                guaranteed 48-hour feedback. Your submission funds the station, not ads.
+                FlowSoundz is human-curated radio. Submit a track for free, or choose a priority lane for
+                faster feedback and stronger release support. Paid support never guarantees placement.
               </p>
             </div>
             <div className="flex shrink-0 flex-wrap gap-3">
