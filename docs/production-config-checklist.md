@@ -31,13 +31,17 @@ Do not commit real secret values. Add them in the hosting provider's encrypted e
 - [ ] `VAPID_PRIVATE_KEY`
 - [ ] `VAPID_SUBJECT`
 
-## Optional AI And Voice
+## AI And Voice For Full Launch
 
-- [ ] `ANTHROPIC_API_KEY`
-- [ ] `OPENAI_API_KEY`
-- [ ] `GEMINI_API_KEY`
-- [ ] `ELEVENLABS_API_KEY`
-- [ ] `ELEVENLABS_VOICE_ID`
+- [ ] `ANTHROPIC_API_KEY` - Claude creator copy, review, and DJ fallback
+- [ ] `OPENAI_API_KEY` - creator copy, transcription, outreach, and alternate model path
+- [ ] `GEMINI_API_KEY` - optional third DJ fallback
+- [ ] `OPENAI_MODEL_DJ` - approved model name for DJ and creator tasks
+- [ ] `OPENAI_OUTREACH_MODEL` - approved model name for outreach tasks
+- [ ] `ELEVENLABS_API_KEY` - spoken DJ drops and smart narration
+- [ ] `ELEVENLABS_VOICE_ID` - approved FlowSoundz voice
+
+At least one of `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` is required for live creator AI. Both are recommended for fallback resilience. `ELEVENLABS_API_KEY` is required for generated voice; the station can still use cached or local narration without it.
 
 ## Public Configuration
 
