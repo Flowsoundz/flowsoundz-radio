@@ -1,3 +1,5 @@
+import { getAttribution } from "@/lib/attribution";
+
 type EventName =
   | "page_view"
   | "start_listening_click"
@@ -21,6 +23,7 @@ export function track(event: EventName, props?: EventProps): void {
     event,
     url: window.location.pathname,
     ts: new Date().toISOString(),
+    ...getAttribution(),
     ...props,
   };
 

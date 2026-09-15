@@ -14,9 +14,11 @@ const LAUNCH_LIMIT = Number(process.env.LAUNCH_LIMIT ?? 50);
 
 export async function POST(request: Request) {
   let email: string;
+  let source = "homepage";
   try {
-    const body = (await request.json()) as { email?: unknown };
+    const body = (await request.json()) as { email?: unknown; source?: unknown };
     email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+    source = typeof body.source === "string" ? body.source.trim().slice(0, 120) : "homepage";
   } catch {
     return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
   }
@@ -43,7 +45,7 @@ export async function POST(request: Request) {
 
   // Save to waitlist
   await prisma.waitlistEntry.create({
-    data: { email, source: "homepage", earlyAccess: isEarlyAccess },
+    data: { email, source: source || "homepage", earlyAccess: isEarlyAccess },
   });
 
   // Also append to file store (used by admin panel)
@@ -51,7 +53,7 @@ export async function POST(request: Request) {
     id: `wl_${Date.now().toString(36)}`,
     email,
     joined_at: new Date().toISOString(),
-    source: "homepage",
+    source: source || "homepage",
   }).catch(() => undefined);
 
   if (isEarlyAccess) {

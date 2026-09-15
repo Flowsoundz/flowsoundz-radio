@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { getAttributionSource } from "@/lib/attribution";
 
 type Status = "idle" | "loading" | "success" | "duplicate" | "error";
 
@@ -21,7 +22,7 @@ export function WaitlistForm() {
       const res = await fetch("/api/waitlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, source: getAttributionSource() }),
       });
 
       if (res.status === 201) {
