@@ -16,6 +16,13 @@ Artist attribution supplied by founder: all listed releases are FlowSoundz recor
 | Pinocho Gelato | `Pinocho Gelato.wav` | WAV, PCM 16-bit, stereo, 48 kHz | 2:34.760 | -15.8 LUFS | Candidate |
 | Rata-Man (Edit) | `Rata-Man (Edit).wav` | WAV, PCM 16-bit, stereo, 48 kHz | 4:14.760 | -15.7 LUFS | Candidate |
 
+Suno source IDs recorded in embedded metadata:
+
+- `Mi Fulanita`: `c4450e6c-f681-451f-b820-e4933d7a7260`
+- `Pelotero`: `4da67710-36e4-4b44-bda2-079a62568916`
+- `Pinocho Gelato`: `f2edb822-34b1-4beb-90a6-139ad80d538f`
+- `Rata-Man (Edit)`: `97606a54-dac4-442b-9645-5f013e6bb73e`
+
 Default metadata for this batch:
 
 - Artist: FlowSoundz
@@ -23,6 +30,12 @@ Default metadata for this batch:
 - Human contribution: FlowSoundz lyrics and melody
 - Production tool: Suno
 - AI disclosure: AI-assisted production; final release reviewed and approved by FlowSoundz
+
+Artwork read:
+
+- `Mi Fulanita.mp3` contains embedded 360x360 artwork.
+- The WAV master and the other three WAV files do not contain embedded artwork.
+- Export or provide final cover art separately before publishing the batch.
 
 ## Required Before Import
 
