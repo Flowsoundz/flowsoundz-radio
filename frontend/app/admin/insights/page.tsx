@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/AppShell";
+import { SocialCampaignBuilder } from "@/components/SocialCampaignBuilder";
 import {
   readAnalyticsEvents,
   summarizeAnalyticsEvents,
@@ -136,6 +137,10 @@ export default async function AdminInsightsPage() {
             </p>
           </div>
         </div>
+      </div>
+
+      <div className="mt-6">
+        <SocialCampaignBuilder />
       </div>
 
       <div className="glass-card mt-6 rounded-[1.6rem] border border-white/10 p-5">
