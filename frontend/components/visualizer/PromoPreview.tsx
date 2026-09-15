@@ -17,7 +17,10 @@ export function PromoPreview(props: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   // Keep latest props in a ref so the single rAF loop never goes stale.
   const propsRef = useRef(props);
-  propsRef.current = props;
+
+  useEffect(() => {
+    propsRef.current = props;
+  }, [props]);
 
   useEffect(() => {
     const canvas = canvasRef.current;

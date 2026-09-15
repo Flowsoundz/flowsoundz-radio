@@ -194,7 +194,7 @@ export async function GET(req: Request) {
               letterSpacing: "0.04em",
             }}
           >
-            flowsoundz.com/radio
+            flowsoundzradio.com/radio
           </div>
         </div>
       </div>

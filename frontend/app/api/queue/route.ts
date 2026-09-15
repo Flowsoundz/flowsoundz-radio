@@ -7,24 +7,37 @@ import type { Song } from "@/lib/types";
 
 // Each QueueBoost point = 3 request votes (lets community override organic demand)
 const BOOST_WEIGHT = 3;
+const HAS_DATABASE_URL = Boolean(process.env.DATABASE_URL?.trim());
 
 async function reorderQueue(songs: Song[]): Promise<Song[]> {
   const featured = songs.filter((song) => song.featured || song.is_featured);
   const rest = songs.filter((song) => !featured.includes(song));
 
+  if (!HAS_DATABASE_URL) {
+    return [...featured, ...rest];
+  }
+
   if (rest.length > 1) {
     const ids = rest.map((s) => s.id);
-    const [requestRows, boostRows] = await Promise.all([
-      prisma.songRequest.groupBy({
-        by: ["songId"],
-        where: { songId: { in: ids } },
-        _count: { songId: true },
-      }),
-      prisma.queueBoost.findMany({
-        where: { trackId: { in: ids } },
-        select: { trackId: true, score: true },
-      }),
-    ]);
+    let requestRows: { songId: string; _count: { songId: number } }[] = [];
+    let boostRows: { trackId: string; score: number }[] = [];
+
+    try {
+      [requestRows, boostRows] = await Promise.all([
+        prisma.songRequest.groupBy({
+          by: ["songId"],
+          where: { songId: { in: ids } },
+          _count: { songId: true },
+        }),
+        prisma.queueBoost.findMany({
+          where: { trackId: { in: ids } },
+          select: { trackId: true, score: true },
+        }),
+      ]);
+    } catch (error) {
+      console.warn("[api/queue] Queue ranking unavailable; using base catalog order.", error);
+      return [...featured, ...rest];
+    }
 
     const requestMap = new Map(requestRows.map((r) => [r.songId, r._count.songId]));
     const boostMap = new Map(boostRows.map((b) => [b.trackId, b.score]));

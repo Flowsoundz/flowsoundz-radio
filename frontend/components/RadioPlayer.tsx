@@ -595,8 +595,6 @@ export default function RadioPlayer() {
   const waitingArtist = "Next broadcast loading";
   const progressPercent =
     duration > 0 ? Math.min((currentTime / duration) * 100, 100) : 0;
-  const currentBed = preparedEvent?.plannedBed ?? null;
-  const usingFallbackCatalog = queueSnapshot.isFallbackCatalog;
   const archivePlaybackMode = stationMode === "playable_archive";
   const archiveStandbyMode = archivePlaybackMode && !hasPlayableQueue;
   const maintenanceMode =
@@ -2409,28 +2407,6 @@ export default function RadioPlayer() {
   }
 
   useEffect(() => {
-    skipToNextTrackRef.current = skipToNextTrack;
-    handleTimeUpdateRef.current = handleTimeUpdate;
-    handleLoadedMetadataRef.current = handleLoadedMetadata;
-    resyncStationRef.current = resyncStationAfterBackground;
-  });
-
-  // Re-sync to the live broadcast when the tab/app returns to the foreground.
-  // Mobile browsers throttle timers while backgrounded, so this is what keeps
-  // phone listeners on the shared station after a lock/unlock.
-  useEffect(() => {
-    const onVisible = () => {
-      if (document.visibilityState === "visible") resyncStationRef.current();
-    };
-    document.addEventListener("visibilitychange", onVisible);
-    window.addEventListener("pageshow", onVisible);
-    return () => {
-      document.removeEventListener("visibilitychange", onVisible);
-      window.removeEventListener("pageshow", onVisible);
-    };
-  }, []);
-
-  useEffect(() => {
     togglePlaybackRef.current = togglePlayback;
     skipTrackRef.current = skipToNextTrack;
 
@@ -2446,7 +2422,10 @@ export default function RadioPlayer() {
 
   // On-demand: insert song immediately after current position and jump to it
   const currentIndexRef = useRef(currentIndex);
-  currentIndexRef.current = currentIndex;
+
+  useEffect(() => {
+    currentIndexRef.current = currentIndex;
+  }, [currentIndex]);
 
   useEffect(() => {
     requestOnDemandRef.current = (song: Song) => {
@@ -2540,6 +2519,28 @@ export default function RadioPlayer() {
       }
     }
   }
+
+  useEffect(() => {
+    skipToNextTrackRef.current = skipToNextTrack;
+    handleTimeUpdateRef.current = handleTimeUpdate;
+    handleLoadedMetadataRef.current = handleLoadedMetadata;
+    resyncStationRef.current = resyncStationAfterBackground;
+  });
+
+  // Re-sync to the live broadcast when the tab/app returns to the foreground.
+  // Mobile browsers throttle timers while backgrounded, so this is what keeps
+  // phone listeners on the shared station after a lock/unlock.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") resyncStationRef.current();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("pageshow", onVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("pageshow", onVisible);
+    };
+  }, []);
 
   // Keyboard controls: Space = play/pause, ←/→ = seek ±10s, hold for continuous seek
   useEffect(() => {
