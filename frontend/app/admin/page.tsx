@@ -71,6 +71,12 @@ export default async function AdminPage() {
 
   const ADMIN_TOOLS: ToolDef[] = [
     {
+      href: "/admin/ai-host",
+      title: "AI Host Pilot",
+      description:
+        "Preview and review AI radio segments before they are scheduled on air.",
+    },
+    {
       href: "/admin/insights",
       title: "Listener Insights",
       description:
