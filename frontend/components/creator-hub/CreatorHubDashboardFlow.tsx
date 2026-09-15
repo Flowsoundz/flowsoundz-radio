@@ -43,19 +43,6 @@ type FlowStep = {
   personaNotes: Partial<Record<PersonaId, string>>;
 };
 
-const PERSONA_LABELS: Record<PersonaId, string> = {
-  independent: "Independent Artist",
-  ai_assisted: "AI-Assisted Artist",
-  virtual: "Virtual Artist",
-  producer: "Producer / Sound Designer",
-};
-
-const VISUAL_EXPORT_TARGETS = [
-  { id: "tiktok", label: "Create TikTok Visual" },
-  { id: "reels", label: "Create Reels Visual" },
-  { id: "shorts", label: "Create Shorts Visual" },
-] as const;
-
 const STORAGE_KEY = "flowsoundz-creator-hub-flow-v1";
 
 const PERSONAS: Persona[] = [

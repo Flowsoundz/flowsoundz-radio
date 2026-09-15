@@ -19,6 +19,28 @@ export type ResolvedAudio = {
   resolvedFrom?: string;
 };
 
+export function isBlockedRemoteAudioUrl(input: string): boolean {
+  try {
+    const url = new URL(input);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return true;
+
+    const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, "");
+    if (host === "localhost" || host.endsWith(".local") || host.endsWith(".internal")) return true;
+    if (host === "0.0.0.0" || host === "::1") return true;
+    if (/^127\./.test(host) || /^10\./.test(host) || /^192\.168\./.test(host) || /^169\.254\./.test(host)) return true;
+    if (/^172\.(1[6-9]|2\d|3[0-1])\./.test(host)) return true;
+    return false;
+  } catch {
+    return true;
+  }
+}
+
+function assertAllowedRemoteAudioUrl(input: string) {
+  if (isBlockedRemoteAudioUrl(input)) {
+    throw new Error("That audio source host is not allowed.");
+  }
+}
+
 export function looksLikeDirectAudioUrl(input: string): boolean {
   try {
     const u = new URL(input);
@@ -37,6 +59,7 @@ export function looksLikeDirectAudioUrl(input: string): boolean {
 export async function resolveDirectAudioUrl(input: string): Promise<ResolvedAudio | null> {
   const trimmed = input.trim();
   if (!/^https?:\/\//i.test(trimmed)) return null;
+  assertAllowedRemoteAudioUrl(trimmed);
   if (looksLikeDirectAudioUrl(trimmed)) return { url: trimmed };
 
   try {
@@ -71,7 +94,10 @@ export async function resolveDirectAudioUrl(input: string): Promise<ResolvedAudi
     const og =
       html.match(/property=["']og:audio(?::url)?["'][^>]*content=["']([^"']+)["']/i) ??
       html.match(/content=["']([^"']+)["'][^>]*property=["']og:audio(?::url)?["']/i);
-    if (og?.[1] && /^https?:\/\//i.test(og[1])) return { url: og[1], resolvedFrom: trimmed };
+    if (og?.[1] && /^https?:\/\//i.test(og[1])) {
+      assertAllowedRemoteAudioUrl(og[1]);
+      return { url: og[1], resolvedFrom: trimmed };
+    }
   } catch {
     // Network/timeout — fall through; worker will report the fetch error.
   }

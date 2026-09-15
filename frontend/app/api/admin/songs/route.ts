@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
 
   if (!artistId && newArtistName) {
     const artistSlug = await (async () => {
-      let base = slug(newArtistName);
+      const base = slug(newArtistName);
       let candidate = base;
       let n = 0;
       while (await prisma.artist.findUnique({ where: { slug: candidate } })) {

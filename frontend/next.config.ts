@@ -24,7 +24,6 @@ function getBackendCoverPattern(): RemotePattern | null {
 }
 
 const backendCoverPattern = getBackendCoverPattern();
-const isVercel = Boolean(process.env.VERCEL);
 const isDev = process.env.NODE_ENV === "development";
 
 // External origins the app legitimately loads assets from
@@ -59,7 +58,7 @@ function buildCsp(frameAncestors: string, opts?: { wasm?: boolean }): string {
 }
 
 const nextConfig: NextConfig = {
-  distDir: process.env.NEXT_DIST_DIR || (isVercel ? ".next" : ".next-runtime"),
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   // Retired Creator Hub pages — edge-level redirects run before any page cache,
   // so they're reliable where page-component redirect() got served from stale
   // edge cache. releases→drops (duplicate scheduler), release-submit→submit

@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import {
   PackagingStatus,
@@ -23,6 +23,7 @@ const LOCAL_CATALOG_PATH = path.resolve(
   process.cwd(),
   "../backend/app/data/catalog.json",
 );
+const LOCAL_SONGS_DIR = path.resolve(process.cwd(), "../backend/media/songs");
 
 const SHOULD_USE_PRISMA = Boolean(process.env.DATABASE_URL?.trim());
 const CAN_USE_LOCAL_FILE_FALLBACK =
@@ -33,6 +34,22 @@ export const CATALOG_SNAPSHOT_STORAGE_MODE = SHOULD_USE_PRISMA
   : CAN_USE_LOCAL_FILE_FALLBACK
     ? "file"
     : "curated";
+
+async function hasLocalSongFile(fileName?: string | null): Promise<boolean> {
+  if (!fileName) return false;
+
+  const filePath = path.resolve(LOCAL_SONGS_DIR, fileName);
+  if (!filePath.startsWith(LOCAL_SONGS_DIR + path.sep) && filePath !== LOCAL_SONGS_DIR) {
+    return false;
+  }
+
+  try {
+    const info = await stat(filePath);
+    return info.isFile();
+  } catch {
+    return false;
+  }
+}
 
 type PrismaCatalogArtist = Prisma.ArtistGetPayload<{
   include: {
@@ -196,15 +213,18 @@ async function readLocalCatalogSongs(): Promise<Song[]> {
   try {
     const catalogRaw = await readFile(LOCAL_CATALOG_PATH, "utf8");
     const catalog = JSON.parse(catalogRaw) as Song[];
-    return catalog.map((song) => applySongOverrides({
-      ...song,
-      is_playable: true,
-      local_stream: true,
-      packaging_status: "ready",
-      artist_visual_exists: Boolean(song.artist_visual_file),
-      artist_visual_url: song.artist_visual_file
-        ? `/api/local-visual/${encodeURIComponent(song.artist_visual_file)}`
-        : null,
+    return Promise.all(catalog.map(async (song) => {
+      const hasAudio = await hasLocalSongFile(song.audio_file);
+      return applySongOverrides({
+        ...song,
+        is_playable: hasAudio || Boolean(song.public_audio_url || song.hls_url),
+        local_stream: hasAudio,
+        packaging_status: hasAudio ? "ready" : song.packaging_status,
+        artist_visual_exists: Boolean(song.artist_visual_file),
+        artist_visual_url: song.artist_visual_file
+          ? `/api/local-visual/${encodeURIComponent(song.artist_visual_file)}`
+          : null,
+      });
     }));
   } catch {
     return getCuratedCatalog();

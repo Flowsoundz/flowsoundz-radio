@@ -1,5 +1,5 @@
 import type { NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { isDatabaseConfigured, prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,6 +18,10 @@ export async function POST(request: NextRequest) {
   if (!sessionId) return Response.json({ error: "sessionId required." }, { status: 400 });
 
   const songId = typeof body.songId === "string" ? body.songId : null;
+
+  if (!isDatabaseConfigured()) {
+    return Response.json({ ok: false, degraded: true });
+  }
 
   try {
     await prisma.radioSession.upsert({
@@ -41,6 +45,10 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET() {
+  if (!isDatabaseConfigured()) {
+    return Response.json({ count: 0, degraded: true });
+  }
+
   const since = new Date(Date.now() - ACTIVE_WINDOW_MS);
   try {
     const count = await prisma.radioSession.count({

@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { slugifyArtistName } from "@/lib/catalogSnapshot";
 import { evaluateSubmissionRequirements, type RequirementVerdict } from "@/lib/submissionRequirements";
-import { resolveDirectAudioUrl } from "@/lib/resolveAudioSource";
+import { isBlockedRemoteAudioUrl, resolveDirectAudioUrl } from "@/lib/resolveAudioSource";
 
 const VIBES = new Set(["CHILL", "HYPE", "LATE_NIGHT", "EMOTIONAL", "UNSURE"]);
 
@@ -21,6 +21,26 @@ export type PublishResult =
   | { ok: true; songId: string; alreadyPublished: boolean; verdict: RequirementVerdict }
   | { ok: false; reason: "blocked"; verdict: RequirementVerdict }
   | { ok: false; reason: "not_found" };
+
+function withBlockedAudioSource(verdict: RequirementVerdict): RequirementVerdict {
+  const detail = "Audio source host is not allowed.";
+  return {
+    ...verdict,
+    passed: false,
+    autoApprovable: false,
+    checks: [
+      ...verdict.checks,
+      {
+        id: "audioSourceHost",
+        label: "Audio source host is allowed",
+        ok: false,
+        severity: "block",
+        detail,
+      },
+    ],
+    blockingReasons: [...verdict.blockingReasons, detail],
+  };
+}
 
 /**
  * Turn an approved artist submission into a PENDING catalog Song that the
@@ -48,10 +68,17 @@ export async function publishApprovedSubmission(
   if (!verdict.passed) return { ok: false, reason: "blocked", verdict };
 
   const rawSource = (overrideAudioUrl ?? sub.songLink ?? "").trim();
+  if (isBlockedRemoteAudioUrl(rawSource)) {
+    return { ok: false, reason: "blocked", verdict: withBlockedAudioSource(verdict) };
+  }
+
   // Share links resolve to the underlying CDN file so artists can paste
   // whatever the platform gave them.
   const resolved = await resolveDirectAudioUrl(rawSource);
   const sourceAudioUrl = resolved?.url ?? rawSource;
+  if (isBlockedRemoteAudioUrl(sourceAudioUrl)) {
+    return { ok: false, reason: "blocked", verdict: withBlockedAudioSource(verdict) };
+  }
 
   const artistSlug = slugifyArtistName(sub.artistName);
   const artist = await prisma.artist.upsert({

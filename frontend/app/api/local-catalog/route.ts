@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { NextResponse } from "next/server";
 import type { Song } from "@/lib/types";
@@ -6,6 +6,7 @@ import type { Song } from "@/lib/types";
 export const runtime = "nodejs";
 
 const CATALOG_PATH = path.resolve(process.cwd(), "../backend/app/data/catalog.json");
+const SONGS_DIR = path.resolve(process.cwd(), "../backend/media/songs");
 const LOCAL_MEDIA_UNAVAILABLE_MESSAGE =
   "Local media fallback is not available on this deployment. Connect the backend media service to enable radio playback.";
 
@@ -13,6 +14,22 @@ function reorderQueue(songs: Song[]) {
   const featured = songs.filter((song) => song.featured || song.is_featured);
   const rest = songs.filter((song) => !featured.includes(song));
   return [...featured, ...rest];
+}
+
+async function hasLocalSongFile(fileName?: string | null): Promise<boolean> {
+  if (!fileName) return false;
+
+  const filePath = path.resolve(SONGS_DIR, fileName);
+  if (!filePath.startsWith(SONGS_DIR + path.sep) && filePath !== SONGS_DIR) {
+    return false;
+  }
+
+  try {
+    const info = await stat(filePath);
+    return info.isFile();
+  } catch {
+    return false;
+  }
 }
 
 export async function GET(request: Request) {
@@ -29,15 +46,18 @@ export async function GET(request: Request) {
   try {
     const catalogRaw = await readFile(CATALOG_PATH, "utf8");
     const catalog = JSON.parse(catalogRaw) as Song[];
-    const normalized = catalog.map((song) => ({
-      ...song,
-      is_playable: true,
-      local_stream: true,
-      packaging_status: "ready" as const,
-      artist_visual_exists: Boolean(song.artist_visual_file),
-      artist_visual_url: song.artist_visual_file
-        ? `/api/local-visual/${encodeURIComponent(song.artist_visual_file)}`
-        : null,
+    const normalized = await Promise.all(catalog.map(async (song) => {
+      const hasAudio = await hasLocalSongFile(song.audio_file);
+      return {
+        ...song,
+        is_playable: hasAudio || Boolean(song.public_audio_url || song.hls_url),
+        local_stream: hasAudio,
+        packaging_status: hasAudio ? "ready" as const : song.packaging_status,
+        artist_visual_exists: Boolean(song.artist_visual_file),
+        artist_visual_url: song.artist_visual_file
+          ? `/api/local-visual/${encodeURIComponent(song.artist_visual_file)}`
+          : null,
+      };
     }));
 
     const filtered =

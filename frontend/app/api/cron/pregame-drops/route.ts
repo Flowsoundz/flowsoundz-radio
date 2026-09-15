@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { isAuthorizedCronRequest } from "@/lib/cronAuth";
 
 export const runtime = "nodejs";
 
@@ -7,8 +8,7 @@ export const runtime = "nodejs";
 // Pre-generates DJ drop scripts for the top-rotated tracks so transitions
 // skip the LLM call entirely and go straight to ElevenLabs TTS.
 export async function GET(req: Request) {
-  const authHeader = req.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!isAuthorizedCronRequest(req)) {
     return new NextResponse("Unauthorized", { status: 401 });
   }
 

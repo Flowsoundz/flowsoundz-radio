@@ -34,17 +34,7 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
-    "**/*.mts",
-    ".next-runtime/types/routes.d.ts",
-    ".next-runtime/types/cache-life.d.ts",
-    ".next-runtime/types/validator.ts",
-    ".next-runtime/dev/types/routes.d.ts",
-    ".next-runtime/dev/types/cache-life.d.ts",
-    ".next-runtime/dev/types/validator.ts",
-    ".next-runtime/types/**/*.ts",
-    ".next-runtime/dev/types/**/*.ts",
-    ".next-3001/types/**/*.ts",
-    ".next-3001/dev/types/**/*.ts"
+    "**/*.mts"
   ],
   "exclude": [
     "node_modules"

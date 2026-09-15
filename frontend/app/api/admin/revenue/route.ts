@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 export const runtime = "nodejs";
 
 // GET /api/admin/revenue — list pools + per-pool payout summary
-export async function GET(req: NextRequest) {
+export async function GET() {
   const session = await auth();
   if (!session?.user || !(session.user as { isAdmin?: boolean }).isAdmin) {
     return Response.json({ error: "Forbidden" }, { status: 403 });

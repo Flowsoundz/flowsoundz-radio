@@ -1,5 +1,5 @@
 import type { NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { isDatabaseConfigured, prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   const ids = request.nextUrl.searchParams.get("ids")?.split(",").filter(Boolean) ?? [];
   if (ids.length === 0) return Response.json({});
+  if (!isDatabaseConfigured()) return Response.json({});
 
   const counts = await prisma.songRequest.groupBy({
     by: ["songId"],
@@ -32,6 +33,7 @@ export async function POST(request: NextRequest) {
 
   const songId = typeof body.songId === "string" ? body.songId.trim() : null;
   if (!songId) return Response.json({ error: "songId required." }, { status: 400 });
+  if (!isDatabaseConfigured()) return Response.json({ ok: true, count: 0, degraded: true });
 
   const ip =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??

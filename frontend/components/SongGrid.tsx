@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import {
   canUserTierAccessTrack,
   isTrackFeatured,
@@ -11,6 +13,7 @@ import { CoverArt } from "@/components/CoverArt";
 import { getCoverUrl } from "@/lib/api";
 import { slugifyArtistName } from "@/lib/artists";
 import { formatDuration, formatVibeLabel } from "@/lib/format";
+import { track } from "@/lib/analytics";
 import { useGlobalAudioRefs, useGlobalAudioState } from "@/components/GlobalAudioProvider";
 import { useUserTier } from "@/lib/useUserTier";
 import type { Song } from "@/lib/types";
@@ -26,6 +29,31 @@ export function SongGrid({ songs, isLoading, error }: SongGridProps) {
   const { requestOnDemandRef } = useGlobalAudioRefs();
   const { currentTrack, isPlaying } = useGlobalAudioState();
   const canOnDemand = currentUserTier === "insider" || currentUserTier === "vault";
+  const [sharedSongId, setSharedSongId] = useState<string | null>(null);
+
+  async function shareSong(song: Song) {
+    const path = song.slug ? `/songs/${song.slug}` : `/radio?song=${encodeURIComponent(song.id)}`;
+    const url = `${window.location.origin}${path}`;
+    const shareData = {
+      title: `${song.title} by ${song.artist}`,
+      text: `Discover ${song.title} by ${song.artist} on FlowSoundz Radio.`,
+      url,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(url);
+      }
+      setSharedSongId(song.id);
+      window.setTimeout(() => setSharedSongId((current) => (current === song.id ? null : current)), 2200);
+      track("share_track_click", { trackId: song.id, title: song.title, artist: song.artist, source: "song_grid" });
+      void fetch("/api/share/award", { method: "POST" }).catch(() => undefined);
+    } catch {
+      // Closing the native share sheet is not an error state.
+    }
+  }
 
   if (error) {
     return (
@@ -267,6 +295,17 @@ export function SongGrid({ songs, isLoading, error }: SongGridProps) {
                 </div>
               ) : null}
               <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => void shareSong(song)}
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-full border border-cyan-300/18 bg-cyan-300/[0.06] py-1.5 text-[11px] font-semibold text-cyan-100 transition hover:bg-cyan-300/[0.12] hover:text-white"
+                  aria-label={`Share ${song.title} by ${song.artist}`}
+                >
+                  <svg viewBox="0 0 24 24" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="m8.6 13.5 6.8 4" /><path d="m15.4 6.5-6.8 4" />
+                  </svg>
+                  {sharedSongId === song.id ? "Copied" : "Share"}
+                </button>
                 <a
                   href={`https://open.spotify.com/search/${encodeURIComponent(`${song.title} ${song.artist}`)}`}
                   target="_blank"

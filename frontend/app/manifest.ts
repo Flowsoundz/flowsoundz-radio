@@ -5,13 +5,14 @@ export default function manifest(): MetadataRoute.Manifest {
     id: "/radio",
     name: "FlowSoundz Radio",
     short_name: "FlowSoundz",
-    description: "Dark neon after-hours radio with live vibe-based playback.",
+    description: "Dark neon after-hours radio - live vibe-based playback.",
     start_url: "/radio",
     scope: "/",
     display: "standalone",
     background_color: "#07070f",
     theme_color: "#07070f",
-    orientation: "portrait",
+    orientation: "portrait-primary",
+    lang: "en",
     categories: ["music", "entertainment"],
     icons: [
       {
@@ -44,30 +45,41 @@ export default function manifest(): MetadataRoute.Manifest {
         type: "image/png",
       },
     ],
+    shortcuts: [
+      {
+        name: "Listen Now",
+        short_name: "Listen",
+        url: "/radio",
+        icons: [
+          {
+            src: "/brand/flowsoundz-fr-icon-dark.png",
+            sizes: "96x96",
+            type: "image/png",
+          },
+        ],
+      },
+    ],
     screenshots: [
       {
         src: "/splash/splash-iphone-15-pro-max.png",
         sizes: "1290x2796",
         type: "image/png",
-
         form_factor: "narrow",
-        label: "FlowSoundz Radio — now playing",
+        label: "FlowSoundz Radio - now playing",
       },
       {
         src: "/splash/splash-iphone-14-pro.png",
         sizes: "1179x2556",
         type: "image/png",
-
         form_factor: "narrow",
-        label: "FlowSoundz Radio — discover",
+        label: "FlowSoundz Radio - discover",
       },
       {
         src: "/splash/splash-ipad-pro-13.png",
         sizes: "2064x2752",
         type: "image/png",
-
         form_factor: "wide",
-        label: "FlowSoundz Radio — tablet",
+        label: "FlowSoundz Radio - tablet",
       },
     ],
   };

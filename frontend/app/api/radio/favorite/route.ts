@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
+import { isDatabaseConfigured, prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 
@@ -15,6 +15,9 @@ function getIp(req: NextRequest): string {
 export async function GET(req: NextRequest) {
   const songId = req.nextUrl.searchParams.get("songId");
   if (!songId) return Response.json({ error: "songId required" }, { status: 400 });
+  if (!isDatabaseConfigured()) {
+    return Response.json({ favorited: false, count: 0, userId: null, degraded: true });
+  }
 
   const ip = getIp(req);
   const session = await auth();
@@ -44,6 +47,9 @@ export async function POST(req: NextRequest) {
 
   const songId = typeof body.songId === "string" ? body.songId.trim() : "";
   if (!songId) return Response.json({ error: "songId required" }, { status: 400 });
+  if (!isDatabaseConfigured()) {
+    return Response.json({ favorited: false, count: 0, degraded: true });
+  }
 
   const ip = getIp(req);
   const session = await auth();

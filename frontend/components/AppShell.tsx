@@ -2,7 +2,6 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import BottomNav from "@/components/BottomNav";
-import { InstallPrompt } from "@/components/InstallPrompt";
 import { AuthButton } from "@/components/AuthButton";
 
 type AppShellProps = {
@@ -41,7 +40,7 @@ export function AppShell({
               src="/FSRLogo.svg"
               alt="FlowSoundz Radio"
               width={160}
-              height={24}
+              height={32}
               className="h-5 w-auto md:h-6"
               style={{
                 mixBlendMode: "screen",
@@ -79,7 +78,6 @@ export function AppShell({
 
         <div className="flex w-full flex-col items-end gap-3 sm:w-auto sm:shrink-0">
           <AuthButton />
-          <InstallPrompt />
         </div>
       </header>
 

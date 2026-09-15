@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { isDatabaseConfigured, prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { awardVibePoints } from "@/lib/vibePoints";
 
@@ -13,6 +13,9 @@ const VOTE_DEBOUNCE_MS = 500;
 export async function GET(req: NextRequest) {
   const songId = req.nextUrl.searchParams.get("songId");
   if (!songId) return NextResponse.json({ error: "Missing songId" }, { status: 400 });
+  if (!isDatabaseConfigured()) {
+    return NextResponse.json({ hypeCount: 0, playCount: 0, rotationScore: 0, degraded: true });
+  }
 
   try {
     const pref = await prisma.queuePreference.findUnique({ where: { songId } });
@@ -45,6 +48,9 @@ export async function POST(req: NextRequest) {
 
   if (!songId || (vote !== "hype" && vote !== "skip")) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+  }
+  if (!isDatabaseConfigured()) {
+    return NextResponse.json({ hypeCount: 0, rotationScore: 0, degraded: true });
   }
 
   try {

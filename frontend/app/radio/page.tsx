@@ -60,8 +60,8 @@ export default function RadioPage() {
   return (
     <AppShell
       eyebrow="Live Radio"
-      title="Shared-time radio for listeners who want discovery to feel live."
-      subtitle="The player stays with you across the site. This page turns the station into a destination with context, schedule, and what is happening right now."
+      title="Discover what is next, together."
+      subtitle="FlowSoundz is live radio for independent artists and listeners who want discovery to feel shared, human, and in the moment."
     >
       <RadioOverview />
     </AppShell>

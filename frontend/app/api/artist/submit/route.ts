@@ -7,7 +7,7 @@ import {
   sendArtistSubmissionNotification,
   sendArtistSubmissionConfirmation,
 } from "@/lib/mailer";
-import { runAI, extractTag, extractList } from "@/lib/creatorHub/aiEngine";
+import { runAI, extractTag } from "@/lib/creatorHub/aiEngine";
 
 export const runtime = "nodejs";
 

@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { isDatabaseConfigured, prisma } from "@/lib/prisma";
 
 export type ChatRole = "ADMIN" | "ARTIST" | "VAULT" | "INSIDER" | "LISTENER";
 
@@ -18,6 +18,10 @@ const RATE_LIMIT_MS = 5_000;
 const lastSentAt = new Map<string, number>();
 
 export async function getMessages(limit = 50, since?: Date): Promise<ChatMessage[]> {
+  if (!isDatabaseConfigured()) {
+    return [];
+  }
+
   const rows = await prisma.chatMessage.findMany({
     where: since ? { createdAt: { gt: since } } : undefined,
     orderBy: { createdAt: "asc" },
@@ -44,6 +48,10 @@ export async function sendMessage(input: {
   trackTitle: string | null;
   role?: ChatRole;
 }): Promise<SendResult> {
+  if (!isDatabaseConfigured()) {
+    return { ok: false, error: "Chat is temporarily unavailable." };
+  }
+
   const now = Date.now();
   const last = lastSentAt.get(input.ip) ?? 0;
   if (now - last < RATE_LIMIT_MS) {

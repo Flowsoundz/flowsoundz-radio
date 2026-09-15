@@ -21,6 +21,22 @@ const pool = new pg.Pool({
 
 const log = (...a) => console.log(new Date().toISOString(), ...a);
 
+function isBlockedSourceUrl(urlStr) {
+  try {
+    const url = new URL(urlStr);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return true;
+
+    const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, "");
+    if (host === "localhost" || host.endsWith(".local") || host.endsWith(".internal")) return true;
+    if (host === "0.0.0.0" || host === "::1") return true;
+    if (/^127\./.test(host) || /^10\./.test(host) || /^192\.168\./.test(host) || /^169\.254\./.test(host)) return true;
+    if (/^172\.(1[6-9]|2\d|3[0-1])\./.test(host)) return true;
+    return false;
+  } catch {
+    return true;
+  }
+}
+
 // Atomically claim the oldest queued track. FOR UPDATE SKIP LOCKED means two
 // worker instances never grab the same row, so this scales horizontally.
 async function claimNextJob() {
@@ -85,6 +101,10 @@ function pickBestEmbeddedAudio(html) {
 }
 
 async function fetchSourceToFile(url, destPath) {
+  if (isBlockedSourceUrl(url)) {
+    throw new Error("source audio host is not allowed");
+  }
+
   const res = await fetch(url, {
     redirect: "follow",
     headers: { "User-Agent": "Mozilla/5.0 (Macintosh) AppleWebKit/537.36 Chrome/124.0" },

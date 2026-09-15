@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCreatorDashboard } from "@/lib/creatorDashboard";
 import { sendArtistDigest } from "@/lib/mailer";
+import { isAuthorizedCronRequest } from "@/lib/cronAuth";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -10,7 +11,7 @@ export const maxDuration = 60;
 // vercel.json). Sends every artist with a live track their numbers + next air
 // time + a one-tap share — the retention loop that pulls them back.
 export async function GET(req: Request) {
-  if (req.headers.get("authorization") !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!isAuthorizedCronRequest(req)) {
     return new NextResponse("Unauthorized", { status: 401 });
   }
 

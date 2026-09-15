@@ -4,6 +4,10 @@ const globalForPrisma = globalThis as typeof globalThis & {
   prisma?: PrismaClient;
 };
 
+export function isDatabaseConfigured(): boolean {
+  return Boolean(process.env.DATABASE_URL?.trim());
+}
+
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({

@@ -75,6 +75,33 @@ export default function ForArtistsPage() {
       </div>
 
       {/* ── Two paths ── */}
+      <section className="mb-10 border-y border-white/8 py-7">
+        <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-200/75">
+              The FlowSoundz path
+            </p>
+            <h2 className="mt-2 text-2xl font-semibold text-white">From release to real listening moment.</h2>
+          </div>
+          <p className="max-w-md text-sm leading-6 text-slate-400">
+            The goal is not to sell a guaranteed play. It is to give strong independent releases a clear, human-reviewed path into discovery.
+          </p>
+        </div>
+        <div className="grid gap-4 md:grid-cols-3">
+          {[
+            { number: "01", title: "You submit", body: "Send one release, the story behind it, and the rights details needed for a clean review." },
+            { number: "02", title: "We curate", body: "The team reviews fit, energy, audio quality, and rights before anything enters the station." },
+            { number: "03", title: "Listeners respond", body: "Approved music gets a station moment, an artist discovery profile, and measurable listener signals." },
+          ].map((item) => (
+            <div key={item.number} className="border-l-2 border-cyan-300/30 pl-4">
+              <p className="text-xs font-bold tracking-[0.2em] text-cyan-300/80">{item.number}</p>
+              <h3 className="mt-2 text-base font-semibold text-white">{item.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-400">{item.body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
       <div className="mb-10 grid gap-5 lg:grid-cols-2">
 
         {/* Free path */}

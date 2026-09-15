@@ -1,5 +1,5 @@
 import { getMessages } from "@/lib/chatStore";
-import { prisma } from "@/lib/prisma";
+import { isDatabaseConfigured, prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -39,7 +39,21 @@ export async function GET() {
         try { controller.close(); } catch { /* already closed */ }
       }
 
-      // ── Initial payload ──────────────────────────────────────────────────
+      function keepConnectionAlive() {
+        timers.push(setInterval(() => {
+          if (closed) return;
+          try { controller.enqueue(encoder.encode(": heartbeat\n\n")); }
+          catch { cleanup(); }
+        }, HEARTBEAT_MS));
+        setTimeout(cleanup, MAX_LIFETIME_MS);
+      }
+
+      if (!isDatabaseConfigured()) {
+        send("init", { messages: [], boosts: [], degraded: true });
+        keepConnectionAlive();
+        return;
+      }
+
       try {
         const [initMessages, initBoosts] = await Promise.all([
           getMessages(50),
@@ -53,7 +67,6 @@ export async function GET() {
 
       let lastChatAt = new Date();
 
-      // ── Chat poll every 2s ───────────────────────────────────────────────
       timers.push(setInterval(async () => {
         if (closed) return;
         try {
@@ -65,7 +78,6 @@ export async function GET() {
         } catch { cleanup(); }
       }, CHAT_POLL_MS));
 
-      // ── Boost scores every 10s ──────────────────────────────────────────
       timers.push(setInterval(async () => {
         if (closed) return;
         try {
@@ -78,7 +90,6 @@ export async function GET() {
         } catch { cleanup(); }
       }, BOOST_POLL_MS));
 
-      // ── Crowd hype every 4s — recent Fire votes in a 12s rolling window ──
       let lastHypeSent = -1;
       timers.push(setInterval(async () => {
         if (closed) return;
@@ -86,7 +97,6 @@ export async function GET() {
           const recent = await prisma.hypeEvent.count({
             where: { createdAt: { gt: new Date(Date.now() - HYPE_WINDOW_MS) } },
           });
-          // Only send on change — keeps the wire quiet when the room is calm.
           if (recent !== lastHypeSent) {
             lastHypeSent = recent;
             send("hype", { recent });
@@ -94,15 +104,7 @@ export async function GET() {
         } catch { cleanup(); }
       }, HYPE_POLL_MS));
 
-      // ── Heartbeat every 25s — keeps proxies from closing the connection ──
-      timers.push(setInterval(() => {
-        if (closed) return;
-        try { controller.enqueue(encoder.encode(": heartbeat\n\n")); }
-        catch { cleanup(); }
-      }, HEARTBEAT_MS));
-
-      // ── Hard close before platform timeout ──────────────────────────────
-      setTimeout(cleanup, MAX_LIFETIME_MS);
+      keepConnectionAlive();
     },
   });
 
