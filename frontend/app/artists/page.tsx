@@ -8,7 +8,7 @@ import { readCatalogSnapshotFromStore } from "@/lib/catalogSnapshotStore";
 export const metadata: Metadata = {
   title: "Artists — FlowSoundz Radio",
   description:
-    "Discover independent artists in the FlowSoundz Radio rotation. Every profile is a live snapshot — tracks, vibes, and rotation status straight from the station.",
+    "Discover the launch roster in the FlowSoundz Radio rotation. Every profile is a live snapshot — tracks, vibes, and rotation status straight from the station.",
 };
 
 export const dynamic = "force-dynamic";
@@ -45,7 +45,7 @@ export default async function ArtistsPage({ searchParams }: PageProps) {
     >
       <div className="mb-6 rounded-[1.9rem] border border-white/10 bg-[linear-gradient(135deg,rgba(0,229,255,0.07),rgba(124,77,255,0.07),rgba(255,61,242,0.05))] p-5">
         <p className="text-sm leading-6 text-slate-300">
-          Every profile is a live snapshot from the FlowSoundz catalog — tracks, cover art, vibes, and rotation status, directly from the station. Discover an artist here before the algorithm knows they exist.
+          Every profile is a live snapshot from the FlowSoundz launch catalog — tracks, cover art, vibes, and rotation status, directly from the station. Outside submissions are added as they clear review, so this page is honest about what is actually in rotation today.
         </p>
       </div>
 

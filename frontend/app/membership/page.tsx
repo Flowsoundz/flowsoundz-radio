@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     "Start free with live radio and discovery. Upgrade to Insider or Vault for replay, deeper access, and premium FlowSoundz moments.",
   openGraph: {
     title: "FlowSoundz Membership — Insider & Vault",
-    description: "Live radio first. On-demand depth and premium access when you want more control.",
+    description: "Live radio first. Replay depth and premium access when you want more context.",
   },
 };
 
@@ -48,7 +48,7 @@ const tiers = [
     ctaStyle: "gradient" as "outlined" | "gradient" | "fuchsia",
     perks: [
       "Everything in Free.",
-      "Recent replay and more control after a song airs.",
+      "Recent replay and more context after a song airs.",
       "Early access windows, Behind the Mix notes, and deeper artist context.",
     ],
   },
@@ -86,7 +86,7 @@ const comparisonRows = [
   { feature: "Public radio rotation", listener: "Included", insider: "Included", vault: "Included" },
   { feature: "Artist and song discovery", listener: "Included", insider: "Included", vault: "Included" },
   { feature: "Recent replay", listener: "Limited / none", insider: "Included", vault: "Included" },
-  { feature: "On-demand depth", listener: "Radio-first only", insider: "Selective access", vault: "Deep access" },
+  { feature: "Archive depth", listener: "Radio-first only", insider: "Recent replay", vault: "Deep replay archive" },
   { feature: "Behind the Mix", listener: "—", insider: "Included", vault: "Expanded" },
   { feature: "Exclusive drops", listener: "Public window only", insider: "Early access", vault: "Earliest + premium" },
   { feature: "Membership lane", listener: "Listener", insider: "Insider", vault: "Vault" },
@@ -97,14 +97,14 @@ export default function MembershipPage() {
     <AppShell
       eyebrow="Membership"
       title="Join the FlowSoundz circle"
-      subtitle="FlowSoundz is built in layers: live radio first, more control second, premium access on top. Start free, then upgrade when you want replay, deeper access, and member-only moments."
+      subtitle="FlowSoundz is built in layers: live radio first, replay and context second, premium access on top. Start free, then upgrade when you want deeper access after records air."
     >
       <div className="mb-8 rounded-[1.8rem] border border-cyan-300/18 bg-[linear-gradient(135deg,rgba(0,229,255,0.09),rgba(124,77,255,0.08),rgba(255,45,166,0.06))] px-6 py-5">
         <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-200/75">
           How it works
         </p>
         <p className="mt-2 text-sm leading-6 text-slate-200">
-          The station stays public. Membership is for listeners who want more control, more replay, and more access after discovery happens.
+          The station stays public. Membership is for listeners who want replay, deeper context, and more access after discovery happens.
         </p>
       </div>
 

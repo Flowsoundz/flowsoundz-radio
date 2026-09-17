@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Show } from "@/lib/showSchedule";
 import { useGlobalAudioRefs, useGlobalAudioState } from "@/components/GlobalAudioProvider";
 import { RecentlyAiredRail } from "@/components/radio/RecentlyAiredRail";
+import { useListenerSession } from "@/lib/useListenerSession";
 
 type StationNowResponse =
   | {
@@ -69,6 +70,8 @@ export function RadioOverview() {
   const [station, setStation] = useState<StationNowResponse | null>(null);
   const [schedule, setSchedule] = useState<ScheduleResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const stationSongId = station?.type === "track" ? station.song.id : currentTrack?.id ?? null;
+  const listenerCount = useListenerSession(stationSongId);
 
   useEffect(() => {
     let cancelled = false;
@@ -164,16 +167,21 @@ export function RadioOverview() {
             <div className="mt-5 grid gap-3 sm:grid-cols-3">
               {[
                 {
+                  label: "Live room",
+                  value:
+                    listenerCount === null
+                      ? "Counting active listeners now."
+                      : listenerCount === 0
+                        ? "No active listeners reported yet."
+                        : `${listenerCount} active listener${listenerCount === 1 ? "" : "s"} in the last two minutes.`,
+                },
+                {
                   label: "Broadcast feel",
                   value: "Shared timing, not private playlist drift.",
                 },
                 {
                   label: "Artist outcome",
                   value: station?.type === "track" ? `${station.song.artist} is on-air in the current block.` : "Every approved record gets a real station moment.",
-                },
-                {
-                  label: "Listener ritual",
-                  value: schedule?.current ? `${schedule.current.name} is shaping the tone right now.` : "The live mix and show grid stay in sync.",
                 },
               ].map((item) => (
                 <div
@@ -343,8 +351,20 @@ export function RadioOverview() {
 
             <div className="rounded-[1.8rem] border border-white/8 bg-white/[0.03] p-5">
               <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-fuchsia-200/75">
-                What to do here
+                Live room actions
               </p>
+              <div className="mt-3 rounded-[1.1rem] border border-cyan-300/14 bg-cyan-300/[0.06] px-4 py-3">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-200/80">
+                  Co-presence
+                </p>
+                <p className="mt-1 text-sm leading-6 text-slate-100">
+                  {listenerCount === null
+                    ? "Counting active listeners now."
+                    : listenerCount === 0
+                      ? "No active listeners reported yet. Start the station to join the room."
+                      : `${listenerCount} active listener${listenerCount === 1 ? "" : "s"} synced to the station recently.`}
+                </p>
+              </div>
               <div className="mt-4 grid gap-3">
                 {[
                   "Ask the AI DJ what is playing if you want context without breaking the station mood.",

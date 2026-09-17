@@ -5,10 +5,8 @@ import { SHOWS, getCurrentShow, getUpcomingShows } from "@/lib/showSchedule";
 
 export const metadata: Metadata = {
   title: "Schedule — FlowSoundz Radio",
-  description: "Weekly programming schedule for FlowSoundz Radio. Curated shows every night.",
+  description: "Daily programming clock for FlowSoundz Radio. Curated blocks repeat every 24 hours.",
 };
-
-const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 function formatShowTime(startHour: number, durationMinutes: number): string {
   const endMinute = startHour * 60 + durationMinutes;
@@ -32,9 +30,7 @@ function formatMinutes(minutes: number): string {
 export default function SchedulePage() {
   const current = getCurrentShow();
   const upcoming = getUpcomingShows(3);
-  const sortedShows = [...SHOWS].sort((a, b) =>
-    a.dayOfWeek !== b.dayOfWeek ? a.dayOfWeek - b.dayOfWeek : a.startHour - b.startHour,
-  );
+  const sortedShows = [...SHOWS].sort((a, b) => a.startHour - b.startHour);
 
   return (
     <AppShell eyebrow="Programming" title="On Air Schedule">
@@ -94,8 +90,8 @@ export default function SchedulePage() {
         </div>
       )}
 
-      {/* Full weekly grid */}
-      <h3 className="mb-4 text-xs font-bold uppercase tracking-widest text-slate-500">Weekly Schedule</h3>
+      {/* Full daily clock */}
+      <h3 className="mb-4 text-xs font-bold uppercase tracking-widest text-slate-500">Daily Station Clock</h3>
       <div className="flex flex-col gap-4">
         {sortedShows.map((show) => {
           const isNow = current?.id === show.id;
@@ -107,7 +103,7 @@ export default function SchedulePage() {
             >
               <div className="shrink-0 text-center" style={{ minWidth: 52 }}>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                  {DAYS[show.dayOfWeek].slice(0, 3)}
+                  Daily
                 </p>
                 <p className="mt-0.5 text-lg font-bold" style={{ color: show.accentColor }}>
                   {show.emoji}
@@ -141,7 +137,7 @@ export default function SchedulePage() {
         })}
       </div>
 
-      <p className="mt-10 text-center text-xs text-slate-600">All times Eastern (ET) · Schedule subject to change</p>
+      <p className="mt-10 text-center text-xs text-slate-600">All times Eastern (ET) · Daily blocks repeat every 24 hours</p>
     </AppShell>
   );
 }

@@ -112,11 +112,11 @@ export default function SongsPage() {
           <div className="mt-3 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="max-w-2xl">
               <h2 className="text-xl font-semibold text-white">
-                Unlock the full catalog
+                Unlock the replay archive
               </h2>
               <p className="mt-2 text-sm leading-6 text-slate-300">
                 Day One Access, Vault exclusives, Behind the Mix notes, and
-                Midnight Drops — none of it lives in the public lane.
+                Midnight Drops extend what aired first without turning the station into a jukebox.
               </p>
             </div>
             <Link

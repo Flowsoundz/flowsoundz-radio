@@ -69,6 +69,9 @@ export default function LabelRegisterPage() {
         <p className="mx-auto mt-2 max-w-md text-sm text-slate-400">
           Manage submissions, analytics, drop scheduling, and revenue share for every artist on your roster — from a single login.
         </p>
+        <p className="mx-auto mt-3 max-w-xl text-xs leading-5 text-slate-500">
+          Revenue share tracking reflects FlowSoundz-defined artist pools from eligible platform revenue. Paid promotion and priority review are separate from editorial curation and never guarantee airplay or payout.
+        </p>
       </div>
 
       {/* Tier cards */}
