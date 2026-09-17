@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Show } from "@/lib/showSchedule";
 import { useGlobalAudioRefs, useGlobalAudioState } from "@/components/GlobalAudioProvider";
 import { RecentlyAiredRail } from "@/components/radio/RecentlyAiredRail";
+import { track } from "@/lib/analytics";
 import { useListenerSession } from "@/lib/useListenerSession";
 
 type StationNowResponse =
@@ -64,12 +65,26 @@ function formatStartsIn(minutes: number) {
   return remainder > 0 ? `${hours}h ${remainder}m` : `${hours}h`;
 }
 
+function getStationShareUrl() {
+  if (typeof window === "undefined") {
+    return "https://flowsoundzradio.com/radio?utm_source=listener_share&utm_medium=creator_share&utm_campaign=launch&utm_content=share_station";
+  }
+
+  const url = new URL("/radio", window.location.origin);
+  url.searchParams.set("utm_source", "listener_share");
+  url.searchParams.set("utm_medium", "creator_share");
+  url.searchParams.set("utm_campaign", "launch");
+  url.searchParams.set("utm_content", "share_station");
+  return url.toString();
+}
+
 export function RadioOverview() {
   const { togglePlaybackRef, skipTrackRef } = useGlobalAudioRefs();
   const { currentTrack, hasStartedPlayback, isPlaying } = useGlobalAudioState();
   const [station, setStation] = useState<StationNowResponse | null>(null);
   const [schedule, setSchedule] = useState<ScheduleResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [stationShared, setStationShared] = useState(false);
   const stationSongId = station?.type === "track" ? station.song.id : currentTrack?.id ?? null;
   const listenerCount = useListenerSession(stationSongId);
 
@@ -121,6 +136,34 @@ export function RadioOverview() {
 
     return "Station break right now while the next block lines up.";
   }, [station]);
+
+  async function shareStation() {
+    const url = getStationShareUrl();
+    const title = "FlowSoundz Radio";
+    const text =
+      station?.type === "track"
+        ? `FlowSoundz Radio is live now with ${station.song.title} by ${station.song.artist}. Tap into the station.`
+        : "FlowSoundz Radio is live now. Tap into the shared discovery station.";
+
+    try {
+      if (navigator.share) {
+        await navigator.share({ title, text, url });
+      } else {
+        await navigator.clipboard.writeText(`${text}\n\n${url}`);
+      }
+
+      setStationShared(true);
+      window.setTimeout(() => setStationShared(false), 2200);
+      track("share_track_click", {
+        action: "share_station",
+        source: "radio_overview",
+        label: station?.type === "track" ? station.song.title : "station_break",
+      });
+      void fetch("/api/share/award", { method: "POST" }).catch(() => undefined);
+    } catch {
+      // Native share was dismissed or clipboard access was blocked.
+    }
+  }
 
   return (
     <div className="space-y-8">
@@ -223,6 +266,13 @@ export function RadioOverview() {
               >
                 Unlock Insider
               </Link>
+              <button
+                type="button"
+                onClick={() => void shareStation()}
+                className="inline-flex min-h-11 items-center justify-center rounded-full border border-fuchsia-300/20 bg-fuchsia-300/[0.07] px-6 py-2.5 text-sm font-semibold text-fuchsia-50 transition hover:border-fuchsia-300/34 hover:bg-fuchsia-300/[0.12]"
+              >
+                {stationShared ? "Station link copied" : "Share live room"}
+              </button>
             </div>
 
               <div className="mt-6 grid gap-3 sm:grid-cols-3">
