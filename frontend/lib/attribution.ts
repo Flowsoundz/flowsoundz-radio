@@ -1,7 +1,14 @@
 "use client";
 
 const STORAGE_KEY = "fsr_attribution";
-const KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_content"] as const;
+const KEYS = [
+  "utm_source",
+  "utm_medium",
+  "utm_campaign",
+  "utm_content",
+  "ref",
+  "fsr_ref",
+] as const;
 
 export type Attribution = Partial<Record<(typeof KEYS)[number], string>>;
 
@@ -44,5 +51,5 @@ export function getAttribution(): Attribution {
 
 export function getAttributionSource(): string {
   const attribution = getAttribution();
-  return attribution.utm_source ?? attribution.utm_medium ?? "direct";
+  return attribution.utm_source ?? attribution.ref ?? attribution.fsr_ref ?? attribution.utm_medium ?? "direct";
 }

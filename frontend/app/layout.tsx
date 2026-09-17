@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import { Space_Grotesk, Inter, Bebas_Neue } from "next/font/google";
 import "./globals.css";
+import { CampaignAttributionTracker } from "@/components/CampaignAttributionTracker";
 import { CookieBanner } from "@/components/CookieBanner";
 import { DevLocalhostGuard } from "@/components/DevLocalhostGuard";
 import { GlobalAudioProvider } from "@/components/GlobalAudioProvider";
@@ -97,6 +99,9 @@ export default async function RootLayout({
         <SessionProvider session={session}>
           <GlobalAudioProvider>
             <DevLocalhostGuard />
+            <Suspense fallback={null}>
+              <CampaignAttributionTracker />
+            </Suspense>
             <PwaRegistrar />
             <RadioPlayer />
             {children}

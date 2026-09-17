@@ -1,14 +1,18 @@
 import { AppShell } from "@/components/AppShell";
 import { AdminOutreachAgent } from "@/components/AdminOutreachAgent";
+import { AdminSocialCampaignAgent } from "@/components/AdminSocialCampaignAgent";
 
 export default function AdminOutreachPage() {
   return (
     <AppShell
       eyebrow="Admin"
       title="Artist Outreach"
-      subtitle="Generate short outreach DM copy for artists who fit the FlowSoundz discovery lane."
+      subtitle="Generate social campaign packages, trackable links, and short outreach DM copy for the FlowSoundz discovery lane."
     >
-      <AdminOutreachAgent />
+      <div className="space-y-6">
+        <AdminSocialCampaignAgent />
+        <AdminOutreachAgent />
+      </div>
     </AppShell>
   );
 }

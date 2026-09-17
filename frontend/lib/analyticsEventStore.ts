@@ -16,6 +16,7 @@ export type AnalyticsEventName =
   | "track_skip"
   | "track_complete"
   | "visualizer_open"
+  | "listen_live_click"
   | "artist_submission_started"
   | "artist_submission_completed";
 
@@ -76,6 +77,8 @@ function toPrismaEventName(event: AnalyticsEventName): PrismaAnalyticsEventName 
       return PrismaAnalyticsEventName.TRACK_COMPLETE;
     case "visualizer_open":
       return PrismaAnalyticsEventName.VISUALIZER_OPEN;
+    case "listen_live_click":
+      return PrismaAnalyticsEventName.START_LISTENING_CLICK;
     case "artist_submission_started":
       return PrismaAnalyticsEventName.ARTIST_SUBMISSION_STARTED;
     case "artist_submission_completed":
@@ -227,7 +230,11 @@ function sourceCounts(records: AnalyticsEventRecord[]) {
         ? record.utm_source
         : typeof record.source === "string" && record.source.trim()
           ? record.source
-          : "direct";
+          : typeof record.ref === "string" && record.ref.trim()
+            ? record.ref
+            : typeof record.fsr_ref === "string" && record.fsr_ref.trim()
+              ? record.fsr_ref
+              : "direct";
     counts.set(source, (counts.get(source) ?? 0) + 1);
   }
 
