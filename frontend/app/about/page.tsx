@@ -219,41 +219,32 @@ export default function AboutPage() {
         </div>
       </div>
 
-      {/* ── In Rotation ── */}
+      {/* ── Catalog rebuild ── */}
       <div className="mb-16">
         <p className="mb-6 text-xs font-semibold uppercase tracking-[0.28em] text-cyan-200/75">
-          In Rotation
+          Catalog Rebuild
         </p>
-        <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
-          {[
-            { title: "1888", genre: "Latin Urban", vibe: "Late Night", cover: "/covers/some1888.webp" },
-            { title: "Body Language", genre: "R&B", vibe: "Chill", cover: "/covers/bodylanguage.webp" },
-            { title: "Quiere Mas", genre: "Urban Latino", vibe: "Hype", cover: "/covers/flowsoundz-artist.png" },
-            { title: "Still Got Love", genre: "Alternative", vibe: "Emotional", cover: "/covers/still-got-love.webp" },
-            { title: "Doctora", genre: "Latin Pop", vibe: "Hype", cover: "/covers/doctora.webp" },
-            { title: "Essential", genre: "Electronic", vibe: "Late Night", cover: "/covers/essential.webp" },
-          ].map((track) => (
+        <div className="glass-card rounded-[1.8rem] p-8 text-center sm:p-10">
+          <h3 className="text-xl font-semibold text-white">The rotation is currently empty</h3>
+          <p className="mx-auto mt-3 max-w-2xl text-sm leading-7 text-slate-300">
+            We are rebuilding the station library one release at a time. New music will appear
+            here only after it has been mastered, reviewed, and added to the official catalog.
+          </p>
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
             <Link
-              key={track.title}
-              href="/radio"
-              className="group relative overflow-hidden rounded-[1.4rem] border border-white/8 bg-black/30 aspect-square transition hover:border-[#00e5ff]/25"
+              href="/songs"
+              className="rounded-full border border-cyan-300/30 px-5 py-2.5 text-sm font-semibold text-cyan-200 transition hover:bg-cyan-300/10"
             >
-              <Image
-                src={track.cover}
-                alt={track.title}
-                fill
-                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 16vw"
-                className="object-cover opacity-80 transition group-hover:opacity-100 group-hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent_40%,rgba(5,8,22,0.92)_100%)]" />
-              <div className="absolute bottom-0 left-0 right-0 p-3">
-                <p className="truncate text-[11px] font-semibold text-white">{track.title}</p>
-                <p className="truncate text-[10px] text-cyan-200/70">{track.genre} · {track.vibe}</p>
-              </div>
+              View the library
             </Link>
-          ))}
+            <Link
+              href="/for-artists"
+              className="rounded-full border border-white/15 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white/5"
+            >
+              Artist information
+            </Link>
+          </div>
         </div>
-        <p className="mt-4 text-center text-xs text-white/30">Live on FlowSoundz Radio — <Link href="/radio" className="text-cyan-400/70 hover:text-cyan-300 transition">tune in now →</Link></p>
       </div>
 
       {/* ── Trust & Safety ── */}

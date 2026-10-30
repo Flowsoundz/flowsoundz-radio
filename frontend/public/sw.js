@@ -1,4 +1,4 @@
-const STATIC_CACHE = "flowsoundz-static-v4";
+const STATIC_CACHE = "flowsoundz-static-v5";
 
 self.addEventListener("push", (event) => {
   if (!event.data) return;
