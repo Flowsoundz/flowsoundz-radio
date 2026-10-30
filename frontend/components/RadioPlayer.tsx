@@ -996,7 +996,9 @@ export default function RadioPlayer() {
         );
         setError(
           nextQueue.length === 0
-            ? "No songs are available in this vibe queue yet."
+            ? selectedVibe === "all"
+              ? "The station library is ready for its first track."
+              : "No songs are available in this vibe queue yet."
             : nextSnapshot.stationMode === "maintenance"
               ? ARCHIVE_STANDBY_MESSAGE
               : "",

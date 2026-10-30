@@ -20,13 +20,16 @@ export function AdminIngestPanel() {
   const [genre, setGenre] = useState("");
   const [vibe, setVibe] = useState<string>("HYPE");
   const [sourceAudioUrl, setSourceAudioUrl] = useState("");
+  const [coverUrl, setCoverUrl] = useState("");
   const [isAiAssisted, setIsAiAssisted] = useState(false);
   const [aiPlatform, setAiPlatform] = useState("Suno");
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadPct, setUploadPct] = useState(0);
+  const [coverUploading, setCoverUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const coverInputRef = useRef<HTMLInputElement | null>(null);
 
   async function handleFile(file: File) {
     setUploading(true);
@@ -49,6 +52,22 @@ export function AdminIngestPanel() {
     }
   }
 
+  async function handleCoverFile(file: File) {
+    setCoverUploading(true);
+    setResult(null);
+    try {
+      const blob = await upload(`covers/${file.name}`, file, {
+        access: "public",
+        handleUploadUrl: "/api/admin/blob-upload",
+      });
+      setCoverUrl(blob.url);
+    } catch (err) {
+      setResult({ kind: "err", message: err instanceof Error ? err.message : "Cover upload failed." });
+    } finally {
+      setCoverUploading(false);
+    }
+  }
+
   const canSubmit = title.trim() && /^https?:\/\//.test(sourceAudioUrl.trim()) && !submitting;
 
   async function submit() {
@@ -59,7 +78,7 @@ export function AdminIngestPanel() {
       const res = await fetch("/api/admin/ingest", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, artist, genre, vibe, sourceAudioUrl, isAiAssisted, aiPlatform: isAiAssisted ? aiPlatform : "" }),
+        body: JSON.stringify({ title, artist, genre, vibe, sourceAudioUrl, coverUrl, isAiAssisted, aiPlatform: isAiAssisted ? aiPlatform : "" }),
       });
       const data = (await res.json()) as { song?: { id: string; title: string }; error?: string };
       if (!res.ok || !data.song) {
@@ -69,6 +88,7 @@ export function AdminIngestPanel() {
         setTitle("");
         setGenre("");
         setSourceAudioUrl("");
+        setCoverUrl("");
         setIsAiAssisted(false);
       }
     } catch (err) {
@@ -170,6 +190,40 @@ export function AdminIngestPanel() {
             Genre <span className="text-white/25">(optional)</span>
           </label>
           <input className={field} value={genre} onChange={(e) => setGenre(e.target.value)} placeholder="Reggaeton, R&B…" />
+        </div>
+        <div className="sm:col-span-2">
+          <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-white/40">
+            Cover art <span className="text-white/25">(recommended)</span>
+          </label>
+          <div className="flex gap-2">
+            <input
+              className={field}
+              value={coverUrl}
+              onChange={(e) => setCoverUrl(e.target.value)}
+              placeholder="https://... or upload JPG, PNG, or WebP"
+              inputMode="url"
+              disabled={coverUploading}
+            />
+            <input
+              ref={coverInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void handleCoverFile(file);
+                e.target.value = "";
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => coverInputRef.current?.click()}
+              disabled={coverUploading}
+              className="shrink-0 rounded-xl border border-fuchsia-300/30 bg-fuchsia-300/10 px-4 py-2.5 text-xs font-bold text-fuchsia-200 transition hover:bg-fuchsia-300/18 disabled:opacity-50"
+            >
+              {coverUploading ? "Uploading..." : "Upload cover"}
+            </button>
+          </div>
         </div>
         <div className="sm:col-span-2 flex flex-wrap items-center gap-3 rounded-xl border border-fuchsia-400/15 bg-fuchsia-400/[0.05] px-3 py-3">
           <label className="flex items-center gap-2 text-xs font-semibold text-fuchsia-100">

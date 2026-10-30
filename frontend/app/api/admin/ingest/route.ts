@@ -41,6 +41,7 @@ export async function POST(req: Request) {
   const artistName = str(body.artist) || "FlowSoundz";
   const genre = str(body.genre) || "Independent";
   const sourceAudioUrl = str(body.sourceAudioUrl);
+  const coverUrl = str(body.coverUrl);
   const isAiAssisted = Boolean(body.isAiAssisted);
   const aiPlatform = str(body.aiPlatform) || null;
   const vibe = (VIBES as readonly string[]).includes(str(body.vibe).toUpperCase())
@@ -50,6 +51,9 @@ export async function POST(req: Request) {
   if (!title) return Response.json({ error: "title required" }, { status: 400 });
   if (!sourceAudioUrl || !/^https?:\/\//.test(sourceAudioUrl)) {
     return Response.json({ error: "sourceAudioUrl must be an http(s) URL" }, { status: 400 });
+  }
+  if (coverUrl && !/^https?:\/\//.test(coverUrl)) {
+    return Response.json({ error: "coverUrl must be an http(s) URL" }, { status: 400 });
   }
   // SSRF guard: this URL is fetched server-side (resolveDirectAudioUrl), so
   // refuse loopback / private / link-local hosts and cloud metadata endpoints.
@@ -87,6 +91,8 @@ export async function POST(req: Request) {
         vibe,
         audioUrl: finalAudioUrl, // placeholder; worker writes publicAudioUrl
         sourceAudioUrl: finalAudioUrl,
+        coverUrl: coverUrl || null,
+        coverExists: Boolean(coverUrl),
         isAiGenerated: isAiAssisted,
         aiPlatform,
         packagingStatus: "PENDING",

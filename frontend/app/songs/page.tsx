@@ -181,7 +181,16 @@ export default function SongsPage() {
 
       {/* ── Song grid ── */}
       <div className="mt-4">
-        <SongGrid songs={filtered} isLoading={loading} error={error} />
+        <SongGrid
+          songs={filtered}
+          isLoading={loading}
+          error={error}
+          emptyMessage={
+            songs.length === 0
+              ? "The station library is ready for its first track. New releases will appear here after they finish mastering."
+              : undefined
+          }
+        />
       </div>
     </AppShell>
   );

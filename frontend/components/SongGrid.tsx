@@ -22,9 +22,10 @@ type SongGridProps = {
   songs: Song[];
   isLoading: boolean;
   error: string | null;
+  emptyMessage?: string;
 };
 
-export function SongGrid({ songs, isLoading, error }: SongGridProps) {
+export function SongGrid({ songs, isLoading, error, emptyMessage }: SongGridProps) {
   const { tier: currentUserTier } = useUserTier();
   const { requestOnDemandRef } = useGlobalAudioRefs();
   const { currentTrack, isPlaying } = useGlobalAudioState();
@@ -101,7 +102,7 @@ export function SongGrid({ songs, isLoading, error }: SongGridProps) {
             Catalog waiting room
           </span>
         </div>
-        No tracks match your search. Try a different vibe filter or clear the search to browse the full catalog.
+        {emptyMessage ?? "No tracks match your search. Try a different vibe filter or clear the search to browse the full catalog."}
       </div>
     );
   }
