@@ -24,6 +24,9 @@ const LOCAL_CATALOG_PATH = path.resolve(
   "../backend/app/data/catalog.json",
 );
 const LOCAL_SONGS_DIR = path.resolve(process.cwd(), "../backend/media/songs");
+// The catalog was intentionally reset on 2026-10-30. Older database rows are
+// retained as a recoverable backup but must not reappear in the active library.
+const LIBRARY_RESET_AT = new Date("2026-10-30T16:33:11.391Z");
 
 const SHOULD_USE_PRISMA = Boolean(process.env.DATABASE_URL?.trim());
 const CAN_USE_LOCAL_FILE_FALLBACK =
@@ -248,6 +251,7 @@ async function readCatalogSnapshotFromPrisma(): Promise<CatalogSnapshot> {
         take: 1,
       },
       songs: {
+        where: { createdAt: { gte: LIBRARY_RESET_AT } },
         include: {
           milestones: {
             where: { isActive: true },
